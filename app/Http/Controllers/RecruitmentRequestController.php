@@ -10,12 +10,15 @@ use App\Models\Position;
 use App\Models\Project;
 use App\Models\RecruitmentCandidate;
 use App\Models\RecruitmentRequest;
+use App\Models\RecruitmentSession;
 use App\Models\User;
 use App\Services\RecruitmentLetterNumberService;
+use App\Services\RecruitmentSessionService;
 use App\Support\UserProject;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -25,9 +28,14 @@ class RecruitmentRequestController extends Controller
 {
     protected $letterNumberService;
 
-    public function __construct(RecruitmentLetterNumberService $letterNumberService)
-    {
+    protected $sessionService;
+
+    public function __construct(
+        RecruitmentLetterNumberService $letterNumberService,
+        RecruitmentSessionService $sessionService
+    ) {
         $this->letterNumberService = $letterNumberService;
+        $this->sessionService = $sessionService;
         $this->middleware('permission:recruitment-requests.show')->only('index', 'show', 'getRecruitmentRequests', 'getFPTKData');
         $this->middleware('permission:recruitment-requests.create')->only('create', 'store');
         $this->middleware('permission:recruitment-requests.edit')->only('edit', 'update', 'updateApprovers', 'acknowledge', 'approveByPM', 'approveByDirector', 'approve', 'reject', 'assignLetterNumber');
@@ -40,7 +48,9 @@ class RecruitmentRequestController extends Controller
             'myRequestsData',
             'myRequestsShow',
             'myRequestsCandidate',
-            'myRequestsCandidateCv'
+            'myRequestsCandidateCv',
+            'myRequestsSession',
+            'myRequestsUpdateCvReview'
         );
         $this->middleware('permission:personal.recruitment.create-own')->only('myRequestsCreate', 'myRequestsStore');
         $this->middleware('permission:personal.recruitment.edit-own')->only('myRequestsEdit', 'myRequestsUpdate', 'print');
@@ -1989,6 +1999,103 @@ class RecruitmentRequestController extends Controller
     }
 
     /**
+     * Session detail from my-request (CV Review allowed; other stages read-only).
+     */
+    public function myRequestsSession($id, $sessionId)
+    {
+        $this->authorize('personal.recruitment.view-own');
+
+        [$fptk, $session] = $this->resolveMyRequestSession($id, $sessionId);
+
+        $title = 'My Recruitment Requests';
+        $subtitle = 'Session Details: '.$session->session_number;
+        $timeline = $this->sessionService->getSessionTimeline($session->id);
+        $progressPercentage = $this->sessionService->getProgressPercentage($session);
+        $isPersonalView = true;
+
+        return view('recruitment.sessions.show-session', compact(
+            'session',
+            'timeline',
+            'progressPercentage',
+            'title',
+            'subtitle',
+            'isPersonalView',
+            'fptk'
+        ));
+    }
+
+    /**
+     * Submit CV Review from my-request (same process as HR).
+     */
+    public function myRequestsUpdateCvReview(Request $request, $id, $sessionId)
+    {
+        $this->authorize('personal.recruitment.view-own');
+
+        try {
+            DB::beginTransaction();
+
+            [, $session] = $this->resolveMyRequestSession($id, $sessionId);
+
+            if ($session->isParentOnHold()) {
+                DB::rollBack();
+
+                return redirect()->route('recruitment.my-requests.show', $id)
+                    ->with('toast_error', $session->parentHoldBlockMessage());
+            }
+
+            $validator = Validator::make($request->all(), [
+                'decision' => 'required|in:recommended,not_recommended',
+                'notes' => 'required|string',
+                'reviewed_at' => 'required|date',
+            ]);
+
+            if ($validator->fails()) {
+                DB::rollBack();
+
+                return redirect()->route('recruitment.my-requests.show', $id)
+                    ->withErrors($validator)
+                    ->withInput();
+            }
+
+            if ($session->current_stage !== 'cv_review') {
+                DB::rollBack();
+
+                return redirect()->route('recruitment.my-requests.show', $id)
+                    ->with('toast_error', 'Session is not in CV review stage.');
+            }
+
+            $result = $this->sessionService->processCVReviewAssessment($session, $request->only([
+                'decision',
+                'notes',
+                'reviewed_at',
+            ]));
+
+            if (! ($result['success'] ?? false)) {
+                DB::rollBack();
+
+                return redirect()->route('recruitment.my-requests.show', $id)
+                    ->with('toast_error', $result['message'] ?? 'Failed to update CV review.');
+            }
+
+            DB::commit();
+
+            return redirect()->route('recruitment.my-requests.show', $id)
+                ->with('toast_success', $result['message']);
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update CV review from my-request', [
+                'fptk_id' => $id,
+                'session_id' => $sessionId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->route('recruitment.my-requests.show', $id)
+                ->with('toast_error', 'Failed to update CV review. Please try again.');
+        }
+    }
+
+    /**
      * Show the form for editing recruitment request (self-service)
      */
     public function myRequestsEdit($id)
@@ -2195,5 +2302,38 @@ class RecruitmentRequestController extends Controller
         }
 
         return $fptk->created_by === $user->id;
+    }
+
+    /**
+     * @return array{0: RecruitmentRequest, 1: RecruitmentSession}
+     */
+    private function resolveMyRequestSession($fptkId, $sessionId): array
+    {
+        $fptk = RecruitmentRequest::findOrFail($fptkId);
+        if (! $this->userCanAccessMyRecruitmentRequest($fptk)) {
+            abort(403, 'You do not have permission to view this recruitment request.');
+        }
+
+        $session = RecruitmentSession::with([
+            'fptk.department',
+            'fptk.position',
+            'fptk.project',
+            'fptk.level',
+            'fptk.createdBy',
+            'mppDetail.position.department',
+            'mppDetail.mpp.project',
+            'mppDetail.mpp.creator',
+            'candidate',
+            'cvReview',
+            'psikotes',
+            'tesTeori',
+            'interviews',
+            'offering',
+            'mcu',
+            'hiring.employee',
+            'documents',
+        ])->where('fptk_id', $fptkId)->findOrFail($sessionId);
+
+        return [$fptk, $session];
     }
 }

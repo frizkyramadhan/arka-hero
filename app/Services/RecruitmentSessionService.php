@@ -413,7 +413,7 @@ class RecruitmentSessionService
      * @param array $assessmentData
      * @return array
      */
-    protected function processCVReviewAssessment(RecruitmentSession $session, array $assessmentData): array
+    public function processCVReviewAssessment(RecruitmentSession $session, array $assessmentData): array
     {
         $decision = $assessmentData['decision'] ?? null;
 

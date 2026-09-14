@@ -425,7 +425,7 @@ class TelegramFuelBotHandler
         if (! $this->parser->isConfigured()) {
             $submission->update([
                 'status' => FuelBotSubmission::STATUS_FAILED,
-                'error_message' => 'OpenRouter not configured',
+                'error_message' => 'Receipt AI not configured (driver '.$this->parser->driver().')',
             ]);
             $this->telegram->sendMessage($chatId, 'AI belum dikonfigurasi di server. Hubungi admin IT.');
 

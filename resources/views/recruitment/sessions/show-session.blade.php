@@ -59,7 +59,7 @@
                                 class="btn btn-sm btn-light ml-2 fptk-view-employee-btn">
                                 <i class="fas fa-user"></i> View Employee
                             </a>
-                        @else
+                        @elseif (!($isPersonalView ?? false))
                             <span class="badge badge-warning ml-2">
                                 <i class="fas fa-exclamation-triangle"></i> Employee not registered
                             </span>
@@ -276,6 +276,17 @@
 
                                     $stageEditability[$stageKey] = $editable;
                                     $stageLockReasons[$stageKey] = $lockReason;
+                                }
+
+                                // My-request users may only submit CV Review; other stages stay read-only.
+                                if ($isPersonalView ?? false) {
+                                    foreach ($stageEditability as $stageKey => $editable) {
+                                        if ($stageKey !== 'cv_review') {
+                                            $stageEditability[$stageKey] = false;
+                                            $stageLockReasons[$stageKey] =
+                                                'Only CV Review can be updated from My Requests.';
+                                        }
+                                    }
                                 }
                             @endphp
                             <div class="timeline-horizontal">
@@ -633,7 +644,12 @@
                         </div>
                         <div class="card-body">
                             <div class="fptk-action-buttons">
-                                @if ($session->fptk_id)
+                                @if ($isPersonalView ?? false)
+                                    <a href="{{ route('recruitment.my-requests.show', $session->fptk_id) }}"
+                                        class="btn-action back-btn">
+                                        <i class="fas fa-arrow-left"></i> Back to FPTK
+                                    </a>
+                                @elseif ($session->fptk_id)
                                     <a href="{{ route('recruitment.sessions.show', $session->fptk->id) }}"
                                         class="btn-action back-btn">
                                         <i class="fas fa-arrow-left"></i> Back to Session
@@ -644,12 +660,14 @@
                                         <i class="fas fa-arrow-left"></i> Back to Session
                                     </a>
                                 @endif
-                                @can('recruitment-sessions.edit-stages')
-                                    <button class="btn-action transition-btn" data-toggle="modal"
-                                        data-target="#transitionStageModal">
-                                        <i class="fas fa-exchange-alt"></i> Transition Stage
-                                    </button>
-                                @endcan
+                                @unless ($isPersonalView ?? false)
+                                    @can('recruitment-sessions.edit-stages')
+                                        <button class="btn-action transition-btn" data-toggle="modal"
+                                            data-target="#transitionStageModal">
+                                            <i class="fas fa-exchange-alt"></i> Transition Stage
+                                        </button>
+                                    @endcan
+                                @endunless
                             </div>
                         </div>
                     </div>

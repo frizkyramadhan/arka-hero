@@ -724,6 +724,24 @@
                                                             <td class="text-center text-nowrap">
                                                                 @if(Request::is('recruitment/my-requests*'))
                                                                     @can('personal.recruitment.view-own')
+                                                                        @php
+                                                                            $canMyRequestCvReview = ! $skipStages
+                                                                                && $fptk->status !== 'on_hold'
+                                                                                && $session->current_stage === 'cv_review'
+                                                                                && ! in_array($session->stage_status, ['completed', 'failed'], true)
+                                                                                && ! in_array($session->status, ['rejected', 'hired', 'cancelled'], true);
+                                                                        @endphp
+                                                                        @if ($canMyRequestCvReview)
+                                                                            <button type="button"
+                                                                                class="btn btn-sm btn-warning my-request-cv-review-btn"
+                                                                                data-toggle="modal"
+                                                                                data-target="#myRequestCvReviewModal"
+                                                                                data-action="{{ route('recruitment.my-requests.session-cv-review', [$fptk->id, $session->id]) }}"
+                                                                                data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
+                                                                                title="CV Review">
+                                                                                <i class="fas fa-clipboard-check"></i>
+                                                                            </button>
+                                                                        @endif
                                                                         @if ($session->candidate)
                                                                             <a href="{{ route('recruitment.my-requests.candidate', [$fptk->id, $session->candidate->id]) }}"
                                                                                 class="btn btn-sm btn-primary"
@@ -883,6 +901,10 @@
             </div>
         @endif
     @endcan
+
+    @if (Request::is('recruitment/my-requests*') && ! $fptk->usesSimplifiedRecruitmentFlow())
+        @include('recruitment.requests.partials.my-request-cv-review-modal')
+    @endif
 
 @endsection
 
@@ -1636,4 +1658,116 @@
             }
         }
     </style>
+    @if (Request::is('recruitment/my-requests*') && ! $fptk->usesSimplifiedRecruitmentFlow())
+        <style>
+            #myRequestCvReviewModal .decision-buttons {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                align-items: center;
+            }
+
+            #myRequestCvReviewModal .decision-btn {
+                min-width: 120px;
+                padding: 12px 20px;
+                border-radius: 6px;
+                font-weight: 500;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                border: 2px solid;
+                background: white;
+            }
+
+            #myRequestCvReviewModal .decision-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+
+            #myRequestCvReviewModal .decision-btn.active.btn-outline-success {
+                background-color: #28a745 !important;
+                border-color: #28a745 !important;
+                color: #fff !important;
+            }
+
+            #myRequestCvReviewModal .decision-btn.active.btn-outline-danger {
+                background-color: #dc3545 !important;
+                border-color: #dc3545 !important;
+                color: #fff !important;
+            }
+        </style>
+    @endif
 @endsection
+
+@if (Request::is('recruitment/my-requests*') && ! $fptk->usesSimplifiedRecruitmentFlow())
+    @section('scripts')
+        <script>
+            $(function() {
+                var $modal = $('#myRequestCvReviewModal');
+                var $form = $('#myRequestCvReviewForm');
+                var $decision = $('#my_request_cv_review_decision');
+                var $notes = $('#my_request_cv_review_notes');
+                var $submit = $('#my_request_cv_review_submit');
+
+                function checkMyRequestCvForm() {
+                    var ok = $decision.val() !== '' && $notes.val().trim() !== '';
+                    $submit.prop('disabled', !ok);
+                    $submit.toggleClass('btn-primary', ok).toggleClass('btn-secondary', !ok);
+                }
+
+                function resetMyRequestCvForm() {
+                    $form[0].reset();
+                    $decision.val('');
+                    $('#my_request_cv_review_reviewed_at').val(@json(now()->format('Y-m-d\TH:i')));
+                    $modal.find('.my-request-cv-decision').removeClass('active');
+                    checkMyRequestCvForm();
+                }
+
+                $(document).on('click', '.my-request-cv-review-btn', function() {
+                    $form.attr('action', $(this).data('action'));
+                    $('#my_request_cv_review_candidate').text($(this).data('candidate-name'));
+                    resetMyRequestCvForm();
+                });
+
+                $modal.on('click', '.my-request-cv-decision', function() {
+                    $modal.find('.my-request-cv-decision').removeClass('active');
+                    $(this).addClass('active');
+                    $decision.val($(this).data('status'));
+                    checkMyRequestCvForm();
+                });
+
+                $notes.on('input', checkMyRequestCvForm);
+
+                $form.on('submit', function(e) {
+                    if (!$decision.val()) {
+                        e.preventDefault();
+                        if (typeof toast_error === 'function') {
+                            toast_error('Please select Recommended or Not Recommended.');
+                        }
+                        return;
+                    }
+                    var message = $form.data('confirm-message');
+                    e.preventDefault();
+                    if (typeof Swal !== 'undefined' && Swal.fire) {
+                        Swal.fire({
+                            title: 'Are you sure?',
+                            text: message,
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonText: 'Yes, submit',
+                            cancelButtonText: 'Cancel'
+                        }).then(function(result) {
+                            if (result.isConfirmed) {
+                                $form.off('submit').submit();
+                            }
+                        });
+                    } else if (confirm(message)) {
+                        $form.off('submit').submit();
+                    }
+                });
+            });
+        </script>
+    @endsection
+@endif
