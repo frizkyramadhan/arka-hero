@@ -10,7 +10,10 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <form method="POST" action="{{ route('recruitment.sessions.update-cv-review', $session->id) }}"
+            <form method="POST"
+                action="{{ ($isPersonalView ?? false)
+                    ? route('recruitment.my-requests.session-cv-review', [$session->fptk_id, $session->id])
+                    : route('recruitment.sessions.update-cv-review', $session->id) }}"
                 class="confirm-submit" data-confirm-message="Submit this decision? You cannot edit after submission.">
                 @csrf
                 <div class="modal-body">
@@ -59,6 +62,7 @@
     </div>
 </div>
 
+@unless ($isPersonalView ?? false)
 <!-- Psikotes Modal -->
 <div class="modal fade" id="psikotesModal">
     <div class="modal-dialog modal-lg">
@@ -836,3 +840,4 @@
         </div>
     </div>
 </div>
+@endunless

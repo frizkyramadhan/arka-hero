@@ -925,102 +925,39 @@ class RecruitmentSessionController extends Controller
         try {
             DB::beginTransaction();
 
-            // Find the session with relationships
-            $session = RecruitmentSession::with(['cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'mppDetail', 'fptk'])->findOrFail($sessionId);
+            $session = RecruitmentSession::with(['cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'mppDetail', 'fptk', 'candidate'])->findOrFail($sessionId);
 
             if ($blocked = $this->rejectIfParentOnHold($session)) {
                 return $blocked;
             }
 
-            // Validate request
             $request->validate([
                 'decision' => 'required|in:recommended,not_recommended',
                 'notes' => 'required|string',
                 'reviewed_at' => 'required|date',
             ]);
 
-            // Check if session is in CV review stage
             if ($session->current_stage !== 'cv_review') {
+                DB::rollBack();
+
                 return back()->with('toast_error', 'Session is not in CV review stage.');
             }
 
-            // Check if CV review already exists
-            $cvReview = $session->cvReview;
-            if (! $cvReview) {
-                // Create new CV review
-                $cvReview = new RecruitmentCvReview([
-                    'session_id' => $sessionId,
-                    'decision' => $request->decision,
-                    'notes' => $request->notes,
-                    'reviewed_by' => auth()->id(),
-                    'reviewed_at' => $request->reviewed_at,
-                ]);
-                $cvReview->save();
-            } else {
-                // Update existing CV review
-                $cvReview->update([
-                    'decision' => $request->decision,
-                    'notes' => $request->notes,
-                    'reviewed_by' => auth()->id(),
-                    'reviewed_at' => $request->reviewed_at,
-                ]);
+            $result = $this->sessionService->processCVReviewAssessment($session, $request->only([
+                'decision',
+                'notes',
+                'reviewed_at',
+            ]));
+
+            if (! ($result['success'] ?? false)) {
+                DB::rollBack();
+
+                return back()->with('toast_error', $result['message'] ?? 'Failed to update CV review.');
             }
 
-            // Update session stage based on decision
-            if ($request->decision === 'not_recommended') {
-                // Reject the session
-                $session->update([
-                    'stage_status' => 'failed',
-                    'stage_completed_at' => now(),
-                    'status' => 'rejected',
-                    'final_decision_date' => now(),
-                    'final_decision_by' => auth()->id(),
-                    'final_decision_notes' => 'CV Review: Not Recommended - '.$request->notes,
-                ]);
+            DB::commit();
 
-                // Update candidate global status
-                $session->candidate->updateGlobalStatus();
-
-                DB::commit();
-
-                return back()->with('toast_success', 'CV review completed. Candidate rejected due to not recommended CV review.');
-            } else {
-                // Reload session with fresh relationships after saving CV review
-                $session->refresh();
-                $session->load(['cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring']);
-
-                // Complete CV review stage and advance to next stage
-                $calculatedProgress = $session->calculateActualProgress();
-                $session->update([
-                    'stage_status' => 'completed',
-                    'stage_completed_at' => now(),
-                    'overall_progress' => $calculatedProgress,
-                ]);
-
-                // Automatically advance to next stage (psikotes)
-                $nextStage = $session->getNextStageAttribute();
-                if ($nextStage) {
-                    // Reload again before calculating progress for next stage
-                    $session->refresh();
-                    $session->load(['cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring']);
-
-                    $calculatedProgress = $session->calculateActualProgress();
-                    $session->update([
-                        'current_stage' => $nextStage,
-                        'stage_status' => 'pending',
-                        'stage_started_at' => now(),
-                        'overall_progress' => $calculatedProgress,
-                    ]);
-
-                    DB::commit();
-
-                    return back()->with('toast_success', 'CV review completed successfully. Candidate recommended and advanced to '.ucfirst($nextStage).' stage.');
-                } else {
-                    DB::commit();
-
-                    return back()->with('toast_success', 'CV review completed successfully. Candidate recommended.');
-                }
-            }
+            return back()->with('toast_success', $result['message']);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Failed to update CV review', [

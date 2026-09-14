@@ -787,6 +787,8 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get('/my-requests/{id}', [RecruitmentRequestController::class, 'myRequestsShow'])->name('my-requests.show');
         Route::get('/my-requests/{id}/candidate/{candidateId}', [RecruitmentRequestController::class, 'myRequestsCandidate'])->name('my-requests.candidate');
         Route::get('/my-requests/{id}/candidate/{candidateId}/cv', [RecruitmentRequestController::class, 'myRequestsCandidateCv'])->name('my-requests.candidate-cv');
+        Route::get('/my-requests/{id}/sessions/{sessionId}', [RecruitmentRequestController::class, 'myRequestsSession'])->name('my-requests.session');
+        Route::post('/my-requests/{id}/sessions/{sessionId}/cv-review', [RecruitmentRequestController::class, 'myRequestsUpdateCvReview'])->name('my-requests.session-cv-review');
         Route::get('/my-requests/{id}/edit', [RecruitmentRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
         Route::put('/my-requests/{id}', [RecruitmentRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
         Route::post('/my-requests/{id}/submit', [RecruitmentRequestController::class, 'submitForApproval'])->name('my-requests.submit');

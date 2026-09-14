@@ -3,11 +3,11 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | OpenRouter (vision receipt parsing)
+    | OpenRouter (cloud) — vision receipt parsing
     |--------------------------------------------------------------------------
     |
-    | Used by driver fuel log: photo of SPBU nota → structured JSON fields.
-    | Empty api_key disables AI path (manual entry still works).
+    | Used when RECEIPT_AI_DRIVER=openrouter (see config/receipt_ai.php).
+    | Empty api_key disables this driver; switch to local or use manual entry.
     |
     */
     'base_url' => env('OPENROUTER_BASE_URL', 'https://openrouter.ai/api/v1'),

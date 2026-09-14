@@ -55,6 +55,7 @@
         <label>Total</label>
         <input type="number" step="0.01" min="0" name="total_cost" id="total_cost{{ $idSuffix }}"
             class="form-control" value="{{ old('total_cost', $record->total_cost ?? '') }}">
+        <small class="text-muted">Dari Total Harga di nota (bukan qty × harga)</small>
     </div>
 </div>
 <div class="form-group">
