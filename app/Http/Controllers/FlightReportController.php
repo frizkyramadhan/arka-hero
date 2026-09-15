@@ -60,7 +60,7 @@ class FlightReportController extends Controller
         }
 
         $query = FlightRequestIssuanceDetail::query()
-            ->with(['issuance.businessPartner', 'employee.activeAdministration.project'])
+            ->with(['issuance.businessPartner', 'employee.activeAdministration.project', 'flightRequestDetail'])
             ->join('flight_request_issuances', 'flight_request_issuance_details.flight_request_issuance_id', '=', 'flight_request_issuances.id')
             ->join('flight_request_issuance', 'flight_request_issuances.id', '=', 'flight_request_issuance.flight_request_issuance_id')
             ->join('flight_requests', 'flight_request_issuance.flight_request_id', '=', 'flight_requests.id')
@@ -101,8 +101,8 @@ class FlightReportController extends Controller
                 'site' => $row['site'],
                 'rute' => $row['rute'],
                 'kode_booking' => $row['kode_booking'],
-                'departure' => $row['departure'],
-                'arrival' => $row['arrival'],
+                'flight_segment' => $row['flight_segment'],
+                'flight_date' => $row['flight_date'],
                 'advance_display' => $row['advance_display'],
                 'company_amount' => $row['company_amount'],
                 'tanggal_fr_masuk' => $row['tanggal_fr_masuk'],
@@ -138,7 +138,7 @@ class FlightReportController extends Controller
         }
 
         $query = FlightRequestIssuanceDetail::query()
-            ->with(['issuance.businessPartner', 'employee.activeAdministration.project'])
+            ->with(['issuance.businessPartner', 'employee.activeAdministration.project', 'flightRequestDetail'])
             ->join('flight_request_issuances', 'flight_request_issuance_details.flight_request_issuance_id', '=', 'flight_request_issuances.id')
             ->join('flight_request_issuance', 'flight_request_issuances.id', '=', 'flight_request_issuance.flight_request_issuance_id')
             ->join('flight_requests', 'flight_request_issuance.flight_request_id', '=', 'flight_requests.id')
@@ -173,8 +173,8 @@ class FlightReportController extends Controller
                 'Site' => $row['site'],
                 'Route' => $row['rute'],
                 'Booking Code' => $row['kode_booking'],
-                'Departure' => $row['departure'],
-                'Arrival' => $row['arrival'],
+                'Flight Segment' => $row['flight_segment'],
+                'Flight Date' => $row['flight_date'],
                 '151 (Advance)' => $row['advance_display'] !== '-' ? 'Rp '.$row['advance_display'] : '-',
                 '622 (Company)' => $row['company_amount'] !== '-' ? 'Rp '.$row['company_amount'] : '-',
                 'FR Request Date' => $row['tanggal_fr_masuk'],
@@ -205,7 +205,7 @@ class FlightReportController extends Controller
             public function headings(): array
             {
                 return [
-                    'No', 'Name', 'NIK', 'Site', 'Route', 'Booking Code', 'Departure', 'Arrival',
+                    'No', 'Name', 'NIK', 'Site', 'Route', 'Booking Code', 'Flight Segment', 'Flight Date',
                     '151 (Advance)', '622 (Company)', 'FR Request Date', 'Issued Date', 'Target',
                     'No. LG', 'Vendor', 'Price', 'Service Charge', 'Total',
                 ];
@@ -222,20 +222,17 @@ class FlightReportController extends Controller
             $no = $startIndex + $index;
             $issuance = $detail->issuance;
             $fr = isset($detail->flight_request_id) ? ($flightRequests[$detail->flight_request_id] ?? null) : null;
-
-            $depSegment = $fr ? $fr->details->where('segment_type', 'departure')->sortBy('segment_order')->first() : null;
-            $retSegment = $fr ? $fr->details->where('segment_type', 'return')->sortBy('segment_order')->first() : null;
+            $fallbackSegments = $fr ? $fr->details : collect();
+            $segment = $detail->resolveFlightSegment($fallbackSegments);
 
             $rute = '-';
-            if ($depSegment) {
-                $rute = trim($depSegment->departure_city.' '.$depSegment->arrival_city);
-                if ($retSegment) {
-                    $rute .= ' / '.trim($retSegment->departure_city.' '.$retSegment->arrival_city);
-                }
+            $flightSegmentLabel = '-';
+            $flightDateDisplay = '-';
+            if ($segment) {
+                $rute = trim(($segment->departure_city ?? '').' '.($segment->arrival_city ?? '')) ?: '-';
+                $flightSegmentLabel = $segment->typeLabel();
+                $flightDateDisplay = $segment->flight_date ? $segment->flight_date->format('j-M-y') : '-';
             }
-
-            $depDate = $depSegment && $depSegment->flight_date ? $depSegment->flight_date->format('j-M-y') : '-';
-            $arrDate = $retSegment && $retSegment->flight_date ? $retSegment->flight_date->format('j-M-y') : $depDate;
 
             $tanggalFrMasuk = $fr && $fr->requested_at ? $fr->requested_at->format('d/m/Y') : '-';
             $tanggalIssued = $issuance->issued_date ? $issuance->issued_date->format('d/m/Y') : '-';
@@ -278,8 +275,8 @@ class FlightReportController extends Controller
                 'site' => $site,
                 'rute' => $rute,
                 'kode_booking' => $detail->booking_code ?? '-',
-                'departure' => $depDate,
-                'arrival' => $arrDate,
+                'flight_segment' => $flightSegmentLabel,
+                'flight_date' => $flightDateDisplay,
                 'company_amount' => $companyFormatted,
                 'advance_display' => $advanceFormatted,
                 'tanggal_fr_masuk' => $tanggalFrMasuk,

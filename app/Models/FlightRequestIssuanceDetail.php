@@ -41,12 +41,38 @@ class FlightRequestIssuanceDetail extends Model
         return $this->belongsTo(FlightRequestIssuance::class, 'flight_request_issuance_id');
     }
 
+    /** Linked FRF flight segment (Departure / Return). */
+    public function flightRequestDetail()
+    {
+        return $this->belongsTo(FlightRequestDetail::class, 'flight_request_detail_id');
+    }
+
     /**
      * Employee (passenger) - linked for taking name from employees joined with administration active.
      */
     public function employee()
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * Resolve flight segment for this ticket: explicit link first, then order fallback on FR segments.
+     *
+     * @param  \Illuminate\Support\Collection<int, FlightRequestDetail>|null  $fallbackSegments
+     */
+    public function resolveFlightSegment($fallbackSegments = null): ?FlightRequestDetail
+    {
+        if ($this->flightRequestDetail) {
+            return $this->flightRequestDetail;
+        }
+
+        if ($fallbackSegments === null || $fallbackSegments->isEmpty()) {
+            return null;
+        }
+
+        $ordered = $fallbackSegments->sortBy('segment_order')->values();
+
+        return $ordered->get(max(0, (int) $this->ticket_order - 1)) ?? $ordered->first();
     }
 
     // Scopes

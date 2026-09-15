@@ -262,6 +262,11 @@
                                                             class="form-control" value="{{ $detail->booking_code }}">
                                                     </div>
                                                 </div>
+                                                @include('flight-issuances.partials.flight-segment-select', [
+                                                    'index' => $index,
+                                                    'selected' => $detail->flight_request_detail_id,
+                                                    'flightSegments' => $flightSegments,
+                                                ])
                                                 <div class="col-md-6">
                                                     <div class="form-group">
                                                         <label><i class="fas fa-info-circle mr-1"></i> Detail
@@ -620,6 +625,19 @@
     <script>
         let ticketIndex = {{ $issuance->issuanceDetails->count() }};
         const employeesForSelect = @json($employees->map(fn($e) => ['id' => $e->id, 'nik' => $e->activeAdministration->nik ?? '-', 'fullname' => $e->fullname])->values());
+        const flightSegmentsForSelect = @json(($flightSegments ?? collect())->values());
+
+        function flightSegmentOptionsHtml(selectedId) {
+            let html = '<option value="">— Select Flight Segment —</option>';
+            (flightSegmentsForSelect || []).forEach(function(seg) {
+                const sel = selectedId && String(selectedId) === String(seg.id) ? ' selected' : '';
+                const reservation = $('<div>').text(seg.reservation_text || '').html();
+                const label = $('<div>').text(seg.label || '').html();
+                html += '<option value="' + seg.id + '" data-reservation="' + reservation + '"' + sel + '>' +
+                    label + '</option>';
+            });
+            return html;
+        }
 
         $(document).ready(function() {
             $('.select2bs4').select2({
@@ -629,6 +647,11 @@
 
             $('#addTicketDetail').click(function() {
                 addTicketDetail();
+            });
+
+            $(document).on('change', '.flight-segment-select', function() {
+                var text = $(this).find('option:selected').attr('data-reservation') || '';
+                $(this).closest('.ticket-detail-item').find('textarea[name*="[detail_reservation]"]').val(text);
             });
 
             // Setelah Select2 init: sembunyikan input manual jika passenger dari employee (Manual tidak dicentang)
@@ -699,6 +722,14 @@
                             <div class="form-group">
                                 <label><i class="fas fa-barcode mr-1"></i> Booking Code</label>
                                 <input type="text" name="details[${ticketIndex}][booking_code]" class="form-control">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label><i class="fas fa-route mr-1"></i> Flight Segment <span class="text-danger">*</span></label>
+                                <select name="details[${ticketIndex}][flight_request_detail_id]" class="form-control flight-segment-select" required>
+                                    ${flightSegmentOptionsHtml()}
+                                </select>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -791,6 +822,8 @@
                     `details[${index}][passenger_name]`);
                 $(this).find('input[name*="[booking_code]"]').attr('name',
                     `details[${index}][booking_code]`);
+                $(this).find('select[name*="[flight_request_detail_id]"]').attr('name',
+                    `details[${index}][flight_request_detail_id]`);
                 $(this).find('textarea[name*="[detail_reservation]"]').attr('name',
                     `details[${index}][detail_reservation]`);
                 $(this).find('input[name*="[ticket_price]"]').attr('name',

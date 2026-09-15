@@ -1243,6 +1243,7 @@
                                                         <th class="text-center" style="width: 5%;">No</th>
                                                         <th>Passenger Name</th>
                                                         <th>Booking Code</th>
+                                                        <th>Flight Segment</th>
                                                         <th>Detail Reservation</th>
                                                         <th class="text-right">Ticket Price</th>
                                                     </tr>
@@ -1253,6 +1254,7 @@
                                                             <td class="text-center">{{ $detail->ticket_order }}</td>
                                                             <td>{{ $detail->resolved_passenger_name ?? '-' }}</td>
                                                             <td>{{ $detail->booking_code ?? '-' }}</td>
+                                                            <td>{{ $detail->flightRequestDetail?->optionLabel() ?? '-' }}</td>
                                                             <td>{{ $detail->detail_reservation ?? '-' }}</td>
                                                             <td class="text-right">Rp
                                                                 {{ $detail->ticket_price ? number_format($detail->ticket_price, 0, ',', '.') : '-' }}

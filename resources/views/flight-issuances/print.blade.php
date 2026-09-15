@@ -313,13 +313,6 @@
 
             <!-- Ticket Details -->
             <div class="ticket-details">
-                @php
-                    $flightRequest = $issuance->flightRequests->first();
-                    $flightDetails =
-                        $flightRequest && $flightRequest->details
-                            ? $flightRequest->details->sortBy(['segment_order', 'flight_date'])->values()
-                            : collect();
-                @endphp
                 @foreach ($issuance->issuanceDetails as $index => $detail)
                     <div class="ticket-item">
                         <div class="ticket-field">
@@ -327,39 +320,22 @@
                             <span class="ticket-value">: {{ $detail->booking_code ?? '-' }}</span>
                         </div>
                         @php
-                            // Try to get flight detail by index (ticket order - 1) or use detail_reservation
-                            $flightDetail = $flightDetails->get($index) ?? null;
-                            $detailReservation = $detail->detail_reservation;
+                            $segment = $detail->resolveFlightSegment(
+                                $issuance->flightRequests->flatMap->details
+                            );
+                            $detailReservation = $detail->detail_reservation
+                                ?: ($segment ? $segment->reservationText() : null);
                         @endphp
+                        <div class="ticket-field">
+                            <span class="ticket-label">FLIGHT SEGMENT</span>
+                            <span class="ticket-value">:
+                                {{ $segment ? strtoupper($segment->typeLabel()) : '-' }}
+                            </span>
+                        </div>
                         <div class="ticket-field">
                             <span class="ticket-label">DETAIL RESERVASI</span>
                             <span class="ticket-value">:
-                                @if ($detailReservation)
-                                    {{ $detailReservation }}
-                                @elseif ($flightDetail && $flightDetail->flight_date)
-                                    @php
-                                        $departure = strtoupper($flightDetail->departure_city ?? '');
-                                        $arrival = strtoupper($flightDetail->arrival_city ?? '');
-                                        // Get airport codes - use first 3 letters uppercase
-                                        $depCode =
-                                            strlen($departure) >= 3
-                                                ? strtoupper(substr($departure, 0, 3))
-                                                : strtoupper($departure);
-                                        $arrCode =
-                                            strlen($arrival) >= 3
-                                                ? strtoupper(substr($arrival, 0, 3))
-                                                : strtoupper($arrival);
-                                        // Format: 06 JAN 2026 (bulan uppercase)
-                                        $dateStr = strtoupper($flightDetail->flight_date->format('d M Y'));
-                                        $timeStr = $flightDetail->flight_time
-                                            ? \Carbon\Carbon::parse($flightDetail->flight_time)->format('H.i')
-                                            : '-';
-                                    @endphp
-                                    {{ $dateStr }} // {{ $depCode }} {{ $arrCode }} //
-                                    {{ $timeStr }}
-                                @else
-                                    -
-                                @endif
+                                {{ $detailReservation ?: '-' }}
                             </span>
                         </div>
                         <div class="ticket-field">

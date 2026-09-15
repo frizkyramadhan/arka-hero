@@ -106,8 +106,8 @@
                                     <th class="text-center align-middle bg-light">Site</th>
                                     <th class="align-middle bg-light">Route</th>
                                     <th class="align-middle bg-light">Booking Code</th>
-                                    <th class="text-center align-middle bg-light">Departure</th>
-                                    <th class="text-center align-middle bg-light">Arrival</th>
+                                    <th class="text-center align-middle bg-light">Flight Segment</th>
+                                    <th class="text-center align-middle bg-light">Flight Date</th>
                                     <th class="text-center report-currency-col align-middle bg-light">622 (Company)</th>
                                     <th class="text-center report-currency-col align-middle bg-light">151 (Advance)</th>
                                     <th class="text-center align-middle bg-light">FR Request Date</th>
@@ -250,13 +250,13 @@
                         name: 'kode_booking'
                     },
                     {
-                        data: 'departure',
-                        name: 'departure',
+                        data: 'flight_segment',
+                        name: 'flight_segment',
                         className: 'text-center'
                     },
                     {
-                        data: 'arrival',
-                        name: 'arrival',
+                        data: 'flight_date',
+                        name: 'flight_date',
                         className: 'text-center'
                     },
                     {

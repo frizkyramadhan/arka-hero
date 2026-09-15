@@ -6,10 +6,12 @@ use App\Models\ApprovalPlan;
 use App\Models\BusinessPartner;
 use App\Models\Employee;
 use App\Models\FlightRequest;
+use App\Models\FlightRequestDetail;
 use App\Models\FlightRequestIssuance;
 use App\Models\FlightRequestIssuanceDetail;
 use App\Models\LetterNumber;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -211,7 +213,9 @@ class FlightRequestIssuanceController extends Controller
             ->orderBy('fullname')
             ->get();
 
-        return view('flight-issuances.create', compact('flightRequests', 'businessPartners', 'letterNumbers', 'employees', 'title'));
+        $flightSegments = $this->buildFlightSegments($flightRequests);
+
+        return view('flight-issuances.create', compact('flightRequests', 'businessPartners', 'letterNumbers', 'employees', 'title', 'flightSegments'));
     }
 
     /**
@@ -237,6 +241,7 @@ class FlightRequestIssuanceController extends Controller
             'manual_approvers.*' => 'exists:users,id',
             'details' => 'required|array|min:1|max:100',
             'details.*.ticket_order' => 'required|integer|min:1',
+            'details.*.flight_request_detail_id' => 'required|exists:flight_request_details,id',
             'details.*.booking_code' => 'nullable|string|max:50',
             'details.*.detail_reservation' => 'nullable|string',
             'details.*.passenger_manual' => 'nullable|in:0,1',
@@ -258,6 +263,8 @@ class FlightRequestIssuanceController extends Controller
                 throw ValidationException::withMessages(["details.{$i}.employee_id" => ['Please select an employee when not using manual name.']]);
             }
         }
+
+        $this->assertFlightSegmentsBelongToRequests($validated['details'], $validated['flight_request_ids']);
 
         // Get all flight requests
         $flightRequests = FlightRequest::whereIn('id', $validated['flight_request_ids'])->get();
@@ -306,6 +313,7 @@ class FlightRequestIssuanceController extends Controller
                 FlightRequestIssuanceDetail::create([
                     'flight_request_issuance_id' => $issuance->id,
                     'ticket_order' => $detail['ticket_order'],
+                    'flight_request_detail_id' => $detail['flight_request_detail_id'],
                     'booking_code' => $detail['booking_code'] ?? null,
                     'detail_reservation' => $detail['detail_reservation'] ?? null,
                     'employee_id' => $manual ? null : ($detail['employee_id'] ?? null),
@@ -357,6 +365,7 @@ class FlightRequestIssuanceController extends Controller
             'issuedBy',
             'letterNumber',
             'issuanceDetails.employee',
+            'issuanceDetails.flightRequestDetail',
         ])->findOrFail($id);
 
         return view('flight-issuances.show', compact('issuance', 'title'));
@@ -384,8 +393,9 @@ class FlightRequestIssuanceController extends Controller
             ->whereHas('administrations', fn ($q) => $q->where('is_active', 1))
             ->orderBy('fullname')
             ->get();
+        $flightSegments = $this->buildFlightSegments($flightRequests);
 
-        return view('flight-issuances.edit', compact('issuance', 'businessPartners', 'letterNumbers', 'employees', 'title', 'flightRequests'));
+        return view('flight-issuances.edit', compact('issuance', 'businessPartners', 'letterNumbers', 'employees', 'title', 'flightRequests', 'flightSegments'));
     }
 
     /**
@@ -406,6 +416,7 @@ class FlightRequestIssuanceController extends Controller
             'details' => 'required|array|min:1|max:100',
             'details.*.id' => 'nullable|exists:flight_request_issuance_details,id',
             'details.*.ticket_order' => 'required|integer|min:1',
+            'details.*.flight_request_detail_id' => 'required|exists:flight_request_details,id',
             'details.*.booking_code' => 'nullable|string|max:50',
             'details.*.detail_reservation' => 'nullable|string',
             'details.*.passenger_manual' => 'nullable|in:0,1',
@@ -427,6 +438,9 @@ class FlightRequestIssuanceController extends Controller
                 throw ValidationException::withMessages(["details.{$i}.employee_id" => ['Please select an employee when not using manual name.']]);
             }
         }
+
+        $linkedFrIds = $issuance->flightRequests()->pluck('flight_requests.id')->all();
+        $this->assertFlightSegmentsBelongToRequests($validated['details'], $linkedFrIds);
 
         DB::beginTransaction();
         try {
@@ -484,6 +498,7 @@ class FlightRequestIssuanceController extends Controller
                         $manual = ! empty($detail['passenger_manual']);
                         $existingDetail->update([
                             'ticket_order' => $detail['ticket_order'],
+                            'flight_request_detail_id' => $detail['flight_request_detail_id'],
                             'booking_code' => $detail['booking_code'] ?? null,
                             'detail_reservation' => $detail['detail_reservation'] ?? null,
                             'employee_id' => $manual ? null : ($detail['employee_id'] ?? null),
@@ -502,6 +517,7 @@ class FlightRequestIssuanceController extends Controller
                     $newDetail = FlightRequestIssuanceDetail::create([
                         'flight_request_issuance_id' => $issuance->id,
                         'ticket_order' => $detail['ticket_order'],
+                        'flight_request_detail_id' => $detail['flight_request_detail_id'],
                         'booking_code' => $detail['booking_code'] ?? null,
                         'detail_reservation' => $detail['detail_reservation'] ?? null,
                         'employee_id' => $manual ? null : ($detail['employee_id'] ?? null),
@@ -620,9 +636,49 @@ class FlightRequestIssuanceController extends Controller
             'businessPartner',
             'issuedBy',
             'issuanceDetails.employee',
+            'issuanceDetails.flightRequestDetail',
         ])->findOrFail($id);
 
         return view('flight-issuances.print', compact('issuance'));
+    }
+
+    /**
+     * Flatten Departure/Return flight segments from linked FRFs for LG ticket forms.
+     *
+     * @param  Collection<int, FlightRequest>|iterable  $flightRequests
+     * @return Collection<int, array{id: string, label: string, reservation_text: string}>
+     */
+    protected function buildFlightSegments($flightRequests): Collection
+    {
+        return collect($flightRequests)->flatMap(function (FlightRequest $fr) {
+            return $fr->details->sortBy('segment_order')->map(fn (FlightRequestDetail $d) => [
+                'id' => $d->id,
+                'label' => $d->optionLabel($fr->form_number),
+                'reservation_text' => $d->reservationText(),
+            ]);
+        })->values();
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $details
+     * @param  array<int, string>  $flightRequestIds
+     */
+    protected function assertFlightSegmentsBelongToRequests(array $details, array $flightRequestIds): void
+    {
+        $allowed = FlightRequestDetail::whereIn('flight_request_id', $flightRequestIds)
+            ->pluck('id')
+            ->all();
+
+        foreach ($details as $i => $detail) {
+            $segmentId = $detail['flight_request_detail_id'] ?? null;
+            if (! $segmentId || ! in_array($segmentId, $allowed, true)) {
+                throw ValidationException::withMessages([
+                    "details.{$i}.flight_request_detail_id" => [
+                        'Please select a valid Flight Segment from the linked Flight Request(s).',
+                    ],
+                ]);
+            }
+        }
     }
 
     /**
