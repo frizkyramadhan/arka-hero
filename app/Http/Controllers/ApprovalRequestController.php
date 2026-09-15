@@ -54,6 +54,7 @@ class ApprovalRequestController extends Controller
                 'flightRequestIssuance.issuedBy',
                 'flightRequestIssuance.businessPartner',
                 'flightRequestIssuance.issuanceDetails.employee',
+                'flightRequestIssuance.issuanceDetails.flightRequestDetail',
                 'overtimeRequest.project',
                 'overtimeRequest.requestedBy',
                 'overtimeRequest.details.administration.employee',

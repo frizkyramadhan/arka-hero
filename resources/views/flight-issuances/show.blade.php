@@ -116,6 +116,14 @@
                                                 <dl class="ticket-detail-card2-dl">
                                                     <dt>Booking Code</dt>
                                                     <dd>{{ $detail->booking_code ?? '-' }}</dd>
+                                                    <dt>Flight Segment</dt>
+                                                    <dd>
+                                                        @if ($detail->flightRequestDetail)
+                                                            {{ $detail->flightRequestDetail->optionLabel() }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </dd>
                                                     <dt>Detail Reservasi</dt>
                                                     <dd>{{ $detail->detail_reservation ?? '-' }}</dd>
                                                 </dl>

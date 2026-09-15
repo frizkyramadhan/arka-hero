@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: LG tickets link to FRF Flight Segment; report uses per-ticket Flight Segment + Flight Date [flight_request_detail_id, FlightReportController, LG create/edit/print] (completed: 2026-09-15)`
+
 -   `[done] P1: My-request CV Review inline modal on FPTK detail — dedicated button per candidate (no full session page) [requests/partials/my-request-cv-review-modal, requests/show] (completed: 2026-09-14)`
 
 -   `[done] P1: My-request CV Review — same process as HR via processCVReviewAssessment; personal session show + POST [RecruitmentRequestController::myRequestsSession/UpdateCvReview, show-session isPersonalView] (completed: 2026-09-14)`

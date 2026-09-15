@@ -1,5 +1,19 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-09-11
+**Last Updated**: 2026-09-15
+
+### [059] LG ticket ↔ FRF Flight Segment link (2026-09-15)
+
+**Problem**: Flight Management report used FRF Departure+Return dates for every LG ticket row. LG print matched FRF segments by ticket index only. Not accurate when tickets are Return-only or order ≠ FRF plan.
+
+**Fix (Option B)**:
+- Column `flight_request_issuance_details.flight_request_detail_id` (nullable FK).
+- LG create/edit: required **Flight Segment** dropdown (Departure/Return from linked FRFs); autofills Detail Reservation.
+- Report columns: **Flight Segment** + **Flight Date** (per ticket), not FRF pair.
+- LG print/show/approval show: display linked Flight Segment.
+
+**Ops**: `php artisan migrate` (local done; deploy needs `--force` on server).
+
+**Files**: migration `2026_09_15_163000_*`, `FlightRequestDetail`, `FlightRequestIssuanceDetail`, `FlightRequestIssuanceController`, `FlightReportController`, flight-issuances + flight-reports views.
 
 ### [055] FOA letter number cross-project duplicate (2026-09-11) ✅ FIXED
 
