@@ -166,6 +166,7 @@
             });
 
             const table = $('#meeting-rooms-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searching: false,

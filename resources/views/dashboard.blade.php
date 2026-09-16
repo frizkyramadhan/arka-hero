@@ -1063,6 +1063,7 @@
         $(function() {
             // Official Travel DataTables
             $('#pending-recommendations-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.pendingRecommendations') }}",
@@ -1102,6 +1103,7 @@
             });
 
             $('#pending-approvals-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.pendingApprovals') }}",
@@ -1143,6 +1145,7 @@
 
 
             $('#pending-arrivals-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.pendingArrivals') }}",
@@ -1182,6 +1185,7 @@
             });
 
             $('#pending-departures-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.pendingDepartures') }}",
@@ -1222,6 +1226,7 @@
 
             // Employee DataTables
             $('#employees-by-department-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.employeesByDepartment') }}",
@@ -1253,6 +1258,7 @@
             });
 
             $('#employees-by-project-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.employeesByProject') }}",

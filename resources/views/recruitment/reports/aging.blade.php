@@ -307,7 +307,6 @@
                         data: 'remarks'
                     }
                 ],
-                responsive: true,
                 pageLength: 10,
                 order: [
                     [5, 'desc']

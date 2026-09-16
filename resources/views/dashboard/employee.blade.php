@@ -875,6 +875,7 @@
 
             // Employee DataTables
             $('#employees-by-department-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.employeesByDepartment') }}",
@@ -906,6 +907,7 @@
             });
 
             $('#employees-by-project-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.employeesByProject') }}",

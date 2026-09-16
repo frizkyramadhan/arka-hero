@@ -136,6 +136,7 @@
     <script>
         $(function() {
             var table = $('#employees-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searchDelay: 500,

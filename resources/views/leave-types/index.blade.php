@@ -155,7 +155,7 @@
             });
 
             var table = $("#leave-types-table").DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 dom: 'rtip',
                 processing: true,

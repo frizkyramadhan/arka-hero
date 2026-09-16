@@ -168,7 +168,7 @@
     <script>
         $(function() {
             var table = $("#subjects-table").DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 lengthChange: true,
                 lengthMenu: [

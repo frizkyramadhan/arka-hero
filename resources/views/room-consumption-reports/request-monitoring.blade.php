@@ -152,6 +152,7 @@
             $('.select2bs4').select2({ theme: 'bootstrap4', width: '100%' });
 
             var table = $('#rcr-report-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searching: false,

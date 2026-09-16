@@ -1,5 +1,11 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-09-15
+**Last Updated**: 2026-09-16
+
+### [060] List tables: horizontal scroll, not Responsive hide (2026-09-16)
+
+**Need**: PWA/mobile must see every list column; DataTables `responsive: true` collapsed columns behind a child-row control.
+
+**Fix**: Force `scrollX: true` + `responsive: false` on every DataTable init (`public/assets/dist/js/datatables-scrollx.js`, survives pages that re-include DataTables). Blade list inits updated the same way. CSS nowrap + touch pan; Chart.js `responsive` left alone.
 
 ### [059] LG ticket ↔ FRF Flight Segment link (2026-09-15)
 

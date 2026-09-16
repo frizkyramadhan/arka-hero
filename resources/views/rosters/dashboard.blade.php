@@ -297,6 +297,7 @@
         $(document).ready(function() {
             // Employees Needing Balancing Table
             $('#employeesNeedingBalancingTable').DataTable({
+                scrollX: true,
                 data: @json($employeesNeedingBalancingData),
                 columns: [{
                         data: 'employee_name'
@@ -339,6 +340,7 @@
 
             // Recent Periodic Requests Table
             $('#recentPeriodicRequestsTable').DataTable({
+                scrollX: true,
                 data: @json($recentPeriodicRequestsData),
                 columns: [{
                         data: 'batch_id'
@@ -376,6 +378,7 @@
 
             // Project Statistics Table
             $('#projectStatisticsTable').DataTable({
+                scrollX: true,
                 pageLength: 10,
                 lengthMenu: [
                     [10, 25, 50],

@@ -208,7 +208,7 @@
                         data: 'notes'
                     }
                 ],
-                responsive: true,
+                scrollX: true,
                 pageLength: 25,
                 order: [
                     [5, 'desc']

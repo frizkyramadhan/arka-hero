@@ -181,6 +181,7 @@
 
             // Initialize DataTable
             var table = $('#approval-stages-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: {

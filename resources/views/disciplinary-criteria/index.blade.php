@@ -258,7 +258,7 @@
         });
 
         var table = $("#criteria-table").DataTable({
-            responsive: true,
+            scrollX: true,
             autoWidth: true,
             lengthChange: true,
             lengthMenu: [

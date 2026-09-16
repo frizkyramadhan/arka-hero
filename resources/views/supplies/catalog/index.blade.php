@@ -301,6 +301,7 @@
             });
 
             const table = $('#catalog-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searching: false,

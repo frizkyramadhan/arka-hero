@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: List tables keep all columns with horizontal scroll (not DataTables Responsive hide) for PWA/mobile [datatables-scrollx.js, layouts header/scripts, module index blades] (completed: 2026-09-16)`
+
 -   `[done] P1: LG tickets link to FRF Flight Segment; report uses per-ticket Flight Segment + Flight Date [flight_request_detail_id, FlightReportController, LG create/edit/print] (completed: 2026-09-15)`
 
 -   `[done] P1: My-request CV Review inline modal on FPTK detail — dedicated button per candidate (no full session page) [requests/partials/my-request-cv-review-modal, requests/show] (completed: 2026-09-14)`

@@ -155,7 +155,7 @@
             });
 
             var table = $("#my-disciplinary-table").DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 searching: false,
                 dom: 'rtip',

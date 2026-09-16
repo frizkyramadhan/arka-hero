@@ -110,7 +110,7 @@
           document.querySelector('.select2-search__field').focus();
         })
       }
-      , responsive: true
+      , scrollX: true
       , autoWidth: true
       , lengthChange: true
       , lengthMenu: [

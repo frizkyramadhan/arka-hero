@@ -107,6 +107,7 @@
             });
 
             $('#item-categories-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searching: false,

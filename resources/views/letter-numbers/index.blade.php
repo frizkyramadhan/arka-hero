@@ -553,6 +553,7 @@
 
             // Initialize DataTable
             var table = $("#letter-numbers-table").DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: {

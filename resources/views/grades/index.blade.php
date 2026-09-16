@@ -138,7 +138,7 @@
     <script>
         $(function() {
             var table = $("#grades-table").DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 lengthChange: true,
                 lengthMenu: [

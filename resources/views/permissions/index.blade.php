@@ -92,7 +92,7 @@
 <script>
   $(document).ready(function() {
     $('#permissions-table').DataTable({
-        responsive: true,
+        scrollX: true,
         autoWidth: true,
         lengthChange: true,
         lengthMenu: [

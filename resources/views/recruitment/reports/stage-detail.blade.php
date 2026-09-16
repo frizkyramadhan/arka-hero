@@ -175,7 +175,7 @@
                         data: 'remarks'
                     }
                 ],
-                responsive: true,
+                scrollX: true,
                 pageLength: 25,
                 order: [
                     [6, 'desc']
