@@ -28,6 +28,7 @@
 
     function initSuppliesReport(options) {
         const table = $('#report-table').DataTable({
+            scrollX: true,
             processing: true,
             serverSide: true,
             searching: false,

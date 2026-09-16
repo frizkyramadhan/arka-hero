@@ -42,6 +42,21 @@
                 border-radius: 0.25rem !important;
                 padding: 0.25em 0.4em !important;
             }
+
+            /* List tables: keep all columns, pan horizontally on mobile/PWA */
+            table.dataTable th,
+            table.dataTable td {
+                white-space: nowrap;
+            }
+            div.dataTables_wrapper {
+                width: 100%;
+            }
+            div.dataTables_scrollBody {
+                -webkit-overflow-scrolling: touch;
+            }
+            div.table-responsive:has(> .dataTables_wrapper) {
+                overflow-x: visible;
+            }
         </style>
 
     </head>

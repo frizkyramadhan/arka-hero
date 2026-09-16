@@ -489,7 +489,7 @@
                         [5, 'desc']
                     ],
                     pageLength: 25,
-                    responsive: true,
+                    scrollX: true,
                     drawCallback: function() {
                         // Update checkbox states
                         updateCheckboxStates();
@@ -554,7 +554,7 @@
                         [3, 'desc']
                     ],
                     pageLength: 10,
-                    responsive: true
+                    scrollX: true
                 });
             }
 

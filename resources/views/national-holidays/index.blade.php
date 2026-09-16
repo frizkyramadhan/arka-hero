@@ -255,7 +255,7 @@
             }
 
             var holidaysTable = $('#national-holidays-table').DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 processing: true,
                 serverSide: true,

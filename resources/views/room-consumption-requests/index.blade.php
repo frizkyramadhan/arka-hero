@@ -230,7 +230,7 @@
             });
 
             var table = $('#rcr-table').DataTable({
-                responsive: true,
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searching: false,

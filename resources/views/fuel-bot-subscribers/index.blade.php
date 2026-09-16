@@ -168,6 +168,7 @@
         });
 
         var table = $('#fuel-bot-subscribers-table').DataTable({
+            scrollX: true,
             processing: true,
             serverSide: true,
             searching: false,

@@ -501,6 +501,7 @@
 
             // Initialize DataTables (Client-side)
             $('#openLeaveRequestsTable').DataTable({
+                scrollX: true,
                 data: @json($openLeaveRequestsData),
                 columns: [{
                         data: 'employee_name'
@@ -529,6 +530,7 @@
             });
 
             $('#pendingCancellationsTable').DataTable({
+                scrollX: true,
                 data: @json($pendingCancellationsData),
                 columns: [{
                         data: 'employee_name'
@@ -557,6 +559,7 @@
             });
 
             $('#paidLeaveWithoutDocsTable').DataTable({
+                scrollX: true,
                 data: @json($paidLeaveWithoutDocsData),
                 columns: [{
                         data: 'employee_name'
@@ -591,6 +594,7 @@
             });
 
             $('#employeesWithoutEntitlementsTable').DataTable({
+                scrollX: true,
                 data: @json($employeesWithoutEntitlementsData),
                 columns: [{
                         data: 'employee_name'
@@ -625,6 +629,7 @@
             });
 
             $('#employeesWithExpiringEntitlementsTable').DataTable({
+                scrollX: true,
                 data: @json($employeesWithExpiringEntitlementsData),
                 columns: [{
                         data: 'employee_name'

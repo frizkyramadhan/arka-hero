@@ -99,7 +99,7 @@
     <script>
         $(document).ready(function() {
             $('#roles-datatable').DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 lengthChange: true,
                 lengthMenu: [

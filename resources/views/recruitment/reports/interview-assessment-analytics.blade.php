@@ -843,7 +843,7 @@
                         data: 'notes'
                     }
                 ],
-                responsive: true,
+                scrollX: true,
                 pageLength: 25,
                 order: [
                     [0, 'asc']

@@ -109,7 +109,7 @@
             });
 
             var table = $('#my-foa-table').DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 processing: true,
                 serverSide: true,

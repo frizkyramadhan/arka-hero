@@ -227,7 +227,7 @@
     <script>
         $(function() {
             var table = $("#example1").DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 lengthChange: true,
                 lengthMenu: [

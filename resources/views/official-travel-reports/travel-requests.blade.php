@@ -273,6 +273,7 @@
             }
 
             var table = $('#official-travel-report-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searching: false,

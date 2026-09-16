@@ -715,6 +715,7 @@
             // Arrivals
             if ($('#pending-arrivals-table').length) {
                 $('#pending-arrivals-table').DataTable({
+                    scrollX: true,
                     processing: true,
                     serverSide: true,
                     ajax: "{{ route('dashboard.pendingArrivals') }}",
@@ -757,6 +758,7 @@
             // Departures
             if ($('#pending-departures-table').length) {
                 $('#pending-departures-table').DataTable({
+                    scrollX: true,
                     processing: true,
                     serverSide: true,
                     ajax: "{{ route('dashboard.pendingDepartures') }}",

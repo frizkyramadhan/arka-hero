@@ -267,6 +267,7 @@
             }
 
             var table = $('#overtime-report-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searching: false,

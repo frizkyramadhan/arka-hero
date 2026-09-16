@@ -1034,6 +1034,7 @@
         $(document).ready(function() {
             // Initialize DataTables
             $('#categoriesTable').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.lettersByCategory') }}",
@@ -1063,6 +1064,7 @@
             });
 
             $('#recentLettersTable').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('dashboard.recentLetters') }}",

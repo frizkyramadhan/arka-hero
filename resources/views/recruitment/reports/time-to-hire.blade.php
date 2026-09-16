@@ -268,7 +268,7 @@
                         }
                     },
                     columns: columns,
-                    responsive: true,
+                    scrollX: true,
                     pageLength: 25,
                     order: [orderColumn, 'desc'],
                     language: {

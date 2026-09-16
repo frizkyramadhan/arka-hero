@@ -71,6 +71,7 @@
 <script>
     $(function() {
         $('#pending-fuel-table').DataTable({
+            scrollX: true,
             processing: true,
             serverSide: true,
             searching: false,

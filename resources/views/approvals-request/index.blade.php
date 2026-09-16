@@ -155,6 +155,7 @@
         $(document).ready(function() {
             // Initialize DataTable
             var table = $('#approval-requests-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: false,
                 ajax: "{{ route('approval.requests.data') }}",

@@ -1218,7 +1218,7 @@ graph LR
 ### JavaScript Architecture
 
 - **Core Library**: jQuery
-- **DataTables**: Server-side processing for large datasets
+- **DataTables**: Server-side processing for large datasets. List tables use `scrollX` (all columns visible, horizontal pan on mobile/PWA) instead of the Responsive extension that hides columns. Hook: `public/assets/dist/js/datatables-scrollx.js`.
 - **AJAX**: For dynamic content loading and form submissions
 - **Chart.js**: Dashboard visualizations
 - **Select2**: Enhanced select dropdowns with search

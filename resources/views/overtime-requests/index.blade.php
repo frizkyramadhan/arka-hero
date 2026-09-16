@@ -163,7 +163,7 @@
             });
 
             var table = $('#overtime-requests-table').DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 processing: true,
                 serverSide: true,

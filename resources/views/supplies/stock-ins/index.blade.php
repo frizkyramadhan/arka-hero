@@ -225,6 +225,7 @@
             }
             $('.select2bs4').select2({ theme: 'bootstrap4', width: '100%' });
             const table = $('#stock-ins-table').DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searching: false,

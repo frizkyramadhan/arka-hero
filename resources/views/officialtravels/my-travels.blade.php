@@ -172,7 +172,7 @@
             });
 
             var table = $('#official-travels-table').DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 dom: 'rtip',
                 processing: true,

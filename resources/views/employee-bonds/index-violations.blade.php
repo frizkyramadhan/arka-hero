@@ -232,7 +232,7 @@
 
             // Initialize DataTable
             var table = $("#violations-table").DataTable({
-                responsive: true,
+                scrollX: true,
                 autoWidth: true,
                 dom: 'rtip',
                 processing: true,

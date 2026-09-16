@@ -273,6 +273,7 @@
         }
 
         var table = $('#vehicles-table').DataTable({
+            scrollX: true,
             processing: true,
             serverSide: true,
             searching: false,

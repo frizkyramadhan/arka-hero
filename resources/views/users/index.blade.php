@@ -378,6 +378,7 @@
             });
 
             var table = $("#example1").DataTable({
+                scrollX: true,
                 processing: true,
                 serverSide: true,
                 searchDelay: 500, // Add delay for search input to prevent rapid requests
@@ -523,7 +524,7 @@
 
         // Initialize DataTables for Roles Overview
         $('#roles-overview-table').DataTable({
-            responsive: true,
+            scrollX: true,
             autoWidth: false,
             lengthChange: true,
             lengthMenu: [
@@ -540,7 +541,7 @@
 
         // Initialize DataTables for Permissions Overview
         $('#permissions-overview-table').DataTable({
-            responsive: true,
+            scrollX: true,
             autoWidth: false,
             lengthChange: true,
             lengthMenu: [
