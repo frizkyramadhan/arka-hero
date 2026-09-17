@@ -109,6 +109,40 @@ class EmployeeApiController extends Controller
     }
 
     /**
+     * Active employees: NIK, fullname, and gender for external matching.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function genders()
+    {
+        try {
+            $administrations = Administration::query()
+                ->where('is_active', 1)
+                ->whereHas('employee')
+                ->with(['employee:id,fullname,gender'])
+                ->get(['id', 'nik', 'employee_id']);
+
+            $data = $administrations->map(function ($administration) {
+                return [
+                    'nik' => (string) $administration->nik,
+                    'fullname' => $administration->employee->fullname,
+                    'gender' => $administration->employee->gender,
+                ];
+            })->values();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $data,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Display all administrations for an employee.
      *
      * @param  int  $id

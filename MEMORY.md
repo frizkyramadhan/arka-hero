@@ -46,9 +46,9 @@
 
 **Ops**: Deploy + `php artisan migrate --force` on arka-docker so HO can save reserved FOA4964 alongside APS issued FOA4964.
 
-### [058] Receipt AI: OpenRouter vs local LLM drivers (2026-09-11)
+### [058] Receipt AI: openrouter | local | 9router (2026-09-17)
 
-Fuel log AI (UI + Telegram) selects provider via `RECEIPT_AI_DRIVER=openrouter|local`. OpenRouter stays on `OPENROUTER_*` / `config/openrouter.php`. Local OpenAI-compatible LLM uses `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_API_KEY`, `LOCAL_LLM_MODEL`, `LOCAL_LLM_TIMEOUT` / `config/receipt_ai.php`. Parser: `OpenRouterReceiptParser::connection()`.
+Fuel log AI (UI + Telegram) selects provider via `RECEIPT_AI_DRIVER=openrouter|local|9router`. OpenRouter: `OPENROUTER_*` / `config/openrouter.php`. Local LLM: `LOCAL_LLM_*` / `config/receipt_ai.php` key `local`. 9router: `NINEROUTER_*` / key `9router`. Parser: `OpenRouterReceiptParser::connection()`. All three of base_url/api_key/model must be set or parse is skipped. 9router defaults to SSE; parser always sends `stream: false`.
 
 ### [056] PDO MYSQL_ATTR_SSL_CA PHP 8.5 deprecation (2026-09-11)
 

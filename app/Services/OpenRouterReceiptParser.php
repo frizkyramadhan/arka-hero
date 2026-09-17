@@ -20,27 +20,29 @@ class OpenRouterReceiptParser
     {
         $driver = strtolower(trim((string) config('receipt_ai.driver', 'openrouter')));
 
-        return in_array($driver, ['openrouter', 'local'], true) ? $driver : 'openrouter';
+        return in_array($driver, ['openrouter', 'local', '9router'], true) ? $driver : 'openrouter';
     }
 
     /**
-     * Active OpenAI-compatible connection (OpenRouter cloud or local LLM).
+     * Active OpenAI-compatible connection (OpenRouter, local LLM, or 9router).
      *
      * @return array{driver: string, base_url: string, api_key: string, model: string, timeout: int, headers: array<string, string>}
      */
     public function connection(): array
     {
-        if ($this->driver() === 'local') {
-            $local = config('receipt_ai.local', []);
+        $driver = $this->driver();
+
+        if ($driver === 'local' || $driver === '9router') {
+            $cfg = config('receipt_ai.'.$driver, []);
 
             return [
-                'driver' => 'local',
-                'base_url' => rtrim((string) ($local['base_url'] ?? ''), '/'),
-                'api_key' => (string) ($local['api_key'] ?? ''),
-                'model' => (string) ($local['model'] ?? ''),
-                'timeout' => (int) ($local['timeout'] ?? 120),
+                'driver' => $driver,
+                'base_url' => rtrim((string) ($cfg['base_url'] ?? ''), '/'),
+                'api_key' => (string) ($cfg['api_key'] ?? ''),
+                'model' => (string) ($cfg['model'] ?? ''),
+                'timeout' => (int) ($cfg['timeout'] ?? 120),
                 'headers' => [
-                    'Authorization' => 'Bearer '.($local['api_key'] ?? ''),
+                    'Authorization' => 'Bearer '.($cfg['api_key'] ?? ''),
                     'Content-Type' => 'application/json',
                 ],
             ];
@@ -126,6 +128,7 @@ PROMPT;
         try {
             $payload = [
                 'model' => $model,
+                'stream' => false, // 9router defaults to SSE; Laravel Http needs one JSON body
                 'temperature' => 0,
                 'max_tokens' => 4096,
                 'messages' => [
@@ -164,10 +167,27 @@ PROMPT;
             $json = $response->json();
             if (! is_array($json)) {
                 $raw = trim($response->body());
+                Log::warning('Receipt AI non-JSON body', [
+                    'driver' => $conn['driver'],
+                    'content_type' => $response->header('Content-Type'),
+                    'preview' => Str::limit($raw, 300),
+                ]);
                 if ($raw === '' || str_starts_with(ltrim($raw), '<')) {
+                    $hint = match ($conn['driver']) {
+                        '9router' => 'Check NINEROUTER_BASE_URL (must end with /v1).',
+                        'local' => 'Check LOCAL_LLM_BASE_URL (AnythingLLM needs …/api/v1/openai).',
+                        default => 'Check OPENROUTER_BASE_URL.',
+                    };
+
                     return [
                         'success' => false,
-                        'message' => 'AI endpoint returned HTML/empty. Check LOCAL_LLM_BASE_URL (AnythingLLM needs …/api/v1/openai).',
+                        'message' => 'AI endpoint returned HTML/empty. '.$hint,
+                    ];
+                }
+                if (str_starts_with($raw, 'data:')) {
+                    return [
+                        'success' => false,
+                        'message' => 'AI returned a stream (SSE). Ensure stream=false is sent to the endpoint.',
                     ];
                 }
 
@@ -280,7 +300,7 @@ PROMPT;
             || str_contains($lower, 'request limit')
             || str_contains($lower, 'provider_unavailable')
             || str_contains($lower, 'capacity')) {
-            return 'AI free endpoint is busy (NVIDIA rate limit). Wait and retry, or set RECEIPT_AI_DRIVER=local.';
+            return 'AI free endpoint is busy (NVIDIA rate limit). Wait and retry, or set RECEIPT_AI_DRIVER=local|9router.';
         }
 
         return 'AI provider error: '.$providerMsg;

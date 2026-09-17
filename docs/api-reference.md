@@ -128,7 +128,7 @@ Semua berikut adalah **`Route::apiResource`** — `POST`/`PUT`/`PATCH`/`DELETE` 
 
 Base path: **`/api/employees`**
 
-Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data administrasi karyawan: `nik`, **`employee`** = `{ "fullname" }` bila relasi dimuat, `position`, `project`, dll.), dibungkus `{ "status": "success", "data": [ ... ] }` kecuali `/list`.
+Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data administrasi karyawan: `nik`, **`employee`** = `{ "fullname" }` bila relasi dimuat, `position`, `project`, dll.), dibungkus `{ "status": "success", "data": [ ... ] }` kecuali `/list` dan `/genders`.
 
 ### 5.1 `GET /api/employees`
 
@@ -145,7 +145,13 @@ Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data ad
 - **Nama route:** `api.employees.list`
 - **Respons:** Array objek `{ "id", "fullname" }` untuk karyawan yang punya minimal satu administrasi aktif (bukan `AdministrationResource`).
 
-### 5.4 `POST /api/employees/search`
+### 5.4 `GET /api/employees/genders`
+
+- **Nama route:** `api.employees.genders`
+- **Fungsi:** Daftar administrasi **aktif** dengan `nik`, `fullname`, dan `gender` untuk pencocokan aplikasi eksternal.
+- **Respons:** `{ "status": "success", "data": [ { "nik", "fullname", "gender" } ] }` (`gender`: `male` / `female` / `null`).
+
+### 5.5 `POST /api/employees/search`
 
 - **Body (JSON, opsional):** filter — jika **tidak ada** filter sama sekali, default: hanya administrasi **aktif**.
 - **Parameter (semua opsional, LIKE / filter):**
@@ -158,18 +164,18 @@ Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data ad
 | `project`    | `project_code` atau `project_name` |
 | `name`       | `fullname` employee                |
 
-### 5.5 `GET /api/employees/by-nik/{nik}`
+### 5.6 `GET /api/employees/by-nik/{nik}`
 
 - **Nama route:** `api.employees.show-by-nik`
 - **Path `{nik}`:** NIK pada tabel **administrations** (exact match).
 - **404:** Tidak ada administrasi, atau tidak ada yang aktif (sama logika dengan `show`).
 
-### 5.6 `GET /api/employees/{id}`
+### 5.7 `GET /api/employees/{id}`
 
 - **`{id}`:** **`employee_id`** (bukan primary key `administrations`).
 - **404:** Tidak ada administrasi, atau tidak ada administrasi aktif.
 
-**Urutan route:** Daftarkan route statis (`list`, `active`, `by-nik/...`) sebelum `/{id}` — sudah benar di `routes/api.php`.
+**Urutan route:** Daftarkan route statis (`list`, `active`, `genders`, `by-nik/...`) sebelum `/{id}` — sudah benar di `routes/api.php`.
 
 ---
 
@@ -752,6 +758,7 @@ Daftar ringkas mengikuti **`routes/api.php`** (semua path berawalan **`/api`**).
 | `GET`  | `/employees`              |
 | `GET`  | `/employees/list`         |
 | `GET`  | `/employees/active`       |
+| `GET`  | `/employees/genders`      |
 | `POST` | `/employees/search`       |
 | `GET`  | `/employees/by-nik/{nik}` |
 | `GET`  | `/employees/{id}`         |
