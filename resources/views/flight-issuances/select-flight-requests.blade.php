@@ -148,6 +148,34 @@
                 placeholder: 'Select Status'
             });
 
+            // Persist selection across server-side pages AND filter reloads
+            var selectedFrIds = {};
+
+            function frId(value) {
+                return String(value);
+            }
+
+            function isFrSelected(id) {
+                return !!selectedFrIds[frId(id)];
+            }
+
+            function setFrSelected(id, selected) {
+                id = frId(id);
+                if (selected) {
+                    selectedFrIds[id] = true;
+                } else {
+                    delete selectedFrIds[id];
+                }
+            }
+
+            function restoreCheckboxState() {
+                $('.fr-checkbox').each(function() {
+                    $(this).prop('checked', isFrSelected($(this).val()));
+                });
+                updateSelectAllState();
+                updateSelectedCount();
+            }
+
             var table = $("#flight-requests-table").DataTable({
                 scrollX: true,
                 autoWidth: true,
@@ -173,8 +201,10 @@
                         searchable: false,
                         className: 'text-center',
                         render: function(data, type, row) {
-                            return '<input type="checkbox" class="fr-checkbox" name="flight_request_ids[]" value="' +
-                                row.id + '" data-id="' + row.id + '">';
+                            var id = frId(row.id);
+                            var checked = isFrSelected(id) ? ' checked' : '';
+                            return '<input type="checkbox" class="fr-checkbox" value="' +
+                                id + '" data-id="' + id + '"' + checked + '>';
                         }
                     },
                     {
@@ -220,29 +250,24 @@
                 ]
             });
 
-            // Select All checkbox (delegated for dynamic content)
+            // After every ajax redraw (pagination, sort, filter): re-apply ticks from store
+            table.on('draw', function() {
+                restoreCheckboxState();
+            });
+
+            // Select All = current page only; merge into / remove from persisted set
             $(document).on('change', '#selectAllCheckbox', function() {
-                $('.fr-checkbox').prop('checked', this.checked);
+                var checked = this.checked;
+                $('.fr-checkbox').each(function() {
+                    setFrSelected($(this).val(), checked);
+                    $(this).prop('checked', checked);
+                });
                 updateSelectedCount();
             });
 
-            // Individual checkbox change (delegated for dynamic content)
             $(document).on('change', '.fr-checkbox', function() {
+                setFrSelected($(this).val(), this.checked);
                 updateSelectAllState();
-                updateSelectedCount();
-            });
-
-            // Select All button
-            $('#selectAll').on('click', function() {
-                $('.fr-checkbox').prop('checked', true);
-                $('#selectAllCheckbox').prop('checked', true);
-                updateSelectedCount();
-            });
-
-            // Deselect All button
-            $('#deselectAll').on('click', function() {
-                $('.fr-checkbox').prop('checked', false);
-                $('#selectAllCheckbox').prop('checked', false);
                 updateSelectedCount();
             });
 
@@ -253,16 +278,14 @@
             }
 
             function updateSelectedCount() {
-                var count = $('.fr-checkbox:checked').length;
+                var count = Object.keys(selectedFrIds).length;
                 $('#selectedCount').text(count + ' selected');
                 $('#btnContinue').prop('disabled', count === 0);
             }
 
-            // Form submit - collect selected IDs
+            // Form submit - use persisted IDs (all pages), not only visible checkboxes
             $('#selectFrForm').on('submit', function(e) {
-                var selectedIds = $('.fr-checkbox:checked').map(function() {
-                    return $(this).val();
-                }).get();
+                var selectedIds = Object.keys(selectedFrIds);
 
                 if (selectedIds.length === 0) {
                     e.preventDefault();
@@ -270,10 +293,8 @@
                     return false;
                 }
 
-                // Remove any existing hidden inputs to avoid duplicates
-                $('input[name="flight_request_ids[]"]').remove();
+                $('#selectFrForm').find('input[name="flight_request_ids[]"]').remove();
 
-                // Add selected IDs as hidden inputs
                 selectedIds.forEach(function(id) {
                     $('<input>').attr({
                         type: 'hidden',
@@ -283,24 +304,27 @@
                 });
             });
 
-            // Filter change event
-            $('#status, #form_number, #date_from, #date_to').on('change keyup', function() {
-                table.ajax.reload(function() {
-                    updateSelectAllState();
-                    updateSelectedCount();
-                });
-            });
+            // Filter: reload table only — do NOT clear selectedFrIds
+            var filterReloadTimer = null;
+            function reloadKeepingSelection() {
+                clearTimeout(filterReloadTimer);
+                filterReloadTimer = setTimeout(function() {
+                    table.ajax.reload(null, false); // keep current page when possible
+                }, 200);
+            }
 
-            // Reset button
+            $('#status, #date_from, #date_to').on('change', reloadKeepingSelection);
+            $('#form_number').on('keyup change', reloadKeepingSelection);
+
+            // Reset filter + clear selection (explicit user action)
             $('#btn-reset').on('click', function() {
-                $('#status').val(['approved', 'issued']).trigger('change');
+                clearTimeout(filterReloadTimer);
+                selectedFrIds = {};
+                $('#status').val(['approved', 'issued']).trigger('change.select2');
                 $('#form_number').val('');
                 $('#date_from').val('');
                 $('#date_to').val('');
-                table.ajax.reload(function() {
-                    updateSelectAllState();
-                    updateSelectedCount();
-                });
+                table.ajax.reload(null, true);
             });
         });
     </script>
