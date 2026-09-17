@@ -1,5 +1,13 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-09-16
+**Last Updated**: 2026-09-17
+
+### [061] Select FR for LG — checkbox lost across pages (2026-09-17)
+
+**Cause**: Server-side DataTables destroys page-1 DOM; count/submit only read visible `.fr-checkbox:checked`.
+
+**Fix**: Persist `selectedFrIds` in JS; restore on column render + `draw` (`.prop('checked')`); filter reload keeps the set; only Reset clears it. Submit uses the set. Header select-all = current page only, merged into the set.
+
+**File**: `resources/views/flight-issuances/select-flight-requests.blade.php`
 
 ### [060] List tables: horizontal scroll, not Responsive hide (2026-09-16)
 
