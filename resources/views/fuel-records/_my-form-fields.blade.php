@@ -1,17 +1,17 @@
 @php
-    $idSuffix = ($prefix ?? '') === 'manual' ? '_m' : '';
-    $record = $record ?? null;
-    $selectedVehicleId = old('vehicle_id', $record->vehicle_id ?? null);
+$idSuffix = ($prefix ?? '') === 'manual' ? '_m' : '';
+$record = $record ?? null;
+$selectedVehicleId = old('vehicle_id', $record->vehicle_id ?? null);
 @endphp
 <div class="form-group">
     <label for="vehicle_id{{ $idSuffix }}">Vehicle <span class="text-danger">*</span></label>
     <select name="vehicle_id" id="vehicle_id{{ $idSuffix }}" class="form-control select2bs4" required>
         <option value="">— Select —</option>
         @foreach ($vehicles as $v)
-            <option value="{{ $v->id }}" data-odometer="{{ $v->odometer }}"
-                @selected((string) $selectedVehicleId === (string) $v->id)>
-                {{ $v->kode }} — {{ $v->license_plate }}
-            </option>
+        <option value="{{ $v->id }}" data-odometer="{{ $v->odometer }}"
+            @selected((string) $selectedVehicleId===(string) $v->id)>
+            {{ $v->kode }} — {{ $v->license_plate }}
+        </option>
         @endforeach
     </select>
 </div>
@@ -25,7 +25,6 @@
         <label>Odometer (KM) <span class="text-danger">*</span></label>
         <input type="number" name="odometer" id="odometer{{ $idSuffix }}" class="form-control" min="0"
             value="{{ old('odometer', $record->odometer ?? '') }}" required>
-        <small class="text-muted">From handwritten KM on nota</small>
     </div>
 </div>
 <div class="form-group">
@@ -55,7 +54,6 @@
         <label>Total</label>
         <input type="number" step="0.01" min="0" name="total_cost" id="total_cost{{ $idSuffix }}"
             class="form-control" value="{{ old('total_cost', $record->total_cost ?? '') }}">
-        <small class="text-muted">Dari Total Harga di nota (bukan qty × harga)</small>
     </div>
 </div>
 <div class="form-group">
