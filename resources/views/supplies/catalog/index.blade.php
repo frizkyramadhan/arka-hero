@@ -244,6 +244,8 @@
                                             Upserts by <code>code</code>. New rows need <code>name</code>,
                                             <code>stock_unit</code>, and <code>category_prefix</code> or
                                             <code>category_name</code>.
+                                            Columns <code>stock_in</code>, <code>stock_out</code>, and
+                                            <code>balance</code> (from Export) are ignored on import.
                                             <a href="{{ route('supplies.catalog.template') }}">Download template</a>
                                             or use Export as a starting file.
                                         </small>
@@ -344,6 +346,7 @@
             $('#btn-export-catalog').on('click', function(e) {
                 e.preventDefault();
                 const params = $.param({
+                    project_id: $('#filter_project').val(),
                     category_id: $('#filter_category').val(),
                     status: $('#filter_status').val(),
                     q: $('#filter_q').val()

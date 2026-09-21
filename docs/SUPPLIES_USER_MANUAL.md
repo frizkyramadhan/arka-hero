@@ -182,8 +182,8 @@ Sistem **menolak** Stock Out jika saldo tidak cukup, dan **menolak** hapus Stock
 
 ### Import / Export Excel
 
-- **Export** — unduh daftar catalog saat ini.
-- **Import** — unggah Excel sesuai template (**Template** tersedia di modal Import).
+- **Export** — unduh daftar catalog saat ini. Kolom `stock_in`, `stock_out`, dan `balance` mengikuti filter **Project** (nilai `0` jika belum ada mutasi / saldo kosong). Tanpa project, ketiga kolom stok tetap `0`.
+- **Import** — unggah Excel sesuai template (**Template** tersedia di modal Import). Kolom stok dari Export diabaikan saat import.
 - Kolom template: `code`, `category_prefix`, `name`, `description`, `stock_unit`, `status`.
 - Jika `code` sudah ada → baris tersebut di-update; jika kosong → item baru dibuat.
 

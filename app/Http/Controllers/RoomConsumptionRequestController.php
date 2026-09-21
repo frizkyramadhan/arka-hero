@@ -405,8 +405,24 @@ class RoomConsumptionRequestController extends Controller
         $projects = UserProject::projectsForSelect();
         $departments = Department::where('department_status', 1)->orderBy('department_name')->get();
         $rooms = collect();
-        if ($doc?->project_id) {
-            $rooms = MeetingRoom::active()->where('project_id', $doc->project_id)->orderBy('room_name')->get();
+        $projectId = old('project_id', $doc?->project_id);
+        $startDate = old('start_date', optional($doc?->start_date)->format('Y-m-d'));
+        $endDate = old('end_date', optional($doc?->end_date)->format('Y-m-d'));
+        $startTime = old('start_time', $doc?->start_time ? \Carbon\Carbon::parse($doc->start_time)->format('H:i') : null);
+        $endTime = old('end_time', $doc?->end_time ? \Carbon\Carbon::parse($doc->end_time)->format('H:i') : null);
+        if ($projectId && $startDate && $endDate && $startTime && $endTime) {
+            $rooms = MeetingRoom::active()
+                ->where('project_id', $projectId)
+                ->orderBy('room_name')
+                ->get()
+                ->filter(fn (MeetingRoom $room) => $room->isAvailableForDateTime(
+                    (string) $startDate,
+                    (string) $endDate,
+                    (string) $startTime,
+                    (string) $endTime,
+                    $doc?->id
+                ))
+                ->values();
         }
 
         $consumption = [];

@@ -98,8 +98,10 @@ class SupplyItemController extends Controller
 
     public function export(Request $request)
     {
+        $projectId = $request->filled('project_id') ? (int) $request->project_id : null;
+
         return Excel::download(
-            new SupplyItemExport($this->filteredCatalogQuery($request)),
+            new SupplyItemExport($this->filteredCatalogQuery($request), $projectId),
             'supply-catalog-'.now()->format('Y-m-d').'.xlsx'
         );
     }
@@ -109,7 +111,7 @@ class SupplyItemController extends Controller
         $empty = SupplyItem::query()->whereRaw('1 = 0')->with('category');
 
         return Excel::download(
-            new SupplyItemExport($empty),
+            new SupplyItemExport($empty, null),
             'supply-catalog-import-template.xlsx'
         );
     }
