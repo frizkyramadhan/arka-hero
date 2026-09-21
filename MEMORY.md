@@ -1,6 +1,14 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-09-21
 
+### [063] FOA marks letter used on save (2026-09-21)
+
+**Before**: Create/update draft called `releaseFoaLetterNumberIfOwned`, so letter stayed `reserved` until Issue — unlike FPTK/RCR submit.
+
+**After**: `store`/`update` call `markFoaLetterNumberUsed`. Issue still re-asserts used (idempotent). Delete/cancel still release owned letters.
+
+**Ops**: Deleted cancelled FOA `5ed2a697-d420-4648-97f2-56259428c679` (FOA-APS-4965); letter `15661` left `reserved` for reuse.
+
 ### [062] FOA No includes project code (2026-09-21)
 
 **Change**: `form_number` is now `FOA-{project_code}-{sequence}` (e.g. `FOA-APS-4965`). Letter number stays `FOA4965`. Preview JS uses `data-project-code` from letter selector. Column widened to varchar(50). Existing rows rewritten by migration `2026_09_21_145000_backfill_vehicle_assignment_form_numbers`.
