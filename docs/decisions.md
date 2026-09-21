@@ -30,6 +30,14 @@ Decision: [Title] - [YYYY-MM-DD]
 
 ## Recent Decisions
 
+### Decision: FOA No = FOA-{project_code}-{sequence} - 2026-09-21
+
+**Context**: Same letter string (FOA4965) exists per project; users confuse FOA No with letter number. Want distinct FOA No without changing letter master format.
+
+**Decision**: Keep letter as `FOA4965`. Derive `vehicle_assignments.form_number` as `FOA-{project_code}-{sequence}` from the letter's project.
+
+**Implementation**: `VehicleAssignment::formatFormNumber($letter, $projectCode)`; UI preview via `data-project-code`.
+
 ### Decision: FOA form_number not globally unique - 2026-09-11
 
 **Context**: Letter numbers are per-project; the same FOA string (e.g. FOA4964) can be reserved for HO while already used for APS. Global unique on `vehicle_assignments.form_number` blocked the second assignment after app validation was correctly scoped to `letter_number_id`.

@@ -1,5 +1,11 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-09-17
+**Last Updated**: 2026-09-21
+
+### [062] FOA No includes project code (2026-09-21)
+
+**Change**: `form_number` is now `FOA-{project_code}-{sequence}` (e.g. `FOA-APS-4965`). Letter number stays `FOA4965`. Preview JS uses `data-project-code` from letter selector. Column widened to varchar(50). Existing rows rewritten by migration `2026_09_21_145000_backfill_vehicle_assignment_form_numbers`.
+
+**Files**: `VehicleAssignment::formatFormNumber`, `VehicleAssignmentController::resolveLetterAndFormNumber`, `foa-form-scripts`, migrations `2026_09_21_143000_*` + `2026_09_21_145000_*`.
 
 ### [061] Select FR for LG — checkbox lost across pages (2026-09-17)
 
