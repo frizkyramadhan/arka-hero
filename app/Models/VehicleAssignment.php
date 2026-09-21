@@ -61,9 +61,10 @@ class VehicleAssignment extends Model
     }
 
     /**
-     * Format FOA No from letter number: FOA0001
+     * Format FOA No from letter number + project: FOA-{project_code}-{sequence}.
+     * Letter number stays FOA4965; FOA No becomes e.g. FOA-APS-4965.
      */
-    public static function formatFormNumber(string $letterNumberString): string
+    public static function formatFormNumber(string $letterNumberString, ?string $projectCode = null): string
     {
         $raw = strtoupper(trim($letterNumberString));
         if (str_starts_with($raw, 'FOA')) {
@@ -71,6 +72,13 @@ class VehicleAssignment extends Model
         }
         $numericPart = preg_replace('/\D+/', '', $raw) ?: '0';
         $numericPart = str_pad((int) $numericPart, 4, '0', STR_PAD_LEFT);
+
+        $code = strtoupper(trim((string) $projectCode));
+        $code = preg_replace('/[^A-Z0-9]+/', '', $code) ?: '';
+
+        if ($code !== '') {
+            return 'FOA-'.$code.'-'.$numericPart;
+        }
 
         return 'FOA'.$numericPart;
     }

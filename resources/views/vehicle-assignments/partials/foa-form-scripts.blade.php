@@ -244,7 +244,7 @@
             $(this).closest('.passenger-row').remove();
         });
 
-        // FOA No preview from letter number (FOA0001)
+        // FOA No preview: FOA-{project_code}-{sequence} (letter number stays FOA4965)
         var existingFormNo = @json(old('form_number', $assignment->form_number ?? ''));
 
         function pad4(n) {
@@ -259,8 +259,10 @@
             if (!letterNumber) {
                 return null;
             }
+            var projectCode = $option.attr('data-project-code') || $option.data('projectCode') || '';
             return {
-                letter_number: String(letterNumber)
+                letter_number: String(letterNumber),
+                project_code: String(projectCode).trim()
             };
         }
 
@@ -294,7 +296,8 @@
                 return;
             }
 
-            var foaNo = 'FOA' + pad4(parsed);
+            var code = String(letterData.project_code || '').toUpperCase().replace(/[^A-Z0-9]+/g, '');
+            var foaNo = code ? ('FOA-' + code + '-' + pad4(parsed)) : ('FOA' + pad4(parsed));
             $preview.val(foaNo).removeClass('alert-warning').addClass('alert-success');
         }
 

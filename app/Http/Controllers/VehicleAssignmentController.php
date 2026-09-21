@@ -852,10 +852,10 @@ class VehicleAssignmentController extends Controller
         }
 
         $letterNumberString = $letter->letter_number;
-        $formNumber = VehicleAssignment::formatFormNumber($letterNumberString);
+        $projectCode = $letter->project?->project_code ?? $letter->project_code;
+        $formNumber = VehicleAssignment::formatFormNumber($letterNumberString, $projectCode);
 
-        // Same FOA string may exist for different projects (separate letter_number rows).
-        // Uniqueness is per letter_number_id (DB unique), not global form_number.
+        // Uniqueness is per letter_number_id (DB unique). FOA No includes project_code.
         $dup = VehicleAssignment::query()
             ->where('letter_number_id', $letter->id)
             ->when($doc, fn ($q) => $q->where('id', '!=', $doc->id))

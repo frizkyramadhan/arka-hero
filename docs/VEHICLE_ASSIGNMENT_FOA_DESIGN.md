@@ -1,7 +1,7 @@
 # Form of Assignment (FOA) — Design
 
 **Status**: Implemented (Phase 1)
-**Last Updated**: 2026-09-11
+**Last Updated**: 2026-09-21
 **Document control (print)**: ARKA/HCS/IV/04.02 Rev.2
 
 ## Decisions
@@ -9,7 +9,7 @@
 | Aspect | Decision |
 |--------|----------|
 | Portal | GAMMA requestor/admin + driver My Features |
-| Numbering | Letter Number category **FOA** via `smart-letter-number-selector`; FOA No = letter number itself (`FOA0001`). Draft keeps letter **reserved**; **Issue** calls `markAsUsed('vehicle_assignment', id)`. Same FOA *string* may exist for different projects (letter unique on `letter_number+year+project_id`); `vehicle_assignments` uniqueness is on `letter_number_id`, not global `form_number`. |
+| Numbering | Letter Number category **FOA** via `smart-letter-number-selector` (letter stays `FOA4965`). **FOA No** (`form_number`) = `FOA-{project_code}-{sequence}` e.g. `FOA-APS-4965`. Draft keeps letter **reserved**; **Issue** calls `markAsUsed('vehicle_assignment', id)`. Uniqueness on `letter_number_id`. |
 | Approval | None (not ApprovalPlan). Workflow: requestor issue → driver trip log → close at origin |
 | Destinations | Mirror Official Travel: `destination` string + `is_manual` (project Select2 vs free text) |
 | Stops | Dynamic `origin` / `destination` / `return` with jam + KM |
