@@ -143,8 +143,8 @@ class VehicleAssignmentController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            // Draft: keep letter reserved (do not mark used until Issue)
-            $this->releaseFoaLetterNumberIfOwned((int) $letter->id, $assignment->id);
+            // Same as other docs: letter becomes used as soon as FOA is saved
+            $this->markFoaLetterNumberUsed($assignment, (int) $letter->id);
 
             $this->syncPlannedStops($assignment, $originDest, $originManual, $destinations, $manualFlags);
             $this->syncPassengers($assignment, $passengers);
@@ -259,8 +259,7 @@ class VehicleAssignmentController extends Controller
             if ($previousLetterId && $previousLetterId !== $newLetterId) {
                 $this->releaseFoaLetterNumberIfOwned($previousLetterId, $vehicleAssignment->id);
             }
-            // Draft: keep letter reserved
-            $this->releaseFoaLetterNumberIfOwned($newLetterId, $vehicleAssignment->id);
+            $this->markFoaLetterNumberUsed($vehicleAssignment, $newLetterId);
 
             $this->syncPlannedStops($vehicleAssignment, $originDest, $originManual, $destinations, $manualFlags);
             $this->syncPassengers($vehicleAssignment, $passengers);

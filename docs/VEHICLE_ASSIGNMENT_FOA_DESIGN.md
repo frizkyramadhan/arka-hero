@@ -9,7 +9,7 @@
 | Aspect | Decision |
 |--------|----------|
 | Portal | GAMMA requestor/admin + driver My Features |
-| Numbering | Letter Number category **FOA** via `smart-letter-number-selector` (letter stays `FOA4965`). **FOA No** (`form_number`) = `FOA-{project_code}-{sequence}` e.g. `FOA-APS-4965`. Draft keeps letter **reserved**; **Issue** calls `markAsUsed('vehicle_assignment', id)`. Uniqueness on `letter_number_id`. |
+| Numbering | Letter Number category **FOA** via `smart-letter-number-selector` (letter stays `FOA4965`). **FOA No** (`form_number`) = `FOA-{project_code}-{sequence}` e.g. `FOA-APS-4965`. On create/update, letter is **`markAsUsed`** (same as other documents). **Issue** only moves FOA status to issued (letter already used). Delete/cancel returns letter to reserved when owned. Uniqueness on `letter_number_id`. |
 | Approval | None (not ApprovalPlan). Workflow: requestor issue → driver trip log → close at origin |
 | Destinations | Mirror Official Travel: `destination` string + `is_manual` (project Select2 vs free text) |
 | Stops | Dynamic `origin` / `destination` / `return` with jam + KM |
