@@ -141,6 +141,7 @@ class MeetingRoomController extends Controller
 
     /**
      * JSON list of active rooms for a project (request form).
+     * When start/end date+time are provided, only rooms free in that range are returned.
      */
     public function byProject(Request $request)
     {
@@ -149,11 +150,28 @@ class MeetingRoomController extends Controller
             return response()->json([]);
         }
 
+        $startDate = trim((string) $request->get('start_date', ''));
+        $endDate = trim((string) $request->get('end_date', ''));
+        $startTime = trim((string) $request->get('start_time', ''));
+        $endTime = trim((string) $request->get('end_time', ''));
+        $excludeId = $request->filled('exclude_id') ? (string) $request->get('exclude_id') : null;
+        $filterBySchedule = $startDate !== '' && $endDate !== '' && $startTime !== '' && $endTime !== '';
+
         $rooms = MeetingRoom::active()
             ->where('project_id', $projectId)
             ->with('project:id,project_code,project_name')
             ->orderBy('room_name')
             ->get()
+            ->when($filterBySchedule, function ($collection) use ($startDate, $endDate, $startTime, $endTime, $excludeId) {
+                return $collection->filter(fn (MeetingRoom $room) => $room->isAvailableForDateTime(
+                    $startDate,
+                    $endDate,
+                    $startTime,
+                    $endTime,
+                    $excludeId
+                ));
+            })
+            ->values()
             ->map(fn (MeetingRoom $room) => [
                 'id' => $room->id,
                 'room_name' => $room->room_name,

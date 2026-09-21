@@ -186,74 +186,6 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label for="project_id">Location (Project) <span
-                                                    class="text-danger">*</span></label>
-                                            <select name="project_id" id="project_id" class="form-control select2bs4"
-                                                required style="width: 100%;">
-                                                <option value="">— Select —</option>
-                                                @foreach ($projects as $project)
-                                                    <option value="{{ $project->id }}"
-                                                        data-code="{{ $project->project_code }}"
-                                                        {{ old('project_id', $doc->project_id ?? '') == $project->id ? 'selected' : '' }}>
-                                                        {{ $project->project_code }} - {{ $project->project_name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="meeting_room_id">Room <span class="text-danger">*</span></label>
-                                            <select name="meeting_room_id" id="meeting_room_id"
-                                                class="form-control select2bs4" required style="width: 100%;">
-                                                <option value="">— Select project first —</option>
-                                                @foreach ($rooms as $room)
-                                                    <option value="{{ $room->id }}"
-                                                        data-facilities="{{ e($room->facilities) }}"
-                                                        {{ old('meeting_room_id', $doc->meeting_room_id ?? '') == $room->id ? 'selected' : '' }}>
-                                                        {{ $room->room_name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="department_id">Division / Department</label>
-                                            <select name="department_id" id="department_id" class="form-control select2bs4"
-                                                style="width: 100%;">
-                                                <option value="">— Optional —</option>
-                                                @foreach ($departments as $dept)
-                                                    <option value="{{ $dept->id }}"
-                                                        {{ old('department_id', $doc->department_id ?? '') == $dept->id ? 'selected' : '' }}>
-                                                        {{ $dept->department_name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="attendees_count">Attendees <span
-                                                    class="text-danger">*</span></label>
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text"><i class="fas fa-users"></i></span>
-                                                </div>
-                                                <input type="number" name="attendees_count" id="attendees_count"
-                                                    class="form-control" min="1" required
-                                                    value="{{ old('attendees_count', $doc->attendees_count ?? 1) }}">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
                                             <label for="start_date">Start Date <span
                                                     class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -307,6 +239,78 @@
                                                 <input type="time" name="end_time" id="end_time"
                                                     class="form-control" required
                                                     value="{{ old('end_time', isset($doc) && $doc->end_time ? \Carbon\Carbon::parse($doc->end_time)->format('H:i') : '') }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="project_id">Location (Project) <span
+                                                    class="text-danger">*</span></label>
+                                            <select name="project_id" id="project_id" class="form-control select2bs4"
+                                                required style="width: 100%;">
+                                                <option value="">— Select —</option>
+                                                @foreach ($projects as $project)
+                                                    <option value="{{ $project->id }}"
+                                                        data-code="{{ $project->project_code }}"
+                                                        {{ old('project_id', $doc->project_id ?? '') == $project->id ? 'selected' : '' }}>
+                                                        {{ $project->project_code }} - {{ $project->project_name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="meeting_room_id">Room <span class="text-danger">*</span></label>
+                                            <select name="meeting_room_id" id="meeting_room_id"
+                                                class="form-control select2bs4" required style="width: 100%;">
+                                                <option value="">— Select date &amp; time first —</option>
+                                                @foreach ($rooms as $room)
+                                                    <option value="{{ $room->id }}"
+                                                        data-facilities="{{ e($room->facilities) }}"
+                                                        {{ old('meeting_room_id', $doc->meeting_room_id ?? '') == $room->id ? 'selected' : '' }}>
+                                                        {{ $room->room_name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fas fa-info-circle"></i>
+                                                Hanya ruangan yang tersedia pada tanggal/waktu di atas.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="department_id">Division / Department</label>
+                                            <select name="department_id" id="department_id" class="form-control select2bs4"
+                                                style="width: 100%;">
+                                                <option value="">— Optional —</option>
+                                                @foreach ($departments as $dept)
+                                                    <option value="{{ $dept->id }}"
+                                                        {{ old('department_id', $doc->department_id ?? '') == $dept->id ? 'selected' : '' }}>
+                                                        {{ $dept->department_name }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="attendees_count">Attendees <span
+                                                    class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <div class="input-group-prepend">
+                                                    <span class="input-group-text"><i class="fas fa-users"></i></span>
+                                                </div>
+                                                <input type="number" name="attendees_count" id="attendees_count"
+                                                    class="form-control" min="1" required
+                                                    value="{{ old('attendees_count', $doc->attendees_count ?? 1) }}">
                                             </div>
                                         </div>
                                     </div>
@@ -632,21 +636,44 @@
                 $preview.val(regNo).removeClass('alert-warning').addClass('alert-success');
             }
 
+            const excludeRequestId = @json($doc?->id);
+
+            function scheduleFieldsReady() {
+                return Boolean(
+                    $('#start_date').val() &&
+                    $('#end_date').val() &&
+                    $('#start_time').val() &&
+                    $('#end_time').val()
+                );
+            }
+
             function loadRooms(projectId, selectedId) {
                 const $room = $('#meeting_room_id');
                 if ($room.hasClass('select2-hidden-accessible')) {
                     $room.select2('destroy');
                 }
                 $room.html('<option value="">Loading...</option>');
+                if (!scheduleFieldsReady()) {
+                    $room.html('<option value="">— Select date &amp; time first —</option>');
+                    initSelect2($room);
+                    return;
+                }
                 if (!projectId) {
                     $room.html('<option value="">— Select project first —</option>');
                     initSelect2($room);
                     return;
                 }
                 $.get("{{ route('meeting-rooms.by-project') }}", {
-                    project_id: projectId
+                    project_id: projectId,
+                    start_date: $('#start_date').val(),
+                    end_date: $('#end_date').val(),
+                    start_time: $('#start_time').val(),
+                    end_time: $('#end_time').val(),
+                    exclude_id: excludeRequestId || ''
                 }, function(rooms) {
-                    let html = '<option value="">— Select —</option>';
+                    let html = rooms.length ?
+                        '<option value="">— Select —</option>' :
+                        '<option value="">— No rooms available for this schedule —</option>';
                     rooms.forEach(function(r) {
                         const sel = selectedId && selectedId == r.id ? 'selected' : '';
                         html += '<option value="' + r.id + '" data-facilities="' + $('<div>').text(r
@@ -654,7 +681,9 @@
                     });
                     $room.html(html);
                     initSelect2($room);
-                    if (selectedId) {
+                    if (selectedId && rooms.some(function(r) {
+                            return r.id == selectedId;
+                        })) {
                         $room.val(selectedId).trigger('change');
                     }
                 });
@@ -680,23 +709,26 @@
 
             const initialProject = $('#project_id').val();
             const initialRoom = @json(old('meeting_room_id', $doc?->meeting_room_id));
-            if (initialProject) {
+            if (initialProject || scheduleFieldsReady()) {
                 loadRooms(initialProject, initialRoom);
             }
             if (!isEdit || isPendingHrEdit) {
                 updatePreview();
             }
 
-            // Update Reg. No preview when start date changes (roman month)
-            $('#start_date').on('change', function() {
-                const startVal = $(this).val();
-                const endVal = $('#end_date').val();
-                if (startVal && (!endVal || endVal < startVal)) {
-                    $('#end_date').val(startVal);
+            // Update Reg. No preview when start date changes (roman month); reload rooms on schedule change
+            $('#start_date, #end_date, #start_time, #end_time').on('change', function() {
+                if (this.id === 'start_date') {
+                    const startVal = $(this).val();
+                    const endVal = $('#end_date').val();
+                    if (startVal && (!endVal || endVal < startVal)) {
+                        $('#end_date').val(startVal);
+                    }
+                    if (!isPersonalRegMode) {
+                        updatePreview();
+                    }
                 }
-                if (!isPersonalRegMode) {
-                    updatePreview();
-                }
+                loadRooms($('#project_id').val(), null);
             });
 
             // Zoom Meeting ID Availability (same source as IT WO)
