@@ -1,5 +1,15 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-09-21
+**Last Updated**: 2026-09-25
+
+### [064] Overlapping leave entitlements pick the wrong balance (2026-09-25) ✅ FIXED
+
+**Symptom**: Create leave for Mario Lover Seko (NIK 13063) showed Cuti Tahunan 5 days remaining on period 23 Mar 2026 – 22 Mar 2027, then rejected `Total days (1) exceeds remaining leave balance (0 days)`.
+
+**Cause**: Two annual windows both contained 25 Sep 2026. `findLeaveEntitlementForRequest()` and `getLeavePeriod()` used unordered `first()`, so the older row (17 Feb 2026 – 16 Feb 2027, entitled 0) won over the period shown on the form.
+
+**Fix**: Submitted `leave_period` is resolved first. Annual/LSL dates must sit inside that window, otherwise the submit is rejected with the period name. If the label is missing, `LeaveEntitlement::pickCovering()` uses the latest `period_start`. Approval fallback (`matchingEntitlement()`) uses the same pick. Local only; the Feb row was already deleted on the server.
+
+**Files**: `LeaveEntitlement::containsRange/pickCovering`, `LeaveRequest::matchingEntitlement`, `LeaveRequestController::findLeaveEntitlementForRequest/getLeavePeriod`.
 
 ### [063] FOA marks letter used on save (2026-09-21)
 

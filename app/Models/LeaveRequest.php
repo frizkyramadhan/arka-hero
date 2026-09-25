@@ -160,20 +160,14 @@ class LeaveRequest extends Model implements NotifiableDocument
         }
 
         $leaveType = $this->leaveType;
-        if ($leaveType && ! $leaveType->usesLeavePeriodAsDateFence()) {
-            $today = now()->toDateString();
+        $candidates = $baseQuery()->get();
 
-            return $baseQuery()
-                ->where('period_start', '<=', $today)
-                ->where('period_end', '>=', $today)
-                ->first();
+        if ($leaveType && ! $leaveType->usesLeavePeriodAsDateFence()) {
+            return LeaveEntitlement::pickCovering($candidates, now()->toDateString(), now()->toDateString());
         }
 
         if ($this->start_date && $this->end_date) {
-            return $baseQuery()
-                ->where('period_start', '<=', $this->start_date)
-                ->where('period_end', '>=', $this->end_date)
-                ->first();
+            return LeaveEntitlement::pickCovering($candidates, $this->start_date, $this->end_date);
         }
 
         return null;

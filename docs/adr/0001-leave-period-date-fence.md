@@ -17,5 +17,6 @@ Leave Request forms treated Leave Period (the entitlement window) as min/max bou
 ## Consequences
 
 - Approval must resolve entitlement by the snapshot label, not by whether the request dates sit inside a period.
+- When two entitlements of the same type both contain the leave dates, the submitted Leave Period wins. If that label is missing, the later `period_start` wins (`LeaveEntitlement::pickCovering`). Annual/LSL dates that fall outside the submitted period are rejected.
 - Paid/unpaid date pickers have no period min/max; weekend and national-holiday rules are unchanged.
 - Bulk/roster periodic leave is out of scope.

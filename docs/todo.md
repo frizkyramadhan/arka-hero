@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Overlapping leave entitlements follow submitted Leave Period, else latest period_start [LeaveEntitlement::pickCovering, findLeaveEntitlementForRequest, getLeavePeriod, matchingEntitlement] (completed: 2026-09-25)`
+
 -   `[done] P1: FOA No format FOA-{project_code}-{sequence} (letter number unchanged) [VehicleAssignment::formatFormNumber, foa-form-scripts, widen form_number] (completed: 2026-09-21)`
 
 -   `[done] P1: List tables keep all columns with horizontal scroll (not DataTables Responsive hide) for PWA/mobile [datatables-scrollx.js, layouts header/scripts, module index blades] (completed: 2026-09-16)`
