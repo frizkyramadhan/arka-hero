@@ -53,6 +53,16 @@ Decision: [Title] - [YYYY-MM-DD]
 
 **Implementation**: Migration `2026_09_11_150000_relax_vehicle_assignments_form_number_unique.php`.
 
+### Decision: Overlapping leave windows follow the submitted period - 2026-09-25
+
+**Context**: An employee can have two open entitlements of the same leave type whose dates overlap (old DOH anniversary plus a later mutation anniversary). Unordered `first()` charged the older row, so the form showed one balance and submit validated another.
+
+**Decision**: When the request sends `leave_period`, that row is the accounting window. For annual and LSL the leave dates must fall inside it. When no label matches, the window with the latest `period_start` that contains the dates is used. Same rule for the leave-period lookup and the approval fallback.
+
+**Implementation**: `LeaveEntitlement::pickCovering()`, `LeaveRequestController::findLeaveEntitlementForRequest()`, `getLeavePeriod()`, `LeaveRequest::matchingEntitlement()`.
+
+---
+
 ### Decision: Employee mutation anchors annual leave - 2026-09-08
 
 **Context**: Project transfer must change the Cuti Tahunan anniversary without treating the move as a new hire or resetting LSL / years of service.

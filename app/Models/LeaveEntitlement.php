@@ -91,6 +91,41 @@ class LeaveEntitlement extends Model
         return $this->period_start->format('d M Y').' - '.$this->period_end->format('d M Y');
     }
 
+    public function containsRange(mixed $start, mixed $end): bool
+    {
+        if (! $this->period_start || ! $this->period_end || ! $start || ! $end) {
+            return false;
+        }
+
+        $startDate = \Carbon\Carbon::parse($start)->toDateString();
+        $endDate = \Carbon\Carbon::parse($end)->toDateString();
+
+        return $this->period_start->toDateString() <= $startDate
+            && $this->period_end->toDateString() >= $endDate;
+    }
+
+    /**
+     * When several entitlements contain the same dates, the later period_start wins.
+     * Same start date: the higher id wins.
+     *
+     * @param  iterable<int, self>  $entitlements
+     */
+    public static function pickCovering(iterable $entitlements, mixed $start, mixed $end): ?self
+    {
+        if (! $start || ! $end) {
+            return null;
+        }
+
+        return collect($entitlements)
+            ->filter(fn (self $entitlement) => $entitlement->containsRange($start, $end))
+            ->sortByDesc(fn (self $entitlement) => sprintf(
+                '%s-%020d',
+                $entitlement->period_start->toDateString(),
+                (int) $entitlement->id
+            ))
+            ->first();
+    }
+
     public function updateTakenDays()
     {
         $this->taken_days = $this->leaveRequests()

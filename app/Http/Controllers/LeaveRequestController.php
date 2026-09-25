@@ -1521,11 +1521,13 @@ class LeaveRequestController extends Controller
 
         $today = now()->toDateString();
 
-        $leaveEntitlement = LeaveEntitlement::where('employee_id', $employeeId)
-            ->where('leave_type_id', $leaveTypeId)
-            ->where('period_start', '<=', $today)
-            ->where('period_end', '>=', $today)
-            ->first();
+        $leaveEntitlement = LeaveEntitlement::pickCovering(
+            LeaveEntitlement::where('employee_id', $employeeId)
+                ->where('leave_type_id', $leaveTypeId)
+                ->get(),
+            $today,
+            $today
+        );
 
         if ($leaveEntitlement) {
             // Format tanggal menjadi format yang lebih user-friendly
@@ -2489,8 +2491,10 @@ class LeaveRequestController extends Controller
 
     /**
      * Resolve the entitlement used as the accounting window for this request.
-     * Date-fenced types (annual, LSL) prefer an entitlement that contains the dates.
-     * Paid/unpaid keep the existing snapshot on edit, otherwise the period that contains today.
+     * Date-fenced types use the submitted Leave Period when the dates sit inside it.
+     * Otherwise the latest period_start that contains the dates wins.
+     * Paid/unpaid keep the existing snapshot on edit, otherwise the submitted period,
+     * otherwise the latest period that contains today.
      */
     private function findLeaveEntitlementForRequest(Request $request, string $employeeId, int $leaveTypeId, ?LeaveRequest $existing = null): ?LeaveEntitlement
     {
@@ -2510,30 +2514,35 @@ class LeaveRequestController extends Controller
             }
         }
 
-        if ($dateFenced) {
-            $start = $request->start_date;
-            $end = $request->end_date;
-
-            if ($start && $end) {
-                $entitlement = LeaveEntitlement::where('employee_id', $employeeId)
-                    ->where('leave_type_id', $leaveTypeId)
-                    ->where('period_start', '<=', $start)
-                    ->where('period_end', '>=', $end)
-                    ->first();
-
-                if ($entitlement) {
-                    return $entitlement;
+        if (filled($request->leave_period)) {
+            $byLabel = $this->findEntitlementByPeriodLabel($employeeId, $leaveTypeId, (string) $request->leave_period);
+            if ($byLabel) {
+                $start = $request->start_date;
+                $end = $request->end_date;
+                if ($dateFenced && $start && $end && ! $byLabel->containsRange($start, $end)) {
+                    throw ValidationException::withMessages([
+                        'start_date' => 'Leave dates must fall within the selected leave period ('.$byLabel->periodLabel().').',
+                    ]);
                 }
+
+                return $byLabel;
+            }
+        }
+
+        $candidates = LeaveEntitlement::where('employee_id', $employeeId)
+            ->where('leave_type_id', $leaveTypeId)
+            ->get();
+
+        if ($dateFenced && $request->start_date && $request->end_date) {
+            $match = LeaveEntitlement::pickCovering($candidates, $request->start_date, $request->end_date);
+            if ($match) {
+                return $match;
             }
         }
 
         $today = now()->toDateString();
 
-        return LeaveEntitlement::where('employee_id', $employeeId)
-            ->where('leave_type_id', $leaveTypeId)
-            ->where('period_start', '<=', $today)
-            ->where('period_end', '>=', $today)
-            ->first();
+        return LeaveEntitlement::pickCovering($candidates, $today, $today);
     }
 
     private function findEntitlementByPeriodLabel(string $employeeId, int $leaveTypeId, string $label): ?LeaveEntitlement
