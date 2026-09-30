@@ -506,7 +506,7 @@ Sesi rekrutmen menghubungkan **kandidat** dengan FPTK **Approved** atau baris **
 ### 6.1 Daftar **Recruitment Sessions**
 
 1. Sidebar **Recruitment Management** → **Sessions** (tombol **Dashboard** di kanan atas kembali ke dashboard rekrutmen).
-2. **Filter**: **FPTK/MPP Number**, **Department**, **Position**, **Required Date From/To**.
+2. **Filter**: **FPTK/MPP Number**, **Department**, **Project**, **Position**, **Required Date From/To**.
 3. Tabel: **No**, **Source** (FPTK atau MPP), **Project**, **FPTK/MPP No.**, **Position**, **Candidate Count**, **Overall Progress**, **Final Status**, **Required Date**, **Action**.
 4. Klik **View** pada baris untuk membuka halaman sesi FPTK/MPP (daftar kandidat per permintaan).
 

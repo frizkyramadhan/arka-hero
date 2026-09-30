@@ -6,7 +6,7 @@
 @if($isFptk)
     <!-- View Button for FPTK -->
     @can('recruitment-sessions.show')
-        <a href="{{ route('recruitment.sessions.show', $fptk->id) }}" class="btn btn-sm btn-info" title="View FPTK Details">
+        <a href="{{ route('recruitment.sessions.show', $fptk->id) }}" class="btn btn-sm btn-info" data-toggle="tooltip" data-placement="left" title="View FPTK Details">
             <i class="fas fa-eye"></i>
         </a>
     @endcan
@@ -15,14 +15,14 @@
     @can('recruitment-sessions.create')
         <button type="button" class="btn btn-sm btn-primary add-candidate-btn" data-fptk-id="{{ $fptk->id }}"
             data-fptk-number="{{ $fptk->request_number }}" data-position="{{ $fptk->position->position_name ?? 'N/A' }}"
-            title="Add Candidate to FPTK">
+            data-toggle="tooltip" data-placement="left" title="Add Candidate to FPTK">
             <i class="fas fa-plus"></i>
         </button>
     @endcan
 @elseif($isMpp && isset($mpp_detail))
     <!-- View Button for MPP Detail (using same view as FPTK) -->
     @can('recruitment-sessions.show')
-        <a href="{{ route('recruitment.sessions.show', $mpp_detail->id) }}" class="btn btn-sm btn-info" title="View MPP Detail Sessions">
+        <a href="{{ route('recruitment.sessions.show', $mpp_detail->id) }}" class="btn btn-sm btn-info" data-toggle="tooltip" data-placement="left" title="View MPP Detail Sessions">
             <i class="fas fa-eye"></i>
         </a>
     @endcan
@@ -34,7 +34,7 @@
                 data-mpp-detail-id="{{ $mpp_detail->id }}"
                 data-mpp-number="{{ $mpp->mpp_number }}" 
                 data-position-name="{{ $mpp_detail->position->position_name ?? 'N/A' }}"
-                title="Add Candidate to MPP Detail">
+                data-toggle="tooltip" data-placement="left" title="Add Candidate to MPP Detail">
                 <i class="fas fa-plus"></i>
             </button>
         @endif

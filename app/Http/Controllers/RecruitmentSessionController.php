@@ -301,6 +301,7 @@ class RecruitmentSessionController extends Controller
 
         // Data for filters
         $departments = Department::where('department_status', '1')->orderBy('department_name', 'asc')->get();
+        $projects = UserProject::projectsForSelect();
         $positions = Position::where('position_status', '1')->orderBy('position_name', 'asc')->get();
         $stages = [
             'cv_review' => 'CV Review',
@@ -314,7 +315,7 @@ class RecruitmentSessionController extends Controller
 
         ];
 
-        return view('recruitment.sessions.index', compact('title', 'subtitle', 'departments', 'positions', 'stages'));
+        return view('recruitment.sessions.index', compact('title', 'subtitle', 'departments', 'projects', 'positions', 'stages'));
     }
 
     /**
@@ -347,6 +348,10 @@ class RecruitmentSessionController extends Controller
 
         if ($request->filled('department_id')) {
             $fptkQuery->where('department_id', $request->department_id);
+        }
+
+        if ($request->filled('project_id')) {
+            $fptkQuery->where('project_id', $request->project_id);
         }
 
         if ($request->filled('position_id')) {
@@ -383,6 +388,10 @@ class RecruitmentSessionController extends Controller
         // Apply MPP filters
         if ($request->filled('fptk_number')) {
             $mppQuery->where('mpp_number', 'LIKE', '%'.$request->fptk_number.'%');
+        }
+
+        if ($request->filled('project_id')) {
+            $mppQuery->where('project_id', $request->project_id);
         }
 
         if ($request->filled('position_id')) {

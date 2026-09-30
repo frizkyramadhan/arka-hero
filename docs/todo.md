@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-09-02
+**Last Updated**: 2026-09-30
 
 ## Task Management Guidelines
 
@@ -53,6 +53,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 -   None currently
 
 ## Recently Completed
+
+-   `[done] P1: Recruitment sessions list project filter; action tooltips no longer swallow clicks after filter redraw [RecruitmentSessionController::getSessions, sessions/index, sessions/action] (completed: 2026-09-30)`
 
 -   `[done] P1: Overlapping leave entitlements follow submitted Leave Period, else latest period_start [LeaveEntitlement::pickCovering, findLeaveEntitlementForRequest, getLeavePeriod, matchingEntitlement] (completed: 2026-09-25)`
 
