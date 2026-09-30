@@ -76,6 +76,22 @@
                                                 </div>
                                                 <div class="col-3">
                                                     <div class="form-group">
+                                                        <label class="form-control-label">Project</label>
+                                                        <select name="project_id" class="form-control select2bs4"
+                                                            id="project_id" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($projects as $project)
+                                                                <option value="{{ $project->id }}"
+                                                                    {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                                                                    {{ $project->project_code }} -
+                                                                    {{ $project->project_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
                                                         <label class="form-control-label">Position</label>
                                                         <select name="position_id" class="form-control select2bs4"
                                                             id="position_id" style="width: 100%;">
@@ -200,6 +216,11 @@
 @endsection
 
 @section('styles')
+    <style>
+        .tooltip {
+            pointer-events: none;
+        }
+    </style>
     <!-- DataTables -->
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-buttons/css/buttons.bootstrap4.min.css') }}">
@@ -243,6 +264,7 @@
                     data: function(d) {
                         d.fptk_number = $('#fptk_number').val();
                         d.department_id = $('#department_id').val();
+                        d.project_id = $('#project_id').val();
                         d.position_id = $('#position_id').val();
                         d.required_date_from = $('#required_date_from').val();
                         d.required_date_to = $('#required_date_to').val();
@@ -301,26 +323,34 @@
             });
 
             // Filter functionality
-            $('#fptk_number, #department_id, #position_id, #required_date_from, #required_date_to')
+            $('#fptk_number, #department_id, #project_id, #position_id, #required_date_from, #required_date_to')
                 .keyup(function() {
                     table.draw();
                 });
-            $('#department_id, #position_id, #required_date_from, #required_date_to')
+            $('#department_id, #project_id, #position_id, #required_date_from, #required_date_to')
                 .change(function() {
                     table.draw();
                 });
 
             // Reset functionality
             $('#btn-reset').click(function() {
-                $('#fptk_number, #department_id, #position_id, #required_date_from, #required_date_to')
+                $('#fptk_number, #department_id, #project_id, #position_id, #required_date_from, #required_date_to')
                     .val('');
-                $('#department_id, #position_id').change();
+                $('#department_id, #project_id, #position_id').change();
                 table.draw();
             });
 
-            // Initialize tooltips for action buttons
-            $(document).tooltip({
-                selector: '[title]'
+            // Hover-only tooltips on action buttons. A document-wide tooltip on [title]
+            // stays over the button after a filter redraw and swallows the click.
+            $('body').tooltip({
+                selector: '#example1 [data-toggle="tooltip"]',
+                container: 'body',
+                trigger: 'hover',
+                boundary: 'window',
+                placement: 'left'
+            });
+            table.on('preXhr.dt', function() {
+                $('.tooltip').remove();
             });
 
             // Search candidate functionality

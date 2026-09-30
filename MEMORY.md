@@ -1,5 +1,15 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-09-25
+**Last Updated**: 2026-09-30
+
+### [065] Recruitment session list action click lost after filter (2026-09-30) ✅ FIXED
+
+**Symptom**: On Recruitment Sessions, after a filter the Action buttons (view / add candidate) did not respond. Tooltip sat on top of the button.
+
+**Cause**: `$(document).tooltip({ selector: '[title]' })` tooltipped every titled element, including Select2 and row actions. Default trigger is hover+focus, container is the cell inside `scrollX`, so the tip overlapped the button and took the click. A redraw left the tip in place.
+
+**Fix**: Project filter (`project_id`) on FPTK and MPP queries, dropdown from `UserProject::projectsForSelect()`. Tooltips only on `#example1 [data-toggle="tooltip"]`, `trigger: 'hover'`, `container: 'body'`, `pointer-events: none`, and `.tooltip` removed on `preXhr.dt`.
+
+**Files**: `RecruitmentSessionController::index/getSessions`, `resources/views/recruitment/sessions/index.blade.php`, `action.blade.php`.
 
 ### [064] Overlapping leave entitlements pick the wrong balance (2026-09-25) ✅ FIXED
 
