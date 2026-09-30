@@ -16,9 +16,6 @@
 
 <script>
     $(document).ready(function() {
-        // Initialize tooltips
-        $('[title]').tooltip();
-
         // Approve button
         $('.btn-approve').on('click', function() {
             let id = $(this).data('id');

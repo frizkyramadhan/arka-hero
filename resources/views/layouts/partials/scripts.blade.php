@@ -8,6 +8,12 @@
 </script>
 <!-- Bootstrap 4 -->
 <script src="{{ asset('assets/plugins/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    // Drop leftover tips before a list redraws, or the tip stays over the new action buttons.
+    $(document).on('preXhr.dt', function () {
+        $('.tooltip').remove();
+    });
+</script>
 <!-- AdminLTE App -->
 <script src="{{ asset('assets/dist/js/adminlte.js') }}"></script>
 <!-- Select2 (available globally for components relying on it) -->

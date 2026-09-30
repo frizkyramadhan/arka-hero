@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: List action tooltips no longer swallow clicks (FPTK, MPP, shared layout) [requests/index, mpp/index, layouts header/scripts] (completed: 2026-09-30)`
+
 -   `[done] P1: Recruitment sessions list project filter; action tooltips no longer swallow clicks after filter redraw [RecruitmentSessionController::getSessions, sessions/index, sessions/action] (completed: 2026-09-30)`
 
 -   `[done] P1: Overlapping leave entitlements follow submitted Leave Period, else latest period_start [LeaveEntitlement::pickCovering, findLeaveEntitlementForRequest, getLeavePeriod, matchingEntitlement] (completed: 2026-09-25)`

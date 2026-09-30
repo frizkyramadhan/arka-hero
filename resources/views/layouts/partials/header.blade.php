@@ -54,6 +54,11 @@
             div.dataTables_scrollBody {
                 -webkit-overflow-scrolling: touch;
             }
+
+            /* Tooltips must not sit on list action buttons and swallow the click. */
+            .tooltip {
+                pointer-events: none;
+            }
             div.table-responsive:has(> .dataTables_wrapper) {
                 overflow-x: visible;
             }
