@@ -123,13 +123,13 @@ class ManPowerPlanController extends Controller
                 $deleteUrl = route('recruitment.mpp.destroy', $mpp->id);
 
                 $btn = '<div class="btn-group">';
-                $btn .= '<a href="'.$viewUrl.'" class="btn btn-sm btn-info mr-1" title="View"><i class="fas fa-eye"></i></a>';
+                $btn .= '<a href="'.$viewUrl.'" class="btn btn-sm btn-info mr-1" data-toggle="tooltip" data-placement="left" title="View"><i class="fas fa-eye"></i></a>';
 
                 if ($mpp->status === 'active') {
-                    $btn .= '<a href="'.$editUrl.'" class="btn btn-sm btn-primary mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
+                    $btn .= '<a href="'.$editUrl.'" class="btn btn-sm btn-primary mr-1" data-toggle="tooltip" data-placement="left" title="Edit"><i class="fas fa-edit"></i></a>';
                 }
 
-                $btn .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-url="'.$deleteUrl.'" title="Delete"><i class="fas fa-trash"></i></button>';
+                $btn .= '<button type="button" class="btn btn-sm btn-danger btn-delete" data-url="'.$deleteUrl.'" data-toggle="tooltip" data-placement="left" title="Delete"><i class="fas fa-trash"></i></button>';
                 $btn .= '</div>';
 
                 return $btn;

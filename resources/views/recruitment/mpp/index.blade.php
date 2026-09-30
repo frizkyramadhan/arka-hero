@@ -324,9 +324,12 @@
                 });
             });
 
-            // Initialize tooltips for action buttons
-            $(document).tooltip({
-                selector: '[title]'
+            $('body').tooltip({
+                selector: '#example1 [data-toggle="tooltip"]',
+                container: 'body',
+                trigger: 'hover',
+                boundary: 'window',
+                placement: 'left'
             });
         });
     </script>

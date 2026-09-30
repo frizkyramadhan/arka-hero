@@ -9,7 +9,9 @@
 
 **Fix**: Project filter (`project_id`) on FPTK and MPP queries, dropdown from `UserProject::projectsForSelect()`. Tooltips only on `#example1 [data-toggle="tooltip"]`, `trigger: 'hover'`, `container: 'body'`, `pointer-events: none`, and `.tooltip` removed on `preXhr.dt`.
 
-**Files**: `RecruitmentSessionController::index/getSessions`, `resources/views/recruitment/sessions/index.blade.php`, `action.blade.php`.
+Same `[title]` tooltip init removed from FPTK list, MPP list, and employee-registration row actions. Layout CSS sets `.tooltip { pointer-events: none }` and `preXhr.dt` clears leftover tips on every DataTable.
+
+**Files**: `RecruitmentSessionController`, `ManPowerPlanController` action column, `resources/views/recruitment/sessions|requests|mpp`, `layouts/partials/header.blade.php`, `layouts/partials/scripts.blade.php`.
 
 ### [064] Overlapping leave entitlements pick the wrong balance (2026-09-25) ✅ FIXED
 

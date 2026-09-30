@@ -1,5 +1,5 @@
 <!-- View button -->
-<a href="{{ route('recruitment.requests.show', $fptk->id) }}" class="btn btn-icon btn-info btn-sm" title="View Details">
+<a href="{{ route('recruitment.requests.show', $fptk->id) }}" class="btn btn-icon btn-info btn-sm" data-toggle="tooltip" data-placement="left" title="View Details">
     <i class="fas fa-eye"></i>
 </a>
 
