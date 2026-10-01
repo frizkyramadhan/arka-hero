@@ -593,7 +593,8 @@ final class UserProject
     }
 
     /**
-     * `recruitment_candidates`: pool global (tanpa session) atau punya session ke FPTK/MPP di proyek assignment.
+     * `recruitment_candidates`: `project_id` harus ada di assignment user.
+     * Baris lama tanpa `project_id` tetap pool global (tanpa session) atau session ke FPTK/MPP di proyek assignment.
      *
      * @param  \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder  $query
      * @return \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Query\Builder
@@ -609,11 +610,16 @@ final class UserProject
         }
 
         return $query->where(function ($w) use ($scope) {
-            $w->whereDoesntHave('sessions')
-                ->orWhereHas('sessions', function ($sq) use ($scope) {
-                    $sq->where(function ($w2) use ($scope) {
-                        $w2->whereHas('fptk', fn ($q) => $q->whereIn('project_id', $scope))
-                            ->orWhereHas('mppDetail.mpp', fn ($q) => $q->whereIn('project_id', $scope));
+            $w->whereIn('project_id', $scope)
+                ->orWhere(function ($legacy) use ($scope) {
+                    $legacy->whereNull('project_id')->where(function ($pool) use ($scope) {
+                        $pool->whereDoesntHave('sessions')
+                            ->orWhereHas('sessions', function ($sq) use ($scope) {
+                                $sq->where(function ($w2) use ($scope) {
+                                    $w2->whereHas('fptk', fn ($q) => $q->whereIn('project_id', $scope))
+                                        ->orWhereHas('mppDetail.mpp', fn ($q) => $q->whereIn('project_id', $scope));
+                                });
+                            });
                     });
                 });
         });
@@ -621,6 +627,10 @@ final class UserProject
 
     public static function canViewRecruitmentCandidate(RecruitmentCandidate $candidate, ?User $user = null): bool
     {
+        if ($candidate->project_id) {
+            return self::canAccessProjectId((int) $candidate->project_id, $user);
+        }
+
         $scope = self::assignmentScope($user);
         if ($scope === null) {
             return true;

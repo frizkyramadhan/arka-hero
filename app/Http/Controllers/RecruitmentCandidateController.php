@@ -52,6 +52,7 @@ class RecruitmentCandidateController extends Controller
             'blacklisted' => 'Blacklisted',
         ];
         $years = range(date('Y'), date('Y') - 5);
+        $projects = UserProject::projectsForSelect();
 
         // Get available FPTKs for the apply modal
         $availableFptksQuery = RecruitmentRequest::with(['department', 'position'])
@@ -62,7 +63,7 @@ class RecruitmentCandidateController extends Controller
         $title = 'Recruitment Candidates';
         $subtitle = 'List of Recruitment Candidates';
 
-        return view('recruitment.candidates.index', compact('educationLevels', 'globalStatuses', 'years', 'title', 'subtitle', 'availableFptks'));
+        return view('recruitment.candidates.index', compact('educationLevels', 'globalStatuses', 'years', 'projects', 'title', 'subtitle', 'availableFptks'));
     }
 
     /**
@@ -108,12 +109,17 @@ class RecruitmentCandidateController extends Controller
     public function getRecruitmentCandidates(Request $request)
     {
         $query = RecruitmentCandidate::with([
+            'project',
             'sessions.fptk.department',
             'sessions.fptk.position',
             'sessions.fptk.project',
         ]);
 
         // Apply filters
+        if ($request->filled('project_id')) {
+            $query->where('project_id', $request->project_id);
+        }
+
         if ($request->filled('candidate_number')) {
             $query->where('candidate_number', 'LIKE', "%{$request->candidate_number}%");
         }
@@ -173,6 +179,13 @@ class RecruitmentCandidateController extends Controller
             ->addColumn('fullname', function ($candidate) {
                 return $candidate->fullname;
             })
+            ->addColumn('project', function ($candidate) {
+                if (! $candidate->project) {
+                    return '-';
+                }
+
+                return $candidate->project->project_code.' - '.$candidate->project->project_name;
+            })
             ->addColumn('email', function ($candidate) {
                 return $candidate->email;
             })
@@ -229,8 +242,9 @@ class RecruitmentCandidateController extends Controller
     {
         $title = 'Recruitment Candidates';
         $subtitle = 'Add New Candidate';
+        $projects = UserProject::projectsForSelect();
 
-        return view('recruitment.candidates.create', compact('title', 'subtitle'));
+        return view('recruitment.candidates.create', compact('title', 'subtitle', 'projects'));
     }
 
     /**
@@ -239,6 +253,7 @@ class RecruitmentCandidateController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'project_id' => $this->candidateProjectRules(),
             'fullname' => 'required|string|max:255',
             'email' => 'required|email|unique:recruitment_candidates,email',
             'phone' => 'required|string|max:50',
@@ -260,6 +275,7 @@ class RecruitmentCandidateController extends Controller
             DB::beginTransaction();
 
             $candidateData = [
+                'project_id' => $request->project_id,
                 'fullname' => $request->fullname,
                 'email' => $request->email,
                 'phone' => $request->phone,
@@ -319,6 +335,7 @@ class RecruitmentCandidateController extends Controller
         $subtitle = 'Candidate Details';
 
         $candidate = RecruitmentCandidate::with([
+            'project',
             'sessions.fptk.department',
             'sessions.fptk.position',
             'sessions.fptk.project',
@@ -367,7 +384,13 @@ class RecruitmentCandidateController extends Controller
             return UserProject::redirectAccessDenied();
         }
 
-        return view('recruitment.candidates.edit', compact('candidate', 'title', 'subtitle'));
+        $candidate->loadMissing('project');
+        $projects = UserProject::projectsForSelect();
+        if ($candidate->project && ! $projects->contains('id', $candidate->project_id)) {
+            $projects->prepend($candidate->project);
+        }
+
+        return view('recruitment.candidates.edit', compact('candidate', 'projects', 'title', 'subtitle'));
     }
 
     /**
@@ -382,6 +405,7 @@ class RecruitmentCandidateController extends Controller
         }
 
         $request->validate([
+            'project_id' => $this->candidateProjectRules(),
             'fullname' => 'required|string|max:255',
             'email' => 'required|email|unique:recruitment_candidates,email,'.$candidate->id,
             'phone' => 'required|string|max:50',
@@ -403,6 +427,7 @@ class RecruitmentCandidateController extends Controller
             DB::beginTransaction();
 
             $candidateData = [
+                'project_id' => $request->project_id,
                 'fullname' => $request->fullname,
                 'email' => $request->email,
                 'phone' => $request->phone,
@@ -646,6 +671,7 @@ class RecruitmentCandidateController extends Controller
     public function print($id)
     {
         $candidate = RecruitmentCandidate::with([
+            'project',
             'sessions.fptk.department',
             'sessions.fptk.position',
             'sessions.fptk.project',
@@ -823,5 +849,21 @@ class RecruitmentCandidateController extends Controller
                 ];
             }),
         ]);
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private function candidateProjectRules(): array
+    {
+        return [
+            'required',
+            'exists:projects,id',
+            function ($attribute, $value, $fail) {
+                if (! UserProject::canAccessProjectId((int) $value)) {
+                    $fail('The selected project is invalid.');
+                }
+            },
+        ];
     }
 }

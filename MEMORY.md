@@ -1,5 +1,13 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-09-30
+**Last Updated**: 2026-10-01
+
+### [066] Recruitment candidates belong to a project (2026-10-01)
+
+**Change**: `recruitment_candidates.project_id` (nullable FK). Create/edit dropdown is `UserProject::projectsForSelect()`. Store/update reject a project outside the user's `user_project` rows. List filter and detail/print show the project.
+
+**Access**: A candidate with `project_id` is visible only when that id is in the user's assignment. Rows that still have `project_id` null keep the old rule (global pool with no session, or a session whose FPTK/MPP is in the assignment) until someone sets a project on edit.
+
+**Files**: migration `2026_10_01_140000_add_project_id_to_recruitment_candidates_table`, `RecruitmentCandidate`, `UserProject::scopeRecruitmentCandidatesToAssignedProjects` / `canViewRecruitmentCandidate`, `RecruitmentCandidateController`, `resources/views/recruitment/candidates`.
 
 ### [065] Recruitment session list action click lost after filter (2026-09-30) ✅ FIXED
 

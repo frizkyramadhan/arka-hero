@@ -379,6 +379,12 @@
                 <div class="content-box">
                     <div class="info-grid">
                         <div class="info-item">
+                            <div class="info-label">Project</div>
+                            <div class="info-value">
+                                {{ $candidate->project ? $candidate->project->project_code.' - '.$candidate->project->project_name : '-' }}
+                            </div>
+                        </div>
+                        <div class="info-item">
                             <div class="info-label">Email</div>
                             <div class="info-value">{{ $candidate->email }}</div>
                         </div>

@@ -600,7 +600,7 @@ flowchart TD
 
 - `recruitment_requests` - FPTK (Workforce requisition); `status_before_hold` for HOLD restore
 - `recruitment_request_holds` - FPTK hold history (held_at / released_at)
-- `recruitment_candidates` - Candidate database
+- `recruitment_candidates` - Candidate database (`project_id` scoped by `user_project`; null project keeps the legacy session pool)
 - `recruitment_sessions` - Candidate-FPTK session tracking
 - `recruitment_cv_reviews` - CV review stage data
 - `recruitment_psikotes` - Psychometric test results

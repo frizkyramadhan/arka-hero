@@ -359,6 +359,34 @@
                             </div>
                         </div>
 
+                        <div class="card card-warning card-outline elevation-3">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-project-diagram mr-2"></i>
+                                    <strong>Project</strong>
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group mb-0">
+                                    <label for="project_id">Project <span class="text-danger">*</span></label>
+                                    <select name="project_id" id="project_id"
+                                        class="form-control select2-primary @error('project_id') is-invalid @enderror"
+                                        style="width: 100%;" required>
+                                        <option value="">Select Project</option>
+                                        @foreach ($projects as $project)
+                                            <option value="{{ $project->id }}"
+                                                {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                                {{ $project->project_code }} - {{ $project->project_name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('project_id')
+                                        <span class="invalid-feedback d-block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Action Buttons Card -->
                         <div class="card card-outline elevation-3">
                             <div class="card-body">
