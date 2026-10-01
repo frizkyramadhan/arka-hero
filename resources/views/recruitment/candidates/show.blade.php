@@ -61,6 +61,17 @@
                         <div class="card-body">
                             <div class="info-grid">
                                 <div class="info-item">
+                                    <div class="info-icon" style="background-color: #2c3e50;">
+                                        <i class="fas fa-project-diagram"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <div class="info-label">Project</div>
+                                        <div class="info-value">
+                                            {{ $candidate->project ? $candidate->project->project_code.' - '.$candidate->project->project_name : '-' }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="info-item">
                                     <div class="info-icon" style="background-color: #3498db;">
                                         <i class="fas fa-phone"></i>
                                     </div>

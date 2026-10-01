@@ -87,6 +87,22 @@
                                                 </div>
                                                 <div class="col-3">
                                                     <div class="form-group">
+                                                        <label class="form-control-label">Project</label>
+                                                        <select name="project_id" class="form-control select2bs4"
+                                                            id="project_id" style="width: 100%;">
+                                                            <option value="">- All -</option>
+                                                            @foreach ($projects as $project)
+                                                                <option value="{{ $project->id }}"
+                                                                    {{ request('project_id') == $project->id ? 'selected' : '' }}>
+                                                                    {{ $project->project_code }} -
+                                                                    {{ $project->project_name }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                                <div class="col-3">
+                                                    <div class="form-group">
                                                         <label class="form-control-label">Education Level</label>
                                                         <select name="education_level" class="form-control select2bs4"
                                                             id="education_level" style="width: 100%;">
@@ -178,6 +194,7 @@
                                                 <th class="align-middle text-center">No</th>
                                                 <th class="align-middle text-center">Candidate Number</th>
                                                 <th class="align-middle">Full Name</th>
+                                                <th class="align-middle">Project</th>
                                                 <th class="align-middle">Email</th>
                                                 <th class="align-middle">Phone</th>
                                                 <th class="align-middle">Education</th>
@@ -329,6 +346,7 @@
                     url: "{{ route('recruitment.candidates.data') }}",
                     data: function(d) {
                         d.candidate_number = $('#candidate_number').val();
+                        d.project_id = $('#project_id').val();
                         d.fullname = $('#fullname').val();
                         d.email = $('#email').val();
                         d.phone = $('#phone').val();
@@ -352,6 +370,10 @@
                 }, {
                     data: "fullname",
                     name: "fullname",
+                    orderable: false,
+                }, {
+                    data: "project",
+                    name: "project",
                     orderable: false,
                 }, {
                     data: "email",
@@ -396,16 +418,16 @@
                 .keyup(function() {
                     table.draw();
                 });
-            $('#education_level, #global_status, #registration_date_from, #registration_date_to')
+            $('#education_level, #project_id, #global_status, #registration_date_from, #registration_date_to')
                 .change(function() {
                     table.draw();
                 });
 
             // Reset functionality
             $('#btn-reset').click(function() {
-                $('#candidate_number, #fullname, #email, #phone, #education_level, #position_applied, #global_status, #registration_date_from, #registration_date_to')
+                $('#candidate_number, #fullname, #email, #phone, #education_level, #project_id, #position_applied, #global_status, #registration_date_from, #registration_date_to')
                     .val('');
-                $('#education_level, #global_status').change();
+                $('#education_level, #project_id, #global_status').change();
             });
 
             // Modal functionality

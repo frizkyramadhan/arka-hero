@@ -11,6 +11,7 @@ class RecruitmentCandidate extends Model
 
     protected $fillable = [
         'candidate_number',
+        'project_id',
         'fullname',
         'email',
         'phone',
@@ -52,6 +53,11 @@ class RecruitmentCandidate extends Model
     /**
      * Relationships
      */
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
 
     // Core relationship: Candidate has many sessions
     public function sessions()
