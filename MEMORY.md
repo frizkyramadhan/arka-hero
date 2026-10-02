@@ -1,6 +1,18 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-10-02
 
+### [077] Approved paid and unpaid edits keep document and reason (2026-10-02)
+
+**Change**: Approved paid leave can upload a supporting document. Approved unpaid leave can edit the reason. Project, employee, and leave type stay locked.
+
+**Files**: `LeaveRequestController::update`, `leave-requests/edit.blade.php`.
+
+### [076] Approved LSL edit keeps usage mode and day split (2026-10-02)
+
+**Change**: An approved long service leave can still change usage mode, leave days, cash out, and the resulting total. Project, employee, leave type, reason, document, flight, and approvers stay locked. The balance check adds back the days this request already holds.
+
+**Files**: `LeaveRequestController::update`, `leave-requests/edit.blade.php`, `partials/lsl-flexible-scripts.blade.php`.
+
 ### [075] Leave edit uses the request administration (2026-10-02)
 
 **Change**: Edit, my-edit, and the detail header take the project from the leave's administration. An older inactive assignment is no longer the one shown. The employee list still includes that administration when it is inactive.

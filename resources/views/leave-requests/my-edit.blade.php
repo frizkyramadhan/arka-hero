@@ -510,6 +510,15 @@
 
             @include('leave-requests.partials.leave-period-date-fence-scripts')
 
+            const originalLeaveBalance = {
+                employee_id: @json((string) $leaveRequest->employee_id),
+                leave_type_id: @json((int) $leaveRequest->leave_type_id),
+                total_days: @json((int) $leaveRequest->total_days),
+                leave_period: @json((string) ($leaveRequest->leave_period ?? '')),
+                lsl_taken_days: @json((int) ($leaveRequest->lsl_taken_days ?? 0)),
+                lsl_cashout_days: @json((int) ($leaveRequest->lsl_cashout_days ?? 0)),
+            };
+
             // Initialize all components on page load
             initializeForm();
 
@@ -1135,15 +1144,6 @@
             // ============================================================================
             // VALIDATION
             // ============================================================================
-
-            const originalLeaveBalance = {
-                employee_id: @json((string) $leaveRequest->employee_id),
-                leave_type_id: @json((int) $leaveRequest->leave_type_id),
-                total_days: @json((int) $leaveRequest->total_days),
-                leave_period: @json((string) ($leaveRequest->leave_period ?? '')),
-                lsl_taken_days: @json((int) ($leaveRequest->lsl_taken_days ?? 0)),
-                lsl_cashout_days: @json((int) ($leaveRequest->lsl_cashout_days ?? 0)),
-            };
 
             function savedLeaveBalanceUnchanged(requestedDays) {
                 const leaveTypeId = $('#leave_type_id').val();
