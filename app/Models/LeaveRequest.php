@@ -443,6 +443,42 @@ class LeaveRequest extends Model implements NotifiableDocument
     }
 
     /**
+     * Assignment stored on this request. Older rows on the employee are only a fallback.
+     */
+    public function administrationForForm(): ?Administration
+    {
+        if ($this->relationLoaded('administration')) {
+            $saved = $this->getRelation('administration');
+        } elseif ($this->administration_id) {
+            $saved = $this->administration;
+        } else {
+            $saved = null;
+        }
+
+        if ($saved) {
+            return $saved;
+        }
+
+        $employee = $this->relationLoaded('employee')
+            ? $this->getRelation('employee')
+            : ($this->employee_id ? $this->employee : null);
+
+        if (! $employee) {
+            return null;
+        }
+
+        $admins = $employee->relationLoaded('administrations')
+            ? $employee->getRelation('administrations')
+            : $employee->administrations;
+
+        if ($admins === null || $admins->isEmpty()) {
+            return null;
+        }
+
+        return $admins->first(fn ($admin) => (int) $admin->is_active === 1) ?? $admins->first();
+    }
+
+    /**
      * Days this approved request already holds inside taken_days.
      */
     public function alreadyChargedDays(): int

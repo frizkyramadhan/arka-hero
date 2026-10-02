@@ -858,8 +858,7 @@ class LeaveRequestController extends Controller
 
         $approvedLeaveLocked = $leaveRequest->locksApprovedEditFields();
         if ($approvedLeaveLocked) {
-            $projectId = $leaveRequest->administration?->project_id
-                ?? $leaveRequest->employee?->administrations?->first()?->project_id
+            $projectId = $leaveRequest->administrationForForm()?->project_id
                 ?? $request->input('project_id');
             $taken = (int) ($leaveRequest->lsl_taken_days ?? 0);
             $cashout = (int) ($leaveRequest->lsl_cashout_days ?? 0);

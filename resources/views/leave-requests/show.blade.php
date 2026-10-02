@@ -5,7 +5,7 @@
         <div class="leave-request-header">
             <div class="leave-request-header-content">
                 <div class="leave-request-project">
-                    {{ $leaveRequest->employee->administrations->first()->project->project_name ?? 'N/A' }}</div>
+                    {{ $leaveRequest->administrationForForm()?->project?->project_name ?? 'N/A' }}</div>
                 <h1 class="leave-request-number">Leave Request</h1>
                 @if ($leaveRequest->register_number)
                     <div class="text-white-50 small mb-1" style="letter-spacing: 0.05em;">

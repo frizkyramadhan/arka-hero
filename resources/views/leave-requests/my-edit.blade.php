@@ -46,8 +46,12 @@
                 @method('PUT')
                 {{-- Hidden fields for employee and project --}}
                 <input type="hidden" name="employee_id" id="employee_id" value="{{ $leaveRequest->employee_id }}">
+                @php
+                    $formAdministration = $leaveRequest->administrationForForm();
+                    $formProjectId = $formAdministration?->project_id ?? null;
+                @endphp
                 <input type="hidden" name="project_id" id="project_id"
-                    value="{{ $leaveRequest->employee->administrations->first()->project_id ?? '' }}">
+                    value="{{ $formProjectId ?? '' }}">
 
                 <div class="row">
                     <div class="col-md-8">
@@ -81,7 +85,7 @@
                                                 Employee
                                             </label>
                                             <input type="text" id="employee_display" class="form-control bg-light"
-                                                value="{{ (optional($leaveRequest->employee->administrations->first())->nik ?? 'N/A') . ' - ' . ($leaveRequest->employee->fullname ?? 'N/A') }}"
+                                                value="{{ ($formAdministration?->nik ?? 'N/A') . ' - ' . ($leaveRequest->employee->fullname ?? 'N/A') }}"
                                                 readonly>
                                             @error('employee_id')
                                                 <div class="invalid-feedback d-block">{{ $message }}</div>
@@ -95,7 +99,7 @@
                                                 Project
                                             </label>
                                             <input type="text" id="project_display" class="form-control bg-light"
-                                                value="{{ (optional(optional($leaveRequest->employee->administrations->first())->project)->project_code ?? 'N/A') . ' - ' . (optional(optional($leaveRequest->employee->administrations->first())->project)->project_name ?? 'N/A') }}"
+                                                value="{{ ($formAdministration?->project?->project_code ?? 'N/A') . ' - ' . ($formAdministration?->project?->project_name ?? 'N/A') }}"
                                                 readonly>
                                         </div>
                                     </div>
@@ -495,7 +499,7 @@
 
             // Fixed employee and project for personal request
             const employeeId = "{{ $leaveRequest->employee_id }}";
-            const projectId = {{ $leaveRequest->employee->administrations->first()->project_id ?? 'null' }};
+            const projectId = @json($formProjectId);
             const currentProject = projectData.find(p => p.id == projectId);
 
             // Store current entitlement period for date picker limits

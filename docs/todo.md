@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Leave edit shows the request administration, not the employee's first assignment [LeaveRequest::administrationForForm] (completed: 2026-10-02)`
+
 -   `[done] P1: Leave list action column is detail only for every status; edit, delete, and close stay on the detail page [LeaveRequestController::data, myRequestsData, show.blade.php] (completed: 2026-10-02)`
 
 -   `[done] P1: HR leave list closed rows show only the detail action [LeaveRequestController::data] (completed: 2026-10-02)`

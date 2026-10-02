@@ -1,6 +1,12 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-10-02
 
+### [075] Leave edit uses the request administration (2026-10-02)
+
+**Change**: Edit, my-edit, and the detail header take the project from the leave's administration. An older inactive assignment is no longer the one shown. The employee list still includes that administration when it is inactive.
+
+**Files**: `LeaveRequest::administrationForForm`, `leave-requests/edit.blade.php`, `my-edit.blade.php`, `show.blade.php`.
+
 ### [074] Leave list action column is detail only (2026-10-02)
 
 **Change**: HR and My Requests lists show only the eye button for every status. Edit, delete, and close stay on the detail page. Rejected and cancelled now have Edit Request on the HR detail page, which is where that list button used to live.
