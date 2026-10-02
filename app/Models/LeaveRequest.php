@@ -379,7 +379,7 @@ class LeaveRequest extends Model implements NotifiableDocument
      */
     public function canBeClosed()
     {
-        return $this->status === 'approved' && $this->end_date <= now()->addDay();
+        return $this->locksApprovedEditFields();
     }
 
     /**

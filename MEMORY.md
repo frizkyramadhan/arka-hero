@@ -1,6 +1,24 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
 **Last Updated**: 2026-10-02
 
+### [074] Leave list action column is detail only (2026-10-02)
+
+**Change**: HR and My Requests lists show only the eye button for every status. Edit, delete, and close stay on the detail page. Rejected and cancelled now have Edit Request on the HR detail page, which is where that list button used to live.
+
+**Files**: `LeaveRequestController::data`, `LeaveRequestController::myRequestsData`, `leave-requests/show.blade.php`.
+
+### [073] Closed leave list rows are detail only (2026-10-02)
+
+**Change**: The HR leave list action column for status `closed` is the eye/detail button only. Edit stays available for draft, pending, rejected, and cancelled. Approved and auto-approved were already detail-only.
+
+**Files**: `LeaveRequestController::data`.
+
+### [072] Close Request on any approved leave, HR detail only (2026-10-02)
+
+**Change**: HR leave detail shows Close Request next to Edit Request for approved and auto-approved, including future end dates. My Requests does not. `canBeClosed()` follows the approved lock, no longer waiting until the day after end date.
+
+**Files**: `LeaveRequest::canBeClosed`, `leave-requests/show.blade.php`.
+
 ### [071] Approved leave edit button is HR detail only (2026-10-02)
 
 **Change**: HR leave detail shows Edit Request for approved and auto-approved. My Requests detail does not. The HR list action column for those statuses is the detail button only.

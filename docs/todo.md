@@ -54,6 +54,12 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Leave list action column is detail only for every status; edit, delete, and close stay on the detail page [LeaveRequestController::data, myRequestsData, show.blade.php] (completed: 2026-10-02)`
+
+-   `[done] P1: HR leave list closed rows show only the detail action [LeaveRequestController::data] (completed: 2026-10-02)`
+
+-   `[done] P1: HR detail shows Close Request for any approved leave [LeaveRequest::canBeClosed, show.blade.php] (completed: 2026-10-02)`
+
 -   `[done] P1: HR detail shows Edit Request for approved leave; HR list approved rows keep only the detail action [show.blade.php, LeaveRequestController::data] (completed: 2026-10-02)`
 
 -   `[done] P1: Approved leave date edit adjusts entitlement taken_days [LeaveRequest::takenDaysAfterChargeEdit, update] (completed: 2026-10-02)`

@@ -266,20 +266,6 @@ class LeaveRequestController extends Controller
 
             $actions = '<div class="btn-group" role="group">';
             $actions .= '<a href="' . route('leave.requests.show', $request) . '" class="btn btn-info btn-sm mr-1" title="Detail"><i class="fas fa-eye"></i></a>';
-            if (! $request->locksApprovedEditFields()) {
-                $actions .= '<a href="' . route('leave.requests.edit', $request) . '" class="btn btn-warning btn-sm mr-1" title="Edit"><i class="fas fa-edit"></i></a>';
-            }
-
-            if ($request->canBeDeletedBeforeApproval() && auth()->user()->can('leave-requests.delete')) {
-                $actions .= '<form method="POST" action="' . route('leave.requests.destroy', $request) . '" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
-                $actions .= csrf_field() . method_field('DELETE');
-                $actions .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button></form>';
-            }
-
-            // if ($request->canBeCancelled()) {
-            //     $actions .= '<a href="' . route('leave.requests.edit', $request) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
-            // }
-
             $actions .= '</div>';
 
             // Format leave type with document indicator for paid leave types
@@ -2253,24 +2239,10 @@ class LeaveRequestController extends Controller
             ->addColumn('requested_at', function ($row) {
                 return $row->requested_at ? \Carbon\Carbon::parse($row->requested_at)->format('d/m/Y H:i') : 'N/A';
             })
-            ->addColumn('action', function ($row) use ($user) {
-                $btn = '<div class="btn-group" role="group">';
-
-                $btn .= '<a href="' . route('leave.my-requests.show', $row->id) . '" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
-
-                if ($row->status === 'draft' || $row->status === 'pending') {
-                    $btn .= '<a href="' . route('leave.my-requests.edit', $row->id) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
-                }
-
-                if ($row->canBeDeletedBeforeApproval() && $user->can('personal.leave.edit-own')) {
-                    $btn .= '<form method="POST" action="' . route('leave.my-requests.destroy', $row->id) . '" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
-                    $btn .= csrf_field() . method_field('DELETE');
-                    $btn .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button></form>';
-                }
-
-                $btn .= '</div>';
-
-                return $btn;
+            ->addColumn('action', function ($row) {
+                return '<div class="btn-group" role="group">'
+                    . '<a href="' . route('leave.my-requests.show', $row->id) . '" class="btn btn-info btn-sm mr-1" title="Detail"><i class="fas fa-eye"></i></a>'
+                    . '</div>';
             })
             ->rawColumns(['leave_type', 'start_date', 'end_date', 'total_days', 'status_badge', 'action'])
             ->make(true);
