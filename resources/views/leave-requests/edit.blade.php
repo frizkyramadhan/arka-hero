@@ -299,21 +299,20 @@
                                         </small>
                                     </div>
                                 </div>
-                                <div class="col-md-6 {{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}" id="reason_field" style="display: none;">
+                                <div class="col-md-6" id="reason_field" style="display: none;">
                                     <div class="form-group">
                                         <label for="reason">
                                             <i class="fas fa-comment-alt mr-1"></i>
                                             Reason <span class="text-danger">*</span>
                                         </label>
                                         <textarea name="reason" id="reason" rows="3" class="form-control @error('reason') is-invalid @enderror"
-                                            placeholder="Please provide a detailed reason for your leave request..."
-                                            @readonly($approvedLeaveLocked)>{{ old('reason', $leaveRequest->reason) }}</textarea>
+                                            placeholder="Please provide a detailed reason for your leave request...">{{ old('reason', $leaveRequest->reason) }}</textarea>
                                         @error('reason')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
                                 </div>
-                                <div class="col-md-6 {{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}" id="document_field" style="display: none;">
+                                <div class="col-md-6" id="document_field" style="display: none;">
                                     <div class="form-group">
                                         <label for="supporting_document">
                                             <i class="fas fa-file-upload mr-1"></i>
@@ -324,8 +323,7 @@
                                                 <input type="file" name="supporting_document"
                                                     id="supporting_document"
                                                     class="custom-file-input @error('supporting_document') is-invalid @enderror"
-                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.rar,.zip"
-                                                    @disabled($approvedLeaveLocked)>
+                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.rar,.zip">
                                                 <label class="custom-file-label" for="supporting_document">
                                                     Choose file...
                                                 </label>
@@ -353,9 +351,7 @@
                                 </div>
                             </div>
 
-                            <div class="{{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}">
-                                @include('leave-requests.partials.lsl-flexible-section', ['leaveRequest' => $leaveRequest])
-                            </div>
+                            @include('leave-requests.partials.lsl-flexible-section', ['leaveRequest' => $leaveRequest])
                         </div>
 
                     </div>
@@ -571,6 +567,8 @@ $nationalHolidayNamesJs = $nationalHolidayMap ?? (object) [];
         };
 
         @include('leave-requests.partials.leave-period-date-fence-scripts')
+
+        const originalLeaveBalance = @json($originalLeaveBalancePayload);
 
         // Initialize all components on page load
         initializeForm();
@@ -1342,8 +1340,6 @@ $nationalHolidayNamesJs = $nationalHolidayMap ?? (object) [];
         // ============================================================================
         // VALIDATION
         // ============================================================================
-
-        const originalLeaveBalance = @json($originalLeaveBalancePayload);
 
         function savedLeaveBalanceUnchanged(requestedDays) {
             const leaveTypeId = $('#leave_type_id').val();

@@ -97,7 +97,10 @@
                 $('#lsl_total_days').val(totalDays);
 
                 const $option = $('#leave_type_id option:selected');
-                const remainingDays = parseInt($option.data('remaining'), 10) || 0;
+                let remainingDays = parseInt($option.data('remaining'), 10) || 0;
+                if (typeof approvedLeaveLocked !== 'undefined' && approvedLeaveLocked && typeof originalLeaveBalance !== 'undefined') {
+                    remainingDays += parseInt(originalLeaveBalance.charged_days, 10) || 0;
+                }
 
                 clearLSLValidation();
 
@@ -108,7 +111,10 @@
                 }
 
                 if (window.entitlementData && window.entitlementData.remaining_days !== undefined) {
-                    const entitlementRemaining = window.entitlementData.remaining_days;
+                    let entitlementRemaining = window.entitlementData.remaining_days;
+                    if (typeof approvedLeaveLocked !== 'undefined' && approvedLeaveLocked && typeof originalLeaveBalance !== 'undefined') {
+                        entitlementRemaining += parseInt(originalLeaveBalance.charged_days, 10) || 0;
+                    }
                     if (totalDays > entitlementRemaining) {
                         showLSLValidation(
                             `Total days (${totalDays}) exceeds remaining leave balance (${entitlementRemaining} days)`);
@@ -134,7 +140,8 @@
                     $('#total_days_input').closest('.form-group').hide();
                     applyLSLUsageMode();
                     const mode = getLSLUsageMode();
-                    calculateLSLFlexible(mode !== 'cashout_only');
+                    const keepStoredLeaveDays = (parseInt($('#lsl_taken_days').val(), 10) || 0) > 0;
+                    calculateLSLFlexible(mode !== 'cashout_only' && !keepStoredLeaveDays);
                 } else {
                     $('#lsl_flexible_section').slideUp();
                     $('#total_days_input').closest('.form-group').show();

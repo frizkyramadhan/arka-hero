@@ -860,20 +860,13 @@ class LeaveRequestController extends Controller
         if ($approvedLeaveLocked) {
             $projectId = $leaveRequest->administrationForForm()?->project_id
                 ?? $request->input('project_id');
-            $taken = (int) ($leaveRequest->lsl_taken_days ?? 0);
-            $cashout = (int) ($leaveRequest->lsl_cashout_days ?? 0);
-            $lslMode = ($cashout > 0 && $taken === 0) ? 'cashout_only' : ($cashout > 0 ? 'combined' : 'leave_only');
 
             $request->merge([
                 'project_id' => $projectId,
                 'employee_id' => $leaveRequest->employee_id,
                 'leave_type_id' => $leaveRequest->leave_type_id,
                 'leave_period' => $leaveRequest->leave_period,
-                'reason' => $leaveRequest->reason,
                 'manual_approvers' => $leaveRequest->manual_approvers ?? [],
-                'lsl_usage_mode' => $lslMode,
-                'lsl_taken_days' => $taken,
-                'lsl_cashout_days' => $cashout,
             ]);
         }
 
@@ -977,7 +970,11 @@ class LeaveRequestController extends Controller
         $cashoutDays = 0;
 
         if ($approvedLeaveLocked && $datesChanged && $isLSL && $request->input('lsl_usage_mode') !== 'cashout_only') {
-            $request->merge(['lsl_taken_days' => 0]);
+            $postedTaken = (int) $request->input('lsl_taken_days', 0);
+            $savedTaken = (int) ($leaveRequest->lsl_taken_days ?? 0);
+            if ($postedTaken === $savedTaken) {
+                $request->merge(['lsl_taken_days' => 0]);
+            }
         }
 
         if ($isLSL) {
@@ -1032,7 +1029,7 @@ class LeaveRequestController extends Controller
             // Handle file upload for supporting document
             $supportingDocumentPath = $leaveRequest->supporting_document; // Keep existing file by default
 
-            if (! $approvedLeaveLocked && $request->hasFile('supporting_document')) {
+            if ($request->hasFile('supporting_document') && $leaveType && $leaveType->category === 'paid') {
                 // Delete old file and folder if exists
                 $this->deleteSupportingDocument($leaveRequest);
 
