@@ -101,6 +101,12 @@
 
                 clearLSLValidation();
 
+                if (typeof savedLeaveBalanceUnchanged === 'function' && savedLeaveBalanceUnchanged(totalDays)) {
+                    $('#lsl_cashout_days, #lsl_taken_days, #lsl_total_days').removeClass('is-invalid');
+                    $('#total_days_hidden').val(totalDays);
+                    return;
+                }
+
                 if (window.entitlementData && window.entitlementData.remaining_days !== undefined) {
                     const entitlementRemaining = window.entitlementData.remaining_days;
                     if (totalDays > entitlementRemaining) {

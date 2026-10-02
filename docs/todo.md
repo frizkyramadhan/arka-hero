@@ -54,6 +54,16 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: HR detail shows Edit Request for approved leave; HR list approved rows keep only the detail action [show.blade.php, LeaveRequestController::data] (completed: 2026-10-02)`
+
+-   `[done] P1: Approved leave date edit adjusts entitlement taken_days [LeaveRequest::takenDaysAfterChargeEdit, update] (completed: 2026-10-02)`
+
+-   `[done] P1: Approved leave edit locks project, employee, and leave type [LeaveRequest::locksApprovedEditFields, update, edit.blade.php] (completed: 2026-10-02)`
+
+-   `[done] P1: Edit leave skips exceeds-balance check when the saved charge is unchanged [LeaveRequest::keepsExistingBalanceCharge, update, edit + my-edit] (completed: 2026-10-02)`
+
+-   `[done] P1: Edit leave keeps the request leave type when remaining is 0 [getLeaveTypesByEmployee include_leave_type_id, edit + my-edit] (completed: 2026-10-02)`
+
 -   `[done] P1: Recruitment candidates have project_id; dropdown and access follow user_project [RecruitmentCandidate, UserProject, candidates create/edit/index/show] (completed: 2026-10-01)`
 
 -   `[done] P1: List action tooltips no longer swallow clicks (FPTK, MPP, shared layout) [requests/index, mpp/index, layouts header/scripts] (completed: 2026-09-30)`

@@ -862,7 +862,11 @@
             }
 
             function loadEmployeeLeaveTypes(employeeId) {
-                const url = routes.leaveTypesByEmployee.replace(':id', employeeId);
+                let url = routes.leaveTypesByEmployee.replace(':id', employeeId);
+                const keepLeaveTypeId = @json((int) old('leave_type_id', $leaveRequest->leave_type_id));
+                if (keepLeaveTypeId) {
+                    url += '?include_leave_type_id=' + keepLeaveTypeId;
+                }
 
                 $.get(url)
                     .done(function(data) {
@@ -1128,10 +1132,53 @@
             // VALIDATION
             // ============================================================================
 
+            const originalLeaveBalance = {
+                employee_id: @json((string) $leaveRequest->employee_id),
+                leave_type_id: @json((int) $leaveRequest->leave_type_id),
+                total_days: @json((int) $leaveRequest->total_days),
+                leave_period: @json((string) ($leaveRequest->leave_period ?? '')),
+                lsl_taken_days: @json((int) ($leaveRequest->lsl_taken_days ?? 0)),
+                lsl_cashout_days: @json((int) ($leaveRequest->lsl_cashout_days ?? 0)),
+            };
+
+            function savedLeaveBalanceUnchanged(requestedDays) {
+                const leaveTypeId = $('#leave_type_id').val();
+                const period = ($('#leave_period').val() || '').trim();
+                const savedPeriod = (originalLeaveBalance.leave_period || '').trim();
+                const lslTaken = parseInt($('#lsl_taken_days').val(), 10);
+                const lslCashout = parseInt($('#lsl_cashout_days').val(), 10);
+
+                if (String(leaveTypeId) !== String(originalLeaveBalance.leave_type_id)) {
+                    return false;
+                }
+                if (String(employeeId) !== String(originalLeaveBalance.employee_id)) {
+                    return false;
+                }
+                if (parseInt(requestedDays, 10) !== parseInt(originalLeaveBalance.total_days, 10)) {
+                    return false;
+                }
+                if (savedPeriod !== '' && period !== '' && period !== savedPeriod) {
+                    return false;
+                }
+                if ($('#lsl_taken_days').length && !Number.isNaN(lslTaken) && lslTaken !== originalLeaveBalance.lsl_taken_days) {
+                    return false;
+                }
+                if ($('#lsl_cashout_days').length && !Number.isNaN(lslCashout) && lslCashout !== originalLeaveBalance.lsl_cashout_days) {
+                    return false;
+                }
+
+                return true;
+            }
+
             function validateLeaveBalance(requestedDays) {
                 const leaveTypeId = $('#leave_type_id').val();
 
                 if (!leaveTypeId || !employeeId) {
+                    clearValidation();
+                    return;
+                }
+
+                if (savedLeaveBalanceUnchanged(requestedDays)) {
                     clearValidation();
                     return;
                 }

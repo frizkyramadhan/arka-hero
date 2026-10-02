@@ -173,6 +173,42 @@ class LeaveRequest extends Model implements NotifiableDocument
         return null;
     }
 
+    /**
+     * Edit does not ask for more balance when the charged window and days stay the same.
+     */
+    public function keepsExistingBalanceCharge(
+        string $employeeId,
+        int $leaveTypeId,
+        int $totalDays,
+        ?string $leavePeriod,
+        int $lslTakenDays = 0,
+        int $lslCashoutDays = 0,
+    ): bool {
+        if ((string) $this->employee_id !== $employeeId) {
+            return false;
+        }
+        if ((int) $this->leave_type_id !== $leaveTypeId) {
+            return false;
+        }
+        if ((int) $this->total_days !== $totalDays) {
+            return false;
+        }
+
+        $storedPeriod = trim((string) $this->leave_period);
+        $submittedPeriod = trim((string) $leavePeriod);
+        if ($storedPeriod !== '' && $submittedPeriod !== '' && $storedPeriod !== $submittedPeriod) {
+            return false;
+        }
+        if ((int) ($this->lsl_taken_days ?? 0) !== $lslTakenDays) {
+            return false;
+        }
+        if ((int) ($this->lsl_cashout_days ?? 0) !== $lslCashoutDays) {
+            return false;
+        }
+
+        return true;
+    }
+
     private static function parseLeavePeriodLabel(string $label): ?array
     {
         $parts = preg_split('/\s*-\s*/', trim($label), 2);
@@ -399,6 +435,30 @@ class LeaveRequest extends Model implements NotifiableDocument
     public function getEffectiveDays()
     {
         return $this->total_days - $this->getTotalCancelledDays();
+    }
+
+    public function locksApprovedEditFields(): bool
+    {
+        return in_array($this->status, ['approved', 'auto_approved'], true);
+    }
+
+    /**
+     * Days this approved request already holds inside taken_days.
+     */
+    public function alreadyChargedDays(): int
+    {
+        if (! $this->locksApprovedEditFields()) {
+            return 0;
+        }
+
+        $cancelled = $this->exists ? (int) $this->getTotalCancelledDays() : 0;
+
+        return max(0, (int) $this->total_days - $cancelled);
+    }
+
+    public static function takenDaysAfterChargeEdit(int $takenDays, int $oldCharge, int $newCharge): int
+    {
+        return max(0, $takenDays + ($newCharge - $oldCharge));
     }
 
     /**

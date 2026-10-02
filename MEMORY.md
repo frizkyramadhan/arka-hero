@@ -1,5 +1,39 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-10-01
+**Last Updated**: 2026-10-02
+
+### [071] Approved leave edit button is HR detail only (2026-10-02)
+
+**Change**: HR leave detail shows Edit Request for approved and auto-approved. My Requests detail does not. The HR list action column for those statuses is the detail button only.
+
+**Files**: `leave-requests/show.blade.php`, `LeaveRequestController::data`.
+
+### [070] Approved leave date edit updates entitlement taken days (2026-10-02)
+
+**Change**: Editing an approved leave date recalculates total days and moves `leave_entitlements.taken_days` by the difference. The balance check adds back the days this request already holds, so a shorter date range is allowed when remaining is 0.
+
+**Files**: `LeaveRequest::alreadyChargedDays`, `LeaveRequest::takenDaysAfterChargeEdit`, `LeaveRequestController::update`, `leave-requests/edit.blade.php`.
+
+### [069] Approved leave edit locks identity fields (2026-10-02)
+
+**Change**: HR edit of `approved` / `auto_approved` leave keeps Project, Employee, and Leave Type. Only leave date, back to work, and total days stay editable. Reason, document, LSL split, flight, and approvers are ignored on save. Pending and draft edits are unchanged.
+
+**Files**: `LeaveRequest::locksApprovedEditFields`, `LeaveRequestController::update`, `leave-requests/edit.blade.php`.
+
+### [068] Edit leave skips balance check when the charge is unchanged (2026-10-02)
+
+**Symptom**: Edit `26LV-00012` (10 days, remaining 0 because those days are already taken) showed `Total days (10) exceeds remaining leave balance (0 days)`.
+
+**Fix**: Update skips that check when employee, leave type, leave period, total days, and LSL taken/cash-out match the saved request. Changing any of those still validates against remaining days. Create is unchanged.
+
+**Files**: `LeaveRequest::keepsExistingBalanceCharge`, `LeaveRequestController::update`, `leave-requests/edit.blade.php`, `leave-requests/my-edit.blade.php`, `partials/lsl-flexible-scripts.blade.php`.
+
+### [067] Edit leave keeps a zero-balance leave type (2026-10-02)
+
+**Symptom**: Edit `26LV-00012` (`111e2100-40e4-4cba-9b9a-9e054a738a22`, Cuti Tahunan, entitled 12 / taken 12) dropped the leave type because `getLeaveTypesByEmployee` only returned remaining > 0.
+
+**Fix**: HR and My Request edit pass `include_leave_type_id` for the request's type. That entitlement stays in the dropdown as `0 days remaining`. Create still hides exhausted types.
+
+**Files**: `LeaveRequestController::getLeaveTypesByEmployee`, `leave-requests/edit.blade.php`, `leave-requests/my-edit.blade.php`.
 
 ### [066] Recruitment candidates belong to a project (2026-10-01)
 

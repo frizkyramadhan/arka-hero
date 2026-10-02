@@ -765,6 +765,12 @@
                             @endif
                         @endif
 
+                        @if (! $fromMyRequests && auth()->user()->can('leave-requests.edit') && $leaveRequest->locksApprovedEditFields())
+                            <a href="{{ route('leave.requests.edit', $leaveRequest) }}" class="btn-action edit-btn">
+                                <i class="fas fa-edit"></i> Edit Request
+                            </a>
+                        @endif
+
                         @if ($leaveRequest->canBeClosed())
                             @if ($fromMyRequests || (auth()->user()->can('personal.leave.view-own') && !auth()->user()->can('leave-requests.show')))
                                 {{-- Personal user bisa close requestnya sendiri --}}
