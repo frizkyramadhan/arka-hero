@@ -765,29 +765,25 @@
                             @endif
                         @endif
 
-                        @if ($leaveRequest->canBeClosed())
-                            @if ($fromMyRequests || (auth()->user()->can('personal.leave.view-own') && !auth()->user()->can('leave-requests.show')))
-                                {{-- Personal user bisa close requestnya sendiri --}}
-                                {{-- @if ($leaveRequest->employee_id === auth()->user()->employee_id)
-                                    <form method="POST"
-                                        action="{{ $fromMyRequests
-                                            ? route('leave.my-requests.close', $leaveRequest)
-                                            : route('leave.requests.close', $leaveRequest) }}"
-                                        style="display: inline;">
-                                        @csrf
-                                        <button type="submit" class="btn-action close-btn"
-                                            onclick="return confirm('Are you sure you want to close this leave request?')">
-                                            <i class="fas fa-check-circle"></i> Close Request
-                                        </button>
-                                    </form>
-                                @endif --}}
-                            @else
-                                {{-- Admin close --}}
+                        @if (! $fromMyRequests && auth()->user()->can('leave-requests.edit') && in_array($leaveRequest->status, ['rejected', 'cancelled'], true))
+                            <a href="{{ route('leave.requests.edit', $leaveRequest) }}" class="btn-action edit-btn">
+                                <i class="fas fa-edit"></i> Edit Request
+                            </a>
+                        @endif
+
+                        @if (! $fromMyRequests && auth()->user()->can('leave-requests.edit') && $leaveRequest->locksApprovedEditFields())
+                            <a href="{{ route('leave.requests.edit', $leaveRequest) }}" class="btn-action edit-btn">
+                                <i class="fas fa-edit"></i> Edit Request
+                            </a>
+                            @if ($leaveRequest->canBeClosed())
                                 <form method="POST" action="{{ route('leave.requests.close', $leaveRequest) }}"
-                                    style="display: inline;">
+                                    class="confirm-submit"
+                                    style="display: inline;"
+                                    data-confirm-message="Are you sure you want to close this leave request?"
+                                    data-confirm-yes="Yes, close"
+                                    data-confirm-icon="warning">
                                     @csrf
-                                    <button type="submit" class="btn-action close-btn"
-                                        onclick="return confirm('Are you sure you want to close this leave request?')">
+                                    <button type="submit" class="btn-action close-btn">
                                         <i class="fas fa-check-circle"></i> Close Request
                                     </button>
                                 </form>
@@ -1439,6 +1435,49 @@
 
 @section('scripts')
     <script>
+        $(function() {
+            $(document).on('submit', 'form.confirm-submit', function(e) {
+                const form = this;
+                if (form.dataset.submitting === 'true') {
+                    return;
+                }
+                e.preventDefault();
+
+                const message = form.getAttribute('data-confirm-message') || 'Continue with this action?';
+                const title = form.getAttribute('data-confirm-title') || 'Confirm';
+                const confirmText = form.getAttribute('data-confirm-yes') || 'Yes';
+                const cancelText = form.getAttribute('data-confirm-no') || 'Cancel';
+                const icon = form.getAttribute('data-confirm-icon') || 'warning';
+
+                const proceed = () => {
+                    form.dataset.submitting = 'true';
+                    if (typeof toast_info === 'function') {
+                        toast_info('Processing...');
+                    }
+                    form.submit();
+                };
+
+                if (typeof Swal !== 'undefined' && Swal.fire) {
+                    Swal.fire({
+                        title: title,
+                        text: message,
+                        icon: icon,
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: confirmText,
+                        cancelButtonText: cancelText,
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            proceed();
+                        }
+                    });
+                } else if (confirm(message)) {
+                    proceed();
+                }
+            });
+        });
+
         function deleteDocument(leaveRequestId) {
             if (confirm('Are you sure you want to delete this supporting document? This action cannot be undone.')) {
                 // Create a form to submit the delete request

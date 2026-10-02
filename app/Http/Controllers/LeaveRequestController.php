@@ -265,19 +265,7 @@ class LeaveRequestController extends Controller
             }
 
             $actions = '<div class="btn-group" role="group">';
-            $actions .= '<a href="' . route('leave.requests.show', $request) . '" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
-            $actions .= '<a href="' . route('leave.requests.edit', $request) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
-
-            if ($request->canBeDeletedBeforeApproval() && auth()->user()->can('leave-requests.delete')) {
-                $actions .= '<form method="POST" action="' . route('leave.requests.destroy', $request) . '" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
-                $actions .= csrf_field() . method_field('DELETE');
-                $actions .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button></form>';
-            }
-
-            // if ($request->canBeCancelled()) {
-            //     $actions .= '<a href="' . route('leave.requests.edit', $request) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
-            // }
-
+            $actions .= '<a href="' . route('leave.requests.show', $request) . '" class="btn btn-info btn-sm mr-1" title="Detail"><i class="fas fa-eye"></i></a>';
             $actions .= '</div>';
 
             // Format leave type with document indicator for paid leave types
@@ -868,6 +856,28 @@ class LeaveRequestController extends Controller
             $request->merge(['employee_id' => $user->employee_id]);
         }
 
+        $approvedLeaveLocked = $leaveRequest->locksApprovedEditFields();
+        if ($approvedLeaveLocked) {
+            $projectId = $leaveRequest->administration?->project_id
+                ?? $leaveRequest->employee?->administrations?->first()?->project_id
+                ?? $request->input('project_id');
+            $taken = (int) ($leaveRequest->lsl_taken_days ?? 0);
+            $cashout = (int) ($leaveRequest->lsl_cashout_days ?? 0);
+            $lslMode = ($cashout > 0 && $taken === 0) ? 'cashout_only' : ($cashout > 0 ? 'combined' : 'leave_only');
+
+            $request->merge([
+                'project_id' => $projectId,
+                'employee_id' => $leaveRequest->employee_id,
+                'leave_type_id' => $leaveRequest->leave_type_id,
+                'leave_period' => $leaveRequest->leave_period,
+                'reason' => $leaveRequest->reason,
+                'manual_approvers' => $leaveRequest->manual_approvers ?? [],
+                'lsl_usage_mode' => $lslMode,
+                'lsl_taken_days' => $taken,
+                'lsl_cashout_days' => $cashout,
+            ]);
+        }
+
         // Convert date format from dd/mm/yyyy to Y-m-d if needed
         if ($request->has('start_date') && strpos($request->start_date, '/') !== false) {
             try {
@@ -945,7 +955,10 @@ class LeaveRequestController extends Controller
 
         $this->validateLeaveDatesAgainstNationalHolidays($request->back_to_work_date);
 
-        if (! $isLSL) {
+        $datesChanged = (string) optional($leaveRequest->start_date)->toDateString() !== (string) $request->start_date
+            || (string) optional($leaveRequest->end_date)->toDateString() !== (string) $request->end_date;
+
+        if (! $isLSL && (! $approvedLeaveLocked || $datesChanged)) {
             $request->merge(['total_days' => $this->computeBillableLeaveDaysFromRequest($request)]);
         }
 
@@ -963,6 +976,10 @@ class LeaveRequestController extends Controller
         $totalDays = $request->total_days ?? 0;
         $takenDays = $totalDays;
         $cashoutDays = 0;
+
+        if ($approvedLeaveLocked && $datesChanged && $isLSL && $request->input('lsl_usage_mode') !== 'cashout_only') {
+            $request->merge(['lsl_taken_days' => 0]);
+        }
 
         if ($isLSL) {
             $lslTotals = $this->processLSLFlexibleRequest($request);
@@ -993,9 +1010,21 @@ class LeaveRequestController extends Controller
             );
         }
 
-        if ($totalDays > $leaveEntitlement->remaining_days) {
+        $balanceUnchanged = $leaveRequest->keepsExistingBalanceCharge(
+            (string) $employeeId,
+            (int) $leaveTypeId,
+            (int) $totalDays,
+            $request->input('leave_period'),
+            (int) $request->input('lsl_taken_days', $leaveRequest->lsl_taken_days ?? 0),
+            (int) $request->input('lsl_cashout_days', $leaveRequest->lsl_cashout_days ?? 0),
+        );
+
+        $oldChargedDays = $leaveRequest->alreadyChargedDays();
+        $availableDays = (int) $leaveEntitlement->remaining_days + $oldChargedDays;
+
+        if (! $balanceUnchanged && $totalDays > $availableDays) {
             return $this->rejectWithTotalDaysError(
-                "Total days ({$totalDays}) exceeds remaining leave balance ({$leaveEntitlement->remaining_days} days)."
+                "Total days ({$totalDays}) exceeds remaining leave balance ({$availableDays} days)."
             );
         }
 
@@ -1004,7 +1033,7 @@ class LeaveRequestController extends Controller
             // Handle file upload for supporting document
             $supportingDocumentPath = $leaveRequest->supporting_document; // Keep existing file by default
 
-            if ($request->hasFile('supporting_document')) {
+            if (! $approvedLeaveLocked && $request->hasFile('supporting_document')) {
                 // Delete old file and folder if exists
                 $this->deleteSupportingDocument($leaveRequest);
 
@@ -1060,15 +1089,30 @@ class LeaveRequestController extends Controller
 
             $leaveRequest->update($updateData);
 
-            // Sync flight request from fr_data (same as store: replace existing)
-            $leaveRequest->flightRequests()->each(function ($fr) {
-                $fr->delete();
-            });
-            FlightRequest::createFromFrData($request, $leaveRequest);
+            if ($approvedLeaveLocked) {
+                $newChargedDays = max(0, (int) $totalDays - (int) $leaveRequest->getTotalCancelledDays());
+                $newTakenDays = LeaveRequest::takenDaysAfterChargeEdit(
+                    (int) $leaveEntitlement->taken_days,
+                    $oldChargedDays,
+                    $newChargedDays
+                );
+                if ((int) $leaveEntitlement->taken_days !== $newTakenDays) {
+                    $leaveEntitlement->taken_days = $newTakenDays;
+                    $leaveEntitlement->save();
+                }
+            }
+
+            if (! $approvedLeaveLocked) {
+                // Sync flight request from fr_data (same as store: replace existing)
+                $leaveRequest->flightRequests()->each(function ($fr) {
+                    $fr->delete();
+                });
+                FlightRequest::createFromFrData($request, $leaveRequest);
+            }
 
             // Approver changes: only pending steps may be replaced (same as FPTK updateApprovers).
             // Locked (approved/rejected) steps must remain in place and order.
-            if ($approversChanged) {
+            if ($approversChanged && ! $approvedLeaveLocked) {
                 $sync = $this->syncPendingLeaveApprovers($leaveRequest, $manualApprovers);
                 if (! $sync['ok']) {
                     DB::rollback();
@@ -1431,7 +1475,7 @@ class LeaveRequestController extends Controller
     /**
      * Get leave types by employee for AJAX
      */
-    public function getLeaveTypesByEmployee(string $employeeId)
+    public function getLeaveTypesByEmployee(Request $request, string $employeeId)
     {
         // Check if user is accessing their own data or has admin permission
         $user = Auth::user();
@@ -1445,9 +1489,16 @@ class LeaveRequestController extends Controller
         }
 
         $today = now()->toDateString();
+        // Edit keeps the request's leave type visible after its balance is used up.
+        $includeLeaveTypeId = (int) $request->query('include_leave_type_id', 0);
 
         $entitlements = LeaveEntitlement::where('employee_id', $employeeId)
-            ->whereRaw('(entitled_days - taken_days) > 0') // remaining_days is now accessor
+            ->where(function ($query) use ($includeLeaveTypeId) {
+                $query->whereRaw('(entitled_days - taken_days) > 0');
+                if ($includeLeaveTypeId > 0) {
+                    $query->orWhere('leave_entitlements.leave_type_id', $includeLeaveTypeId);
+                }
+            })
             ->where('period_start', '<=', $today)
             ->where('period_end', '>=', $today)
             ->with(['leaveType' => function ($query) {
@@ -2188,24 +2239,10 @@ class LeaveRequestController extends Controller
             ->addColumn('requested_at', function ($row) {
                 return $row->requested_at ? \Carbon\Carbon::parse($row->requested_at)->format('d/m/Y H:i') : 'N/A';
             })
-            ->addColumn('action', function ($row) use ($user) {
-                $btn = '<div class="btn-group" role="group">';
-
-                $btn .= '<a href="' . route('leave.my-requests.show', $row->id) . '" class="btn btn-info btn-sm mr-1"><i class="fas fa-eye"></i></a>';
-
-                if ($row->status === 'draft' || $row->status === 'pending') {
-                    $btn .= '<a href="' . route('leave.my-requests.edit', $row->id) . '" class="btn btn-warning btn-sm mr-1"><i class="fas fa-edit"></i></a>';
-                }
-
-                if ($row->canBeDeletedBeforeApproval() && $user->can('personal.leave.edit-own')) {
-                    $btn .= '<form method="POST" action="' . route('leave.my-requests.destroy', $row->id) . '" class="d-inline" onsubmit="return confirm(\'Delete this leave request? This cannot be undone.\');">';
-                    $btn .= csrf_field() . method_field('DELETE');
-                    $btn .= '<button type="submit" class="btn btn-danger btn-sm mr-1" title="Delete"><i class="fas fa-trash"></i></button></form>';
-                }
-
-                $btn .= '</div>';
-
-                return $btn;
+            ->addColumn('action', function ($row) {
+                return '<div class="btn-group" role="group">'
+                    . '<a href="' . route('leave.my-requests.show', $row->id) . '" class="btn btn-info btn-sm mr-1" title="Detail"><i class="fas fa-eye"></i></a>'
+                    . '</div>';
             })
             ->rawColumns(['leave_type', 'start_date', 'end_date', 'total_days', 'status_badge', 'action'])
             ->make(true);

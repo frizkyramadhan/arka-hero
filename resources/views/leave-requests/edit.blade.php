@@ -3,333 +3,364 @@
 @section('title', 'Edit Leave Request')
 
 @section('content')
-    @once
-        @push('styles')
-            <style>
-                .daterangepicker td.national-holiday {
-                    background-color: #fff3cd !important;
-                    font-weight: 600;
-                    color: #856404 !important;
-                }
+@once
+@push('styles')
+<style>
+    .daterangepicker td.national-holiday {
+        background-color: #fff3cd !important;
+        font-weight: 600;
+        color: #856404 !important;
+    }
 
-                .form-control.leave-date-readonly[readonly],
-                .form-control.leave-date-readonly[readonly]:focus {
-                    background-color: #fff !important;
-                    opacity: 1;
-                    cursor: pointer;
-                }
-            </style>
-        @endpush
-    @endonce
-    <div class="content-header">
-        <div class="container-fluid">
-            <div class="row mb-2">
-                <div class="col-sm-6">
-                    <h1 class="m-0">Edit Leave Request</h1>
-                </div>
-                <div class="col-sm-6">
-                    <ol class="breadcrumb float-sm-right">
-                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('leave.requests.index') }}">Leave Requests</a></li>
-                        {{-- <li class="breadcrumb-item"><a href="{{ route('leave.requests.show', $leaveRequest) }}">Request
-                                #{{ $leaveRequest->id }}</a></li> --}}
-                        <li class="breadcrumb-item active">Edit</li>
-                    </ol>
-                </div>
+    .form-control.leave-date-readonly[readonly],
+    .form-control.leave-date-readonly[readonly]:focus {
+        background-color: #fff !important;
+        opacity: 1;
+        cursor: pointer;
+    }
+
+    .approved-leave-locked {
+        pointer-events: none;
+        opacity: 0.85;
+    }
+
+    .approved-leave-locked a {
+        pointer-events: auto;
+    }
+</style>
+@endpush
+@endonce
+<div class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1 class="m-0">Edit Leave Request</h1>
+            </div>
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-right">
+                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('leave.requests.index') }}">Leave Requests</a></li>
+                    {{-- <li class="breadcrumb-item"><a href="{{ route('leave.requests.show', $leaveRequest) }}">Request
+                    #{{ $leaveRequest->id }}</a></li> --}}
+                    <li class="breadcrumb-item active">Edit</li>
+                </ol>
             </div>
         </div>
     </div>
+</div>
 
-    <section class="content">
-        <div class="container-fluid">
-            <form method="POST" class="js-leave-request-form" novalidate action="{{ route('leave.requests.update', $leaveRequest) }}" enctype="multipart/form-data"
-                autocomplete="off">
-                @csrf
-                @method('PUT')
-                <div class="row">
-                    <div class="col-md-8">
-                        <div class="card card-primary card-outline elevation-3">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-calendar-plus mr-2"></i>
-                                    <strong>Edit Leave Request</strong>
-                                </h3>
+<section class="content">
+    <div class="container-fluid">
+        <form method="POST" class="js-leave-request-form" novalidate action="{{ route('leave.requests.update', $leaveRequest) }}" enctype="multipart/form-data"
+            autocomplete="off">
+            @csrf
+            @method('PUT')
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card card-primary card-outline elevation-3">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-calendar-plus mr-2"></i>
+                                <strong>Edit Leave Request</strong>
+                            </h3>
+                        </div>
+
+                        <div class="card-body">
+                            @if ($errors->any())
+                            <div class="alert alert-danger alert-dismissible fade show">
+                                <ul class="mb-0 pl-3">
+                                    @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            @endif
+                            @php
+                            $approvedLeaveLocked = $leaveRequest->locksApprovedEditFields();
+                            $lockedProjectId = $leaveRequest->employee->administrations->first()->project_id ?? '';
+                            @endphp
+
+                            <!-- Project & Employee Selection -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group {{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}">
+                                        <label for="project_id">
+                                            <i class="fas fa-building mr-1"></i>
+                                            Project <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="project_id" id="project_id"
+                                            class="select2bs4 form-control @error('project_id') is-invalid @enderror"
+                                            @disabled($approvedLeaveLocked)
+                                            required>
+                                            <option value="">Select Project</option>
+                                            @foreach ($projects as $project)
+                                            <option value="{{ $project->id }}"
+                                                {{ old('project_id', $leaveRequest->employee->administrations->first()->project_id ?? '') == $project->id ? 'selected' : '' }}>
+                                                {{ $project->project_code }} - {{ $project->project_name }}
+                                            </option>
+                                            @endforeach
+                                        </select>
+                                        @error('project_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        @if ($approvedLeaveLocked)
+                                        <input type="hidden" name="project_id" value="{{ $lockedProjectId }}">
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group {{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}">
+                                        <label for="employee_id">
+                                            <i class="fas fa-user mr-1"></i>
+                                            Employee <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="employee_id" id="employee_id"
+                                            class="select2bs4 form-control @error('employee_id') is-invalid @enderror"
+                                            @disabled($approvedLeaveLocked)
+                                            required>
+                                            <option value="">Select Employee</option>
+                                            @php
+                                            $projectId = old(
+                                            'project_id',
+                                            $leaveRequest->employee->administrations->first()->project_id ??
+                                            '',
+                                            );
+                                            $employees = \App\Models\Administration::with([
+                                            'employee',
+                                            'position',
+                                            ])
+                                            ->where('project_id', $projectId)
+                                            ->where('is_active', 1)
+                                            ->orderBy('nik', 'asc')
+                                            ->get()
+                                            ->map(function ($admin) {
+                                            return [
+                                            'id' => $admin->employee_id,
+                                            'fullname' => $admin->employee->fullname,
+                                            'position' => $admin->position->position_name ?? 'N/A',
+                                            'nik' => $admin->nik ?? 'N/A',
+                                            ];
+                                            });
+                                            @endphp
+                                            @foreach ($employees as $employee)
+                                            <option value="{{ $employee['id'] }}"
+                                                {{ old('employee_id', $leaveRequest->employee_id) == $employee['id'] ? 'selected' : '' }}>
+                                                {{ $employee['nik'] }} - {{ $employee['fullname'] }}
+                                            </option>
+                                            @endforeach
+                                        </select>
+                                        @error('employee_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        @if ($approvedLeaveLocked)
+                                        <input type="hidden" name="employee_id" value="{{ $leaveRequest->employee_id }}">
+                                        @endif
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="card-body">
-                                @if ($errors->any())
-                                    <div class="alert alert-danger alert-dismissible fade show">
-                                        <ul class="mb-0 pl-3">
-                                            @foreach ($errors->all() as $error)
-                                                <li>{{ $error }}</li>
+                            <!-- Leave Type Selection -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group {{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}">
+                                        <label for="leave_type_id">
+                                            <i class="fas fa-calendar-check mr-1"></i>
+                                            Leave Type <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="leave_type_id" id="leave_type_id"
+                                            class="select2bs4 form-control @error('leave_type_id') is-invalid @enderror"
+                                            @disabled($approvedLeaveLocked)
+                                            required>
+                                            <option value="">Select Leave Type</option>
+                                            @foreach ($leaveTypes as $leaveType)
+                                            <option value="{{ $leaveType->id }}"
+                                                data-category="{{ $leaveType->category }}"
+                                                {{ old('leave_type_id', $leaveRequest->leave_type_id) == $leaveType->id ? 'selected' : '' }}>
+                                                {{ $leaveType->name }}
+                                            </option>
                                             @endforeach
-                                        </ul>
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                    </div>
-                                @endif
-                                <!-- Project & Employee Selection -->
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="project_id">
-                                                <i class="fas fa-building mr-1"></i>
-                                                Project <span class="text-danger">*</span>
-                                            </label>
-                                            <select name="project_id" id="project_id"
-                                                class="select2bs4 form-control @error('project_id') is-invalid @enderror"
-                                                required>
-                                                <option value="">Select Project</option>
-                                                @foreach ($projects as $project)
-                                                    <option value="{{ $project->id }}"
-                                                        {{ old('project_id', $leaveRequest->employee->administrations->first()->project_id ?? '') == $project->id ? 'selected' : '' }}>
-                                                        {{ $project->project_code }} - {{ $project->project_name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('project_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="employee_id">
-                                                <i class="fas fa-user mr-1"></i>
-                                                Employee <span class="text-danger">*</span>
-                                            </label>
-                                            <select name="employee_id" id="employee_id"
-                                                class="select2bs4 form-control @error('employee_id') is-invalid @enderror"
-                                                required>
-                                                <option value="">Select Employee</option>
-                                                @php
-                                                    $projectId = old(
-                                                        'project_id',
-                                                        $leaveRequest->employee->administrations->first()->project_id ??
-                                                            '',
-                                                    );
-                                                    $employees = \App\Models\Administration::with([
-                                                        'employee',
-                                                        'position',
-                                                    ])
-                                                        ->where('project_id', $projectId)
-                                                        ->where('is_active', 1)
-                                                        ->orderBy('nik', 'asc')
-                                                        ->get()
-                                                        ->map(function ($admin) {
-                                                            return [
-                                                                'id' => $admin->employee_id,
-                                                                'fullname' => $admin->employee->fullname,
-                                                                'position' => $admin->position->position_name ?? 'N/A',
-                                                                'nik' => $admin->nik ?? 'N/A',
-                                                            ];
-                                                        });
-                                                @endphp
-                                                @foreach ($employees as $employee)
-                                                    <option value="{{ $employee['id'] }}"
-                                                        {{ old('employee_id', $leaveRequest->employee_id) == $employee['id'] ? 'selected' : '' }}>
-                                                        {{ $employee['nik'] }} - {{ $employee['fullname'] }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('employee_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
+                                        </select>
+                                        @error('leave_type_id')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                        @if ($approvedLeaveLocked)
+                                        <input type="hidden" name="leave_type_id" value="{{ $leaveRequest->leave_type_id }}">
+                                        @endif
+                                        @include('leave-requests.partials.leave-balance-link')
                                     </div>
                                 </div>
-
-                                <!-- Leave Type Selection -->
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label for="leave_type_id">
-                                                <i class="fas fa-calendar-check mr-1"></i>
-                                                Leave Type <span class="text-danger">*</span>
-                                            </label>
-                                            <select name="leave_type_id" id="leave_type_id"
-                                                class="select2bs4 form-control @error('leave_type_id') is-invalid @enderror"
-                                                required>
-                                                <option value="">Select Leave Type</option>
-                                                @foreach ($leaveTypes as $leaveType)
-                                                    <option value="{{ $leaveType->id }}"
-                                                        data-category="{{ $leaveType->category }}"
-                                                        {{ old('leave_type_id', $leaveRequest->leave_type_id) == $leaveType->id ? 'selected' : '' }}>
-                                                        {{ $leaveType->name }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('leave_type_id')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                            @include('leave-requests.partials.leave-balance-link')
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6" id="leave_period_group">
-                                        <div class="form-group">
-                                            <label for="leave_period">
-                                                <i class="fas fa-calendar-week mr-1"></i>
-                                                Leave Period
-                                            </label>
-                                            <input type="text" name="leave_period" id="leave_period"
-                                                class="form-control @error('leave_period') is-invalid @enderror"
-                                                value="{{ old('leave_period', $leaveRequest->leave_period) }}" readonly>
-                                            <small class="form-text text-muted">Automatically filled from leave
-                                                entitlements</small>
-                                            @error('leave_period')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
+                                <div class="col-md-6" id="leave_period_group">
+                                    <div class="form-group">
+                                        <label for="leave_period">
+                                            <i class="fas fa-calendar-week mr-1"></i>
+                                            Leave Period
+                                        </label>
+                                        <input type="text" name="leave_period" id="leave_period"
+                                            class="form-control @error('leave_period') is-invalid @enderror"
+                                            value="{{ old('leave_period', $leaveRequest->leave_period) }}" readonly>
+                                        <small class="form-text text-muted">Automatically filled from leave
+                                            entitlements</small>
+                                        @error('leave_period')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
+                            </div>
 
-                                <!-- Leave Date Selection -->
-                                <div class="row" id="leave_date_fields_row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>
-                                                <i class="fas fa-calendar-alt mr-1"></i>
-                                                Leave Date <span class="text-danger">*</span>
-                                            </label>
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text">
-                                                        <i class="far fa-calendar-alt"></i>
-                                                    </span>
-                                                </div>
-                                                <input type="text" class="form-control float-right leave-date-readonly"
-                                                    id="leave_date" placeholder="Select date range" required readonly
-                                                    autocomplete="off"
-                                                    value="{{ $leaveRequest->start_date && $leaveRequest->end_date ? \Carbon\Carbon::parse($leaveRequest->start_date)->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($leaveRequest->end_date)->format('d/m/Y') : '' }}">
-                                                <input type="hidden" name="start_date" id="start_date"
-                                                    value="{{ old('start_date', $leaveRequest->start_date->format('Y-m-d')) }}">
-                                                <input type="hidden" name="end_date" id="end_date"
-                                                    value="{{ old('end_date', $leaveRequest->end_date->format('Y-m-d')) }}">
+                            <!-- Leave Date Selection -->
+                            <div class="row" id="leave_date_fields_row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>
+                                            <i class="fas fa-calendar-alt mr-1"></i>
+                                            Leave Date <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="far fa-calendar-alt"></i>
+                                                </span>
                                             </div>
-                                            <small class="form-text text-muted" id="weekend_info" style="display: none;">
-                                                <i class="fas fa-info-circle mr-1"></i>
-                                                Weekend (Saturday & Sunday) are disabled for non-roster projects
-                                            </small>
-                                            @error('start_date')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                            @error('end_date')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
+                                            <input type="text" class="form-control float-right leave-date-readonly"
+                                                id="leave_date" placeholder="Select date range" required readonly
+                                                autocomplete="off"
+                                                value="{{ $leaveRequest->start_date && $leaveRequest->end_date ? \Carbon\Carbon::parse($leaveRequest->start_date)->format('d/m/Y') . ' - ' . \Carbon\Carbon::parse($leaveRequest->end_date)->format('d/m/Y') : '' }}">
+                                            <input type="hidden" name="start_date" id="start_date"
+                                                value="{{ old('start_date', $leaveRequest->start_date->format('Y-m-d')) }}">
+                                            <input type="hidden" name="end_date" id="end_date"
+                                                value="{{ old('end_date', $leaveRequest->end_date->format('Y-m-d')) }}">
                                         </div>
-                                    </div>
-                                    <div class="col-md-6" id="back_to_work_date_col">
-                                        <div class="form-group">
-                                            <label for="back_to_work_date">
-                                                <i class="fas fa-calendar-plus mr-1"></i>
-                                                Back to Work Date
-                                            </label>
-                                            <div class="input-group">
-                                                <div class="input-group-prepend">
-                                                    <span class="input-group-text">
-                                                        <i class="far fa-calendar-alt"></i>
-                                                    </span>
-                                                </div>
-                                                <input type="text" name="back_to_work_date" id="back_to_work_date"
-                                                    class="form-control leave-date-readonly @error('back_to_work_date') is-invalid @enderror"
-                                                    value="{{ old('back_to_work_date', $leaveRequest->back_to_work_date ? $leaveRequest->back_to_work_date->format('d/m/Y') : '') }}"
-                                                    placeholder="Select back to work date" readonly autocomplete="off">
-                                            </div>
-                                            @error('back_to_work_date')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
+                                        <small class="form-text text-muted" id="weekend_info" style="display: none;">
+                                            <i class="fas fa-info-circle mr-1"></i>
+                                            Weekend (Saturday & Sunday) are disabled for non-roster projects
+                                        </small>
+                                        @error('start_date')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        @error('end_date')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
-
-                                <!-- Total Days, Reason & Supporting Document -->
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>
-                                                <i class="fas fa-calculator mr-1"></i>
-                                                Total Days <span class="text-danger">*</span>
-                                            </label>
-                                            <div class="input-group">
-                                                <input type="number" id="total_days_input" class="form-control"
-                                                    min="1" max="365" placeholder="Enter days" required
-                                                    value="{{ old('total_days', $leaveRequest->total_days) }}">
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">days</span>
-                                                </div>
+                                <div class="col-md-6" id="back_to_work_date_col">
+                                    <div class="form-group">
+                                        <label for="back_to_work_date">
+                                            <i class="fas fa-calendar-plus mr-1"></i>
+                                            Back to Work Date
+                                        </label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text">
+                                                    <i class="far fa-calendar-alt"></i>
+                                                </span>
                                             </div>
-                                            <input type="hidden" name="total_days" id="total_days_hidden"
-                                                value="{{ old('total_days', $leaveRequest->total_days) }}" required>
-                                            @error('total_days')
-                                                <div class="invalid-feedback d-block">{{ $message }}</div>
-                                            @enderror
-                                            <small class="form-text text-muted">
-                                                Calculated automatically from date range. <br>
-                                                <span class="text-warning">You can also manually adjust the number of
-                                                    days.</span>
+                                            <input type="text" name="back_to_work_date" id="back_to_work_date"
+                                                class="form-control leave-date-readonly @error('back_to_work_date') is-invalid @enderror"
+                                                value="{{ old('back_to_work_date', $leaveRequest->back_to_work_date ? $leaveRequest->back_to_work_date->format('d/m/Y') : '') }}"
+                                                placeholder="Select back to work date" readonly autocomplete="off">
+                                        </div>
+                                        @error('back_to_work_date')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Total Days, Reason & Supporting Document -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>
+                                            <i class="fas fa-calculator mr-1"></i>
+                                            Total Days <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <input type="number" id="total_days_input" class="form-control"
+                                                min="1" max="365" placeholder="Enter days" required
+                                                value="{{ old('total_days', $leaveRequest->total_days) }}">
+                                            <div class="input-group-append">
+                                                <span class="input-group-text">days</span>
+                                            </div>
+                                        </div>
+                                        <input type="hidden" name="total_days" id="total_days_hidden"
+                                            value="{{ old('total_days', $leaveRequest->total_days) }}" required>
+                                        @error('total_days')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
+                                        <small class="form-text text-muted">
+                                            Calculated automatically from date range. <br>
+                                            <span class="text-warning">You can also manually adjust the number of
+                                                days.</span>
+                                        </small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 {{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}" id="reason_field" style="display: none;">
+                                    <div class="form-group">
+                                        <label for="reason">
+                                            <i class="fas fa-comment-alt mr-1"></i>
+                                            Reason <span class="text-danger">*</span>
+                                        </label>
+                                        <textarea name="reason" id="reason" rows="3" class="form-control @error('reason') is-invalid @enderror"
+                                            placeholder="Please provide a detailed reason for your leave request..."
+                                            @readonly($approvedLeaveLocked)>{{ old('reason', $leaveRequest->reason) }}</textarea>
+                                        @error('reason')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-md-6 {{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}" id="document_field" style="display: none;">
+                                    <div class="form-group">
+                                        <label for="supporting_document">
+                                            <i class="fas fa-file-upload mr-1"></i>
+                                            Supporting Document
+                                        </label>
+                                        <div class="input-group">
+                                            <div class="custom-file">
+                                                <input type="file" name="supporting_document"
+                                                    id="supporting_document"
+                                                    class="custom-file-input @error('supporting_document') is-invalid @enderror"
+                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.rar,.zip"
+                                                    @disabled($approvedLeaveLocked)>
+                                                <label class="custom-file-label" for="supporting_document">
+                                                    Choose file...
+                                                </label>
+                                            </div>
+                                        </div>
+                                        @if ($leaveRequest->supporting_document)
+                                        <div class="mt-2">
+                                            <small class="text-muted">Current file:
+                                                <a href="{{ route('leave.requests.download', $leaveRequest) }}"
+                                                    target="_blank">
+                                                    <i class="fas fa-download"></i> Download
+                                                </a>
                                             </small>
                                         </div>
-                                    </div>
-                                    <div class="col-md-6" id="reason_field" style="display: none;">
-                                        <div class="form-group">
-                                            <label for="reason">
-                                                <i class="fas fa-comment-alt mr-1"></i>
-                                                Reason <span class="text-danger">*</span>
-                                            </label>
-                                            <textarea name="reason" id="reason" rows="3" class="form-control @error('reason') is-invalid @enderror"
-                                                placeholder="Please provide a detailed reason for your leave request...">{{ old('reason', $leaveRequest->reason) }}</textarea>
-                                            @error('reason')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6" id="document_field" style="display: none;">
-                                        <div class="form-group">
-                                            <label for="supporting_document">
-                                                <i class="fas fa-file-upload mr-1"></i>
-                                                Supporting Document
-                                            </label>
-                                            <div class="input-group">
-                                                <div class="custom-file">
-                                                    <input type="file" name="supporting_document"
-                                                        id="supporting_document"
-                                                        class="custom-file-input @error('supporting_document') is-invalid @enderror"
-                                                        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.rar,.zip">
-                                                    <label class="custom-file-label" for="supporting_document">
-                                                        Choose file...
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            @if ($leaveRequest->supporting_document)
-                                                <div class="mt-2">
-                                                    <small class="text-muted">Current file:
-                                                        <a href="{{ route('leave.requests.download', $leaveRequest) }}"
-                                                            target="_blank">
-                                                            <i class="fas fa-download"></i> Download
-                                                        </a>
-                                                    </small>
-                                                </div>
-                                            @endif
-                                            <small class="form-text text-muted">
-                                                <i class="fas fa-info-circle mr-1"></i>
-                                                Upload supporting document/evidence (PDF, DOC, DOCX, JPG, PNG, RAR, ZIP).
-                                                Max size: 2MB
-                                            </small>
-                                            @error('supporting_document')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
+                                        @endif
+                                        <small class="form-text text-muted">
+                                            <i class="fas fa-info-circle mr-1"></i>
+                                            Upload supporting document/evidence (PDF, DOC, DOCX, JPG, PNG, RAR, ZIP).
+                                            Max size: 2MB
+                                        </small>
+                                        @error('supporting_document')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
+                            </div>
 
+                            <div class="{{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}">
                                 @include('leave-requests.partials.lsl-flexible-section', ['leaveRequest' => $leaveRequest])
                             </div>
-
                         </div>
-                    </div>
 
-                    <div class="col-md-4">
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="{{ $approvedLeaveLocked ? 'approved-leave-locked' : '' }}">
                         {{-- Flight Request (optional) — HR edit; disinkronkan lewat fr_data di update --}}
                         <x-flight-request-fields name-prefix="fr_data" :allow-return-segment="true" :existing-flight-request="$existingFlightRequest ?? null" />
 
@@ -343,42 +374,43 @@
                             </div>
                             <div class="card-body py-2">
                                 @include('components.manual-approver-selector', [
-                                    'selectedApprovers' => old(
-                                        'manual_approvers',
-                                        $leaveRequest->manual_approvers ?? []),
-                                    'required' => true,
-                                    'multiple' => true,
-                                    'helpText' => 'Pilih minimal 1 approver dengan role approver',
-                                    'documentType' => 'leave_request',
-                                    'documentId' => $leaveRequest->id,
-                                    'lockedApproverIds' => $leaveRequest->getLockedApproverIds(),
+                                'selectedApprovers' => old(
+                                'manual_approvers',
+                                $leaveRequest->manual_approvers ?? []),
+                                'required' => true,
+                                'multiple' => true,
+                                'helpText' => 'Pilih minimal 1 approver dengan role approver',
+                                'documentType' => 'leave_request',
+                                'documentId' => $leaveRequest->id,
+                                'lockedApproverIds' => $leaveRequest->getLockedApproverIds(),
                                 ])
                                 @if (! empty($leaveRequest->getLockedApproverIds()))
-                                    <small class="text-muted d-block mt-2">
-                                        <i class="fas fa-info-circle"></i>
-                                        Approver yang sudah <strong>Approved</strong> /
-                                        <strong>Rejected</strong> tidak dapat diubah. Hanya langkah
-                                        <strong>Pending</strong> yang dapat diganti.
-                                    </small>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="fas fa-info-circle"></i>
+                                    Approver yang sudah <strong>Approved</strong> /
+                                    <strong>Rejected</strong> tidak dapat diubah. Hanya langkah
+                                    <strong>Pending</strong> yang dapat diganti.
+                                </small>
                                 @endif
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Action Buttons Card -->
-                        <div class="card card-outline elevation-2 mt-3">
-                            <div class="card-body p-3">
-                                <button type="submit" class="btn btn-success btn-block mb-2">
-                                    <i class="fas fa-save mr-2"></i>Update Request
-                                </button>
-                                <a href="{{ route('leave.requests.show', $leaveRequest) }}"
-                                    class="btn btn-secondary btn-block">
-                                    <i class="fas fa-times-circle mr-2"></i>Cancel
-                                </a>
-                            </div>
+                    <!-- Action Buttons Card -->
+                    <div class="card card-outline elevation-2 mt-3">
+                        <div class="card-body p-3">
+                            <button type="submit" class="btn btn-success btn-block mb-2">
+                                <i class="fas fa-save mr-2"></i>Update Request
+                            </button>
+                            <a href="{{ route('leave.requests.show', $leaveRequest) }}"
+                                class="btn btn-secondary btn-block">
+                                <i class="fas fa-times-circle mr-2"></i>Cancel
+                            </a>
                         </div>
+                    </div>
 
-                        <!-- Approval Component -->
-                        {{-- @php
+                    <!-- Approval Component -->
+                    {{-- @php
                         $employeeAdministration = $leaveRequest->employee->administrations
                             ->where('is_active', 1)
                             ->first();
@@ -402,635 +434,661 @@
                         'id' => 'leaveApprovalCard',
                     ]) --}}
 
-                    </div>
                 </div>
-            </form>
-            @include('leave-requests.partials.leave-balance-modal')
-        </div>
-    </section>
+            </div>
+        </form>
+        @include('leave-requests.partials.leave-balance-modal')
+    </div>
+</section>
 @endsection
 
 @section('styles')
-    <!-- Tempusdominus Bootstrap 4 -->
-    <link rel="stylesheet"
-        href="{{ asset('assets/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css') }}">
-    <!-- Date Range Picker -->
-    <link rel="stylesheet" href="{{ asset('assets/plugins/daterangepicker/daterangepicker.css') }}">
-    <style>
-        .custom-file-label::after {
-            content: "Browse";
-        }
+<!-- Tempusdominus Bootstrap 4 -->
+<link rel="stylesheet"
+    href="{{ asset('assets/plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css') }}">
+<!-- Date Range Picker -->
+<link rel="stylesheet" href="{{ asset('assets/plugins/daterangepicker/daterangepicker.css') }}">
+<style>
+    .custom-file-label::after {
+        content: "Browse";
+    }
 
-        .custom-file-label.selected::after {
-            content: "";
-        }
-    </style>
-    <!-- Select2 -->
-    <link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
+    .custom-file-label.selected::after {
+        content: "";
+    }
+</style>
+<!-- Select2 -->
+<link rel="stylesheet" href="{{ asset('assets/plugins/select2/css/select2.min.css') }}">
 @endsection
 
 @section('scripts')
-    <!-- Moment.js -->
-    <script src="{{ asset('assets/plugins/moment/moment.min.js') }}"></script>
-    <!-- Date Range Picker -->
-    <script src="{{ asset('assets/plugins/daterangepicker/daterangepicker.js') }}"></script>
-    <!-- Select2 -->
-    <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
-    <script>
-        $(document).ready(function() {
-            // ============================================================================
-            // SIMPLIFIED EDIT FORM - CLEAN & MAINTAINABLE
-            // ============================================================================
+<!-- Moment.js -->
+<script src="{{ asset('assets/plugins/moment/moment.min.js') }}"></script>
+<!-- Date Range Picker -->
+<script src="{{ asset('assets/plugins/daterangepicker/daterangepicker.js') }}"></script>
+<!-- Select2 -->
+<script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
+@php
+$approvedLeaveLockedJs = $leaveRequest->locksApprovedEditFields();
+$leaveEditRoutes = [
+'projectInfo' => route('leave.requests.project-info', ':id'),
+'employeesByProject' => route('leave.requests.employees-by-project', ':id'),
+'leaveTypesByEmployee' => route('leave.requests.leave-types-by-employee', ':id'),
+'employeeLeaveBalance' => route('leave.requests.employee.leave-balance', ':id'),
+'leaveTypeInfo' => route('leave.requests.leave-type.info', ':id'),
+'leavePeriod' => route('leave.requests.leave-period', [':employee', ':leavetype']),
+'approvalPreview' => route('approval.stages.preview'),
+];
+$editEmployeeId = (string) $leaveRequest->employee_id;
+$editLeaveTypeId = (int) old('leave_type_id', $leaveRequest->leave_type_id);
+$originalLeaveBalancePayload = [
+'employee_id' => (string) $leaveRequest->employee_id,
+'leave_type_id' => (int) $leaveRequest->leave_type_id,
+'total_days' => (int) $leaveRequest->total_days,
+'leave_period' => (string) ($leaveRequest->leave_period ?? ''),
+'lsl_taken_days' => (int) ($leaveRequest->lsl_taken_days ?? 0),
+        'lsl_cashout_days' => (int) ($leaveRequest->lsl_cashout_days ?? 0),
+        'charged_days' => $leaveRequest->alreadyChargedDays(),
+    ];
+$nationalHolidayDatesJs = $nationalHolidayDates ?? [];
+$nationalHolidayNamesJs = $nationalHolidayMap ?? (object) [];
+@endphp
+<script>
+    $(document).ready(function() {
+        // ============================================================================
+        // SIMPLIFIED EDIT FORM - CLEAN & MAINTAINABLE
+        // ============================================================================
 
-            // Route configuration
-            const routes = {
-                projectInfo: '{{ route('leave.requests.project-info', ':id') }}',
-                employeesByProject: '{{ route('leave.requests.employees-by-project', ':id') }}',
-                leaveTypesByEmployee: '{{ route('leave.requests.leave-types-by-employee', ':id') }}',
-                employeeLeaveBalance: '{{ route('leave.requests.employee.leave-balance', ':id') }}',
-                leaveTypeInfo: '{{ route('leave.requests.leave-type.info', ':id') }}',
-                leavePeriod: '{{ route('leave.requests.leave-period', [':employee', ':leavetype']) }}',
-                approvalPreview: '{{ route('approval.stages.preview') }}'
-            };
+        const approvedLeaveLocked = @json($approvedLeaveLockedJs);
+        const routes = @json($leaveEditRoutes);
 
-            // Projects and departments data for approval preview
-            const projects = @json($projects);
-            const departments = @json($departments);
+        // Projects and departments data for approval preview
+        const projects = @json($projects);
+        const departments = @json($departments);
 
-            // Project data with leave type information
-            const projectData = @json($projects);
+        // Project data with leave type information
+        const projectData = @json($projects);
 
-            const NATIONAL_HOLIDAY_DATE_SET = new Set(@json($nationalHolidayDates ?? []));
-            const NATIONAL_HOLIDAY_NAMES = @json($nationalHolidayMap ?? (object) []);
+        const NATIONAL_HOLIDAY_DATE_SET = new Set(@json($nationalHolidayDatesJs));
+        const NATIONAL_HOLIDAY_NAMES = @json($nationalHolidayNamesJs);
 
-            function dayCountsTowardLeave(m, isNonRoster) {
-                if (isNonRoster) {
-                    const ymd = m.format('YYYY-MM-DD');
-                    if (NATIONAL_HOLIDAY_DATE_SET.has(ymd)) {
-                        return false;
-                    }
-                    const d = m.day();
-                    if (d === 0 || d === 6) {
-                        return false;
-                    }
+        function dayCountsTowardLeave(m, isNonRoster) {
+            if (isNonRoster) {
+                const ymd = m.format('YYYY-MM-DD');
+                if (NATIONAL_HOLIDAY_DATE_SET.has(ymd)) {
+                    return false;
                 }
-                return true;
+                const d = m.day();
+                if (d === 0 || d === 6) {
+                    return false;
+                }
             }
+            return true;
+        }
 
-            $(document).on('mouseenter', '.daterangepicker td.national-holiday', function() {
-                const $td = $(this);
-                const titleAttr = $td.attr('data-title');
-                if (!titleAttr) {
-                    return;
-                }
-                const m = titleAttr.match(/r(\d+)c(\d+)/);
-                if (!m) {
-                    return;
-                }
-                const row = parseInt(m[1], 10);
-                const col = parseInt(m[2], 10);
-                const $cal = $td.closest('.drp-calendar');
-                const $container = $td.closest('.daterangepicker');
-                let picker = null;
-                $('input').each(function() {
-                    const p = $(this).data('daterangepicker');
-                    if (p && p.container && p.container.length && p.container[0] === $container[
+        $(document).on('mouseenter', '.daterangepicker td.national-holiday', function() {
+            const $td = $(this);
+            const titleAttr = $td.attr('data-title');
+            if (!titleAttr) {
+                return;
+            }
+            const m = titleAttr.match(/r(\d+)c(\d+)/);
+            if (!m) {
+                return;
+            }
+            const row = parseInt(m[1], 10);
+            const col = parseInt(m[2], 10);
+            const $cal = $td.closest('.drp-calendar');
+            const $container = $td.closest('.daterangepicker');
+            let picker = null;
+            $('input').each(function() {
+                const p = $(this).data('daterangepicker');
+                if (p && p.container && p.container.length && p.container[0] === $container[
                         0]) {
-                        picker = p;
-                        return false;
-                    }
-                });
-                if (!picker || !picker.leftCalendar || !picker.leftCalendar.calendar) {
-                    return;
+                    picker = p;
+                    return false;
                 }
-                const momentDate = $cal.hasClass('left') ? picker.leftCalendar.calendar[row][col] : picker
-                    .rightCalendar.calendar[row][col];
-                if (!momentDate || !momentDate.isValid()) {
-                    return;
-                }
-                const key = momentDate.format('YYYY-MM-DD');
-                const name = NATIONAL_HOLIDAY_NAMES[key] || 'National holiday';
-                $td.attr('title', name);
+            });
+            if (!picker || !picker.leftCalendar || !picker.leftCalendar.calendar) {
+                return;
+            }
+            const momentDate = $cal.hasClass('left') ? picker.leftCalendar.calendar[row][col] : picker
+                .rightCalendar.calendar[row][col];
+            if (!momentDate || !momentDate.isValid()) {
+                return;
+            }
+            const key = momentDate.format('YYYY-MM-DD');
+            const name = NATIONAL_HOLIDAY_NAMES[key] || 'National holiday';
+            $td.attr('title', name);
+        });
+
+        // Store current entitlement period for date picker limits
+        let currentEntitlementPeriod = {
+            start: null,
+            end: null
+        };
+
+        @include('leave-requests.partials.leave-period-date-fence-scripts')
+
+        // Initialize all components on page load
+        initializeForm();
+
+        // ============================================================================
+        // INITIALIZATION
+        // ============================================================================
+
+        function initializeForm() {
+            // Initialize Select2
+            $('.select2bs4').select2({
+                theme: 'bootstrap4',
+                width: '100%'
+            }).on('select2:open', function() {
+                document.querySelector('.select2-search__field').focus();
             });
 
-            // Store current entitlement period for date picker limits
-            let currentEntitlementPeriod = {
-                start: null,
-                end: null
-            };
+            // Initialize Date Pickers
+            setupDatePickers();
 
-            @include('leave-requests.partials.leave-period-date-fence-scripts')
+            // Initialize File Input
+            setupFileInput();
 
-            // Initialize all components on page load
-            initializeForm();
+            // Attach Event Handlers
+            attachEventHandlers();
 
-            // ============================================================================
-            // INITIALIZATION
-            // ============================================================================
+            // Initialize LSL Flexible
+            // LSL flexible scripts loaded via partial
 
-            function initializeForm() {
-                // Initialize Select2
-                $('.select2bs4').select2({
-                    theme: 'bootstrap4',
-                    width: '100%'
-                }).on('select2:open', function() {
-                    document.querySelector('.select2-search__field').focus();
-                });
+            // Load initial data (since this is edit form, data already populated from server)
+            loadInitialData();
+        }
 
-                // Initialize Date Pickers
-                setupDatePickers();
+        // ============================================================================
+        // PROJECT TYPE DETECTION
+        // ============================================================================
 
-                // Initialize File Input
-                setupFileInput();
+        function isProjectNonRoster(projectId) {
+            if (!projectId || !projectData) return false;
 
-                // Attach Event Handlers
-                attachEventHandlers();
+            const project = projectData.find(p => p.id == projectId);
+            if (!project) return false;
 
-                // Initialize LSL Flexible
-                // LSL flexible scripts loaded via partial
+            // Check if project is non-roster based on leave_type or project codes
+            return project.leave_type === 'non_roster' || ['HO', 'BO', 'APS', '021C', '025C'].includes(project
+                .project_code) || ['000H', '001H', 'APS'].includes(project.project_code);
+        }
 
-                // Load initial data (since this is edit form, data already populated from server)
-                loadInitialData();
-            }
+        // ============================================================================
+        // DATE PICKERS SETUP
+        // ============================================================================
 
-            // ============================================================================
-            // PROJECT TYPE DETECTION
-            // ============================================================================
-
-            function isProjectNonRoster(projectId) {
-                if (!projectId || !projectData) return false;
-
-                const project = projectData.find(p => p.id == projectId);
-                if (!project) return false;
-
-                // Check if project is non-roster based on leave_type or project codes
-                return project.leave_type === 'non_roster' || ['HO', 'BO', 'APS', '021C', '025C'].includes(project
-                    .project_code) || ['000H', '001H', 'APS'].includes(project.project_code);
-            }
-
-            // ============================================================================
-            // DATE PICKERS SETUP
-            // ============================================================================
-
-            function buildInvalidDateChecker(isNonRoster) {
-                return function(date) {
-                    if (isNonRoster && NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'))) {
+        function buildInvalidDateChecker(isNonRoster) {
+            return function(date) {
+                if (isNonRoster && NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'))) {
+                    return true;
+                }
+                if (isNonRoster) {
+                    if (date.day() === 0 || date.day() === 6) {
                         return true;
                     }
-                    if (isNonRoster) {
-                        if (date.day() === 0 || date.day() === 6) {
-                            return true;
-                        }
-                    }
-                    return false;
-                };
-            }
-
-            function nationalHolidayCustomClass(date) {
-                if (NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'))) {
-                    return 'national-holiday';
                 }
                 return false;
+            };
+        }
+
+        function nationalHolidayCustomClass(date) {
+            if (NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'))) {
+                return 'national-holiday';
+            }
+            return false;
+        }
+
+        /** Back to work: any calendar day selectable except national holidays (weekends OK for all project types). */
+        function buildBackToWorkInvalidDateChecker() {
+            return function(date) {
+                return NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'));
+            };
+        }
+
+        function setupDatePickers() {
+            configureLeaveDatePicker();
+        }
+
+        function configureBackToWorkDatePicker() {
+            const preserved = $('#back_to_work_date').val();
+            $('#back_to_work_date').data('daterangepicker') && $('#back_to_work_date').data('daterangepicker')
+                .remove();
+            $('#back_to_work_date').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: false,
+                locale: {
+                    cancelLabel: 'Clear',
+                    format: 'DD/MM/YYYY'
+                },
+                opens: 'left',
+                isInvalidDate: buildBackToWorkInvalidDateChecker(),
+                isCustomDate: nationalHolidayCustomClass,
+            }).on('apply.daterangepicker', function(ev, picker) {
+                $(this).val(picker.startDate.format('DD/MM/YYYY'));
+            }).on('cancel.daterangepicker', function() {
+                $(this).val('');
+            });
+            if (preserved) {
+                $('#back_to_work_date').val(preserved);
+            }
+        }
+
+        function configureLeaveDatePicker() {
+            const projectId = $('#project_id').val();
+            const isNonRosterProject = isProjectNonRoster(projectId);
+
+            // Base configuration
+            const baseConfig = {
+                autoUpdateInput: false,
+                locale: {
+                    cancelLabel: 'Clear',
+                    format: 'DD/MM/YYYY'
+                },
+                opens: 'left'
+                // Removed minDate: moment() to allow past dates in edit form
+            };
+
+            // Get current dates if they exist (strict parse to avoid Invalid date)
+            const startDate = $('#start_date').val();
+            const endDate = $('#end_date').val();
+            const startMoment = startDate ? moment(startDate, 'YYYY-MM-DD', true) : null;
+            const endMoment = endDate ? moment(endDate, 'YYYY-MM-DD', true) : null;
+            const hasValidRange = startMoment && endMoment && startMoment.isValid() && endMoment.isValid();
+
+            if (hasValidRange) {
+                baseConfig.startDate = startMoment;
+                baseConfig.endDate = endMoment;
             }
 
-            /** Back to work: any calendar day selectable except national holidays (weekends OK for all project types). */
-            function buildBackToWorkInvalidDateChecker() {
-                return function(date) {
-                    return NATIONAL_HOLIDAY_DATE_SET.has(date.format('YYYY-MM-DD'));
-                };
-            }
+            applyLeavePeriodDateFenceForEdit(baseConfig, startMoment, endMoment, hasValidRange);
 
-            function setupDatePickers() {
-                configureLeaveDatePicker();
-            }
+            baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
+            baseConfig.isCustomDate = nationalHolidayCustomClass;
 
-            function configureBackToWorkDatePicker() {
-                const preserved = $('#back_to_work_date').val();
-                $('#back_to_work_date').data('daterangepicker') && $('#back_to_work_date').data('daterangepicker')
-                    .remove();
-                $('#back_to_work_date').daterangepicker({
-                    singleDatePicker: true,
-                    autoUpdateInput: false,
-                    locale: {
-                        cancelLabel: 'Clear',
-                        format: 'DD/MM/YYYY'
-                    },
-                    opens: 'left',
-                    isInvalidDate: buildBackToWorkInvalidDateChecker(),
-                    isCustomDate: nationalHolidayCustomClass,
-                }).on('apply.daterangepicker', function(ev, picker) {
-                    $(this).val(picker.startDate.format('DD/MM/YYYY'));
-                }).on('cancel.daterangepicker', function() {
-                    $(this).val('');
-                });
-                if (preserved) {
-                    $('#back_to_work_date').val(preserved);
-                }
-            }
-
-            function configureLeaveDatePicker() {
-                const projectId = $('#project_id').val();
-                const isNonRosterProject = isProjectNonRoster(projectId);
-
-                // Base configuration
-                const baseConfig = {
-                    autoUpdateInput: false,
-                    locale: {
-                        cancelLabel: 'Clear',
-                        format: 'DD/MM/YYYY'
-                    },
-                    opens: 'left'
-                    // Removed minDate: moment() to allow past dates in edit form
-                };
-
-                // Get current dates if they exist (strict parse to avoid Invalid date)
-                const startDate = $('#start_date').val();
-                const endDate = $('#end_date').val();
-                const startMoment = startDate ? moment(startDate, 'YYYY-MM-DD', true) : null;
-                const endMoment = endDate ? moment(endDate, 'YYYY-MM-DD', true) : null;
-                const hasValidRange = startMoment && endMoment && startMoment.isValid() && endMoment.isValid();
-
-                if (hasValidRange) {
-                    baseConfig.startDate = startMoment;
-                    baseConfig.endDate = endMoment;
-                }
-
-                applyLeavePeriodDateFenceForEdit(baseConfig, startMoment, endMoment, hasValidRange);
-
-                baseConfig.isInvalidDate = buildInvalidDateChecker(isNonRosterProject);
-                baseConfig.isCustomDate = nationalHolidayCustomClass;
-
-                // Destroy existing picker and recreate with new config (same pattern as create/my-edit)
-                $('#leave_date').data('daterangepicker') && $('#leave_date').data('daterangepicker').remove();
-                $('#leave_date').daterangepicker(baseConfig)
-                    .on('apply.daterangepicker', function(ev, picker) {
-                        $(this).val(
-                            `${picker.startDate.format('DD/MM/YYYY')} - ${picker.endDate.format('DD/MM/YYYY')}`
-                        );
-                        $('#start_date').val(picker.startDate.format('YYYY-MM-DD'));
-                        $('#end_date').val(picker.endDate.format('YYYY-MM-DD'));
-                        calculateTotalDays();
-
-                        // Calculate LSL flexible if LSL section is visible
-                        if ($('#lsl_flexible_section').is(':visible')) {
-                            calculateLSLFlexible(true);
-                        }
-                    })
-                    .on('cancel.daterangepicker', function() {
-                        $(this).val('');
-                        $('#start_date, #end_date, #total_days_input, #total_days_hidden').val('');
-                    });
-
-                // Always restore display from hidden fields after recreate (autoUpdateInput is false)
-                if (hasValidRange) {
-                    $('#leave_date').val(
-                        `${startMoment.format('DD/MM/YYYY')} - ${endMoment.format('DD/MM/YYYY')}`
+            // Destroy existing picker and recreate with new config (same pattern as create/my-edit)
+            $('#leave_date').data('daterangepicker') && $('#leave_date').data('daterangepicker').remove();
+            $('#leave_date').daterangepicker(baseConfig)
+                .on('apply.daterangepicker', function(ev, picker) {
+                    $(this).val(
+                        `${picker.startDate.format('DD/MM/YYYY')} - ${picker.endDate.format('DD/MM/YYYY')}`
                     );
-                }
+                    $('#start_date').val(picker.startDate.format('YYYY-MM-DD'));
+                    $('#end_date').val(picker.endDate.format('YYYY-MM-DD'));
+                    calculateTotalDays();
 
-                // Show/hide weekend info
-                if (isNonRosterProject) {
-                    $('#weekend_info').show();
-                } else {
-                    $('#weekend_info').hide();
-                }
-
-                configureBackToWorkDatePicker();
-            }
-
-            // ============================================================================
-            // FILE INPUT SETUP
-            // ============================================================================
-
-            function setupFileInput() {
-                $('.custom-file-input').on('change', function() {
-                    const fileName = $(this).val().split('\\').pop();
-                    $(this).next('.custom-file-label').addClass("selected").html(fileName);
-                });
-            }
-
-            // ============================================================================
-            // EVENT HANDLERS
-            // ============================================================================
-
-            function attachEventHandlers() {
-                $('#project_id').on('change', onProjectChange);
-                $('#employee_id').on('change', onEmployeeChange);
-                $('#leave_type_id').on('change', onLeaveTypeChange);
-                $('#total_days_input').on('input', onTotalDaysChange);
-            }
-
-            // ============================================================================
-            // LOAD INITIAL DATA
-            // ============================================================================
-
-            function loadInitialData() {
-                const employeeId = $('#employee_id').val();
-                const leaveTypeId = $('#leave_type_id').val();
-
-                // Configure date picker based on current project
-                configureLeaveDatePicker();
-
-                // Load employee data if available
-                if (employeeId) {
-                    loadEmployeeLeaveBalance(employeeId);
-                    loadEmployeeLeaveTypes(employeeId);
-                }
-
-                // Load leave type data if available
-                if (leaveTypeId) {
-                    loadLeaveTypeInfo(leaveTypeId);
-
-                    // Load leave period if both employee and leave type selected
-                    if (employeeId) {
-                        loadEmployeeLeavePeriod(employeeId, leaveTypeId);
+                    // Calculate LSL flexible if LSL section is visible
+                    if ($('#lsl_flexible_section').is(':visible')) {
+                        calculateLSLFlexible(true);
                     }
+                })
+                .on('cancel.daterangepicker', function() {
+                    $(this).val('');
+                    $('#start_date, #end_date, #total_days_input, #total_days_hidden').val('');
+                });
 
-                    // Check if leave type is LSL and show LSL flexible section
-                    checkIfLSLAndPopulate(leaveTypeId);
-                }
-
-                // Set initial date range if dates are available
-                const startDate = $('#start_date').val();
-                const endDate = $('#end_date').val();
-                if (startDate && endDate) {
-                    // Format dates for display
-                    const startFormatted = moment(startDate).format('DD/MM/YYYY');
-                    const endFormatted = moment(endDate).format('DD/MM/YYYY');
-                    $('#leave_date').val(`${startFormatted} - ${endFormatted}`);
-
-                    // Calculate total days
-                    calculateTotalDays();
-                }
-
-                // Show conditional fields based on current leave type
-                showConditionalFieldsForCurrentLeaveType();
-
-                // Validate current total days against remaining balance
-                const currentTotalDays = parseInt($('#total_days_input').val());
-                if (currentTotalDays > 0) {
-                    validateLeaveBalance(currentTotalDays);
-                }
+            // Always restore display from hidden fields after recreate (autoUpdateInput is false)
+            if (hasValidRange) {
+                $('#leave_date').val(
+                    `${startMoment.format('DD/MM/YYYY')} - ${endMoment.format('DD/MM/YYYY')}`
+                );
             }
 
-            // ============================================================================
-            // CHECK IF LSL AND POPULATE DATA
-            // ============================================================================
-
-            function checkIfLSLAndPopulate(leaveTypeId) {
-                const url = routes.leaveTypeInfo.replace(':id', leaveTypeId);
-
-                $.get(url)
-                    .done(function(data) {
-                        if (data.success && data.leave_type) {
-                            const category = data.leave_type.category ? data.leave_type.category.toLowerCase() :
-                                '';
-
-                            if (category === 'lsl') {
-                                toggleLSLFlexibleSection(true);
-                            } else {
-                                toggleLSLFlexibleSection(false);
-                            }
-                        }
-                    });
+            // Show/hide weekend info
+            if (isNonRosterProject) {
+                $('#weekend_info').show();
+            } else {
+                $('#weekend_info').hide();
             }
 
-            // ============================================================================
-            // SHOW CONDITIONAL FIELDS FOR CURRENT LEAVE TYPE
-            // ============================================================================
+            configureBackToWorkDatePicker();
+        }
 
-            function showConditionalFieldsForCurrentLeaveType() {
-                const leaveTypeId = $('#leave_type_id').val();
+        // ============================================================================
+        // FILE INPUT SETUP
+        // ============================================================================
 
-                if (!leaveTypeId) return;
+        function setupFileInput() {
+            $('.custom-file-input').on('change', function() {
+                const fileName = $(this).val().split('\\').pop();
+                $(this).next('.custom-file-label').addClass("selected").html(fileName);
+            });
+        }
 
-                const selectedOption = $(`#leave_type_id option[value="${leaveTypeId}"]`);
-                const dataCategory = selectedOption.data('category');
-                if (dataCategory) {
-                    handleConditionalFields(dataCategory);
-                    return;
-                }
+        // ============================================================================
+        // EVENT HANDLERS
+        // ============================================================================
 
-                const leaveTypeText = selectedOption.text();
+        function attachEventHandlers() {
+            $('#project_id').on('change', onProjectChange);
+            $('#employee_id').on('change', onEmployeeChange);
+            $('#leave_type_id').on('change', onLeaveTypeChange);
+            $('#total_days_input').on('input', onTotalDaysChange);
+        }
 
-                // Determine category based on leave type text (excluding LSL which is handled separately)
-                let category = '';
-                if (leaveTypeText.toLowerCase().includes('unpaid') ||
-                    leaveTypeText.toLowerCase().includes('tanpa upah')) {
-                    category = 'unpaid';
-                } else if (leaveTypeText.toLowerCase().includes('paid') ||
-                    leaveTypeText.toLowerCase().includes('dibayar') ||
-                    leaveTypeText.toLowerCase().includes('tahunan') ||
-                    leaveTypeText.toLowerCase().includes('kawin') ||
-                    leaveTypeText.toLowerCase().includes('melahirkan') ||
-                    leaveTypeText.toLowerCase().includes('sakit')) {
-                    category = 'paid';
-                }
-                // Note: LSL is handled by checkIfLSLAndPopulate function
+        // ============================================================================
+        // LOAD INITIAL DATA
+        // ============================================================================
 
-                // Show appropriate conditional fields
-                handleConditionalFields(category);
-            }
+        function loadInitialData() {
+            const employeeId = $('#employee_id').val();
+            const leaveTypeId = $('#leave_type_id').val();
 
-            // ============================================================================
-            // EVENT HANDLERS - PROJECT
-            // ============================================================================
+            // Configure date picker based on current project
+            configureLeaveDatePicker();
 
-            function onProjectChange() {
-                const projectId = $(this).val();
-
-                if (!projectId) {
-                    resetEmployeeField();
-                    resetLeaveTypeField();
-                    resetLeaveBalanceDisplay();
-                    hideLeaveBalanceLink();
-                    // Reconfigure date picker for default behavior
-                    configureLeaveDatePicker();
-                    return;
-                }
-
-                // Load employees for selected project
-                loadProjectEmployees(projectId);
-
-                // Reconfigure date picker based on project type
-                configureLeaveDatePicker();
-
-                // Recalculate total days if dates are already selected
-                if ($('#start_date').val() && $('#end_date').val()) {
-                    calculateTotalDays();
-                }
-            }
-
-            // ============================================================================
-            // EVENT HANDLERS - EMPLOYEE
-            // ============================================================================
-
-            function onEmployeeChange() {
-                const employeeId = $(this).val();
-
-                if (!employeeId) {
-                    resetLeaveTypeField();
-                    resetLeaveBalanceDisplay();
-                    hideLeaveBalanceLink();
-                    $('#leave_period').val('');
-                    return;
-                }
-
-                // Load employee leave balance and available leave types
+            // Load employee data if available
+            if (employeeId) {
                 loadEmployeeLeaveBalance(employeeId);
                 loadEmployeeLeaveTypes(employeeId);
-
-                // If leave type already selected, load period
-                const leaveTypeId = $('#leave_type_id').val();
-                if (leaveTypeId) {
-                    loadEmployeeLeavePeriod(employeeId, leaveTypeId);
-                }
             }
 
-            // ============================================================================
-            // EVENT HANDLERS - LEAVE TYPE
-            // ============================================================================
-
-            function onLeaveTypeChange() {
-                const leaveTypeId = $(this).val();
-                const employeeId = $('#employee_id').val();
-
-                if (!leaveTypeId) {
-                    hideConditionalFields();
-                    toggleLeavePeriodField('');
-                    $('#leave_period').val('');
-                    clearValidation();
-                    return;
-                }
-
-                toggleLeavePeriodField();
-                applyPeriodFromSelectedLeaveType();
-                configureLeaveDatePicker();
-
-                // Load leave type info (for conditional fields)
+            // Load leave type data if available
+            if (leaveTypeId) {
                 loadLeaveTypeInfo(leaveTypeId);
 
-                // Check if leave type is LSL for flexible section
-                checkIfLSLAndPopulate(leaveTypeId);
-
-                // Load leave period if employee selected
+                // Load leave period if both employee and leave type selected
                 if (employeeId) {
                     loadEmployeeLeavePeriod(employeeId, leaveTypeId);
                 }
 
-                // Validate total days if entered
-                const totalDays = parseInt($('#total_days_input').val());
-                if (totalDays > 0) {
-                    validateLeaveBalance(totalDays);
+                // Check if leave type is LSL and show LSL flexible section
+                checkIfLSLAndPopulate(leaveTypeId);
+            }
+
+            // Set initial date range if dates are available
+            const startDate = $('#start_date').val();
+            const endDate = $('#end_date').val();
+            if (startDate && endDate) {
+                // Format dates for display
+                const startFormatted = moment(startDate).format('DD/MM/YYYY');
+                const endFormatted = moment(endDate).format('DD/MM/YYYY');
+                $('#leave_date').val(`${startFormatted} - ${endFormatted}`);
+
+                if (!approvedLeaveLocked) {
+                    calculateTotalDays();
                 }
             }
 
-            // ============================================================================
-            // EVENT HANDLERS - TOTAL DAYS
-            // ============================================================================
+            // Show conditional fields based on current leave type
+            showConditionalFieldsForCurrentLeaveType();
 
-            function onTotalDaysChange() {
-                const totalDays = parseInt($(this).val());
+            // Validate current total days against remaining balance
+            const currentTotalDays = parseInt($('#total_days_input').val());
+            if (currentTotalDays > 0) {
+                validateLeaveBalance(currentTotalDays);
+            }
+        }
 
-                if (totalDays > 0) {
-                    $('#total_days_hidden').val(totalDays);
-                    validateLeaveBalance(totalDays);
-                } else {
-                    $('#total_days_hidden').val('');
-                    clearValidation();
-                }
+        // ============================================================================
+        // CHECK IF LSL AND POPULATE DATA
+        // ============================================================================
+
+        function checkIfLSLAndPopulate(leaveTypeId) {
+            const url = routes.leaveTypeInfo.replace(':id', leaveTypeId);
+
+            $.get(url)
+                .done(function(data) {
+                    if (data.success && data.leave_type) {
+                        const category = data.leave_type.category ? data.leave_type.category.toLowerCase() :
+                            '';
+
+                        if (category === 'lsl') {
+                            toggleLSLFlexibleSection(true);
+                        } else {
+                            toggleLSLFlexibleSection(false);
+                        }
+                    }
+                });
+        }
+
+        // ============================================================================
+        // SHOW CONDITIONAL FIELDS FOR CURRENT LEAVE TYPE
+        // ============================================================================
+
+        function showConditionalFieldsForCurrentLeaveType() {
+            const leaveTypeId = $('#leave_type_id').val();
+
+            if (!leaveTypeId) return;
+
+            const selectedOption = $(`#leave_type_id option[value="${leaveTypeId}"]`);
+            const dataCategory = selectedOption.data('category');
+            if (dataCategory) {
+                handleConditionalFields(dataCategory);
+                return;
             }
 
-            // ============================================================================
-            // AJAX CALLS - PROJECT
-            // ============================================================================
+            const leaveTypeText = selectedOption.text();
 
-            function loadProjectEmployees(projectId) {
-                const url = routes.employeesByProject.replace(':id', projectId);
+            // Determine category based on leave type text (excluding LSL which is handled separately)
+            let category = '';
+            if (leaveTypeText.toLowerCase().includes('unpaid') ||
+                leaveTypeText.toLowerCase().includes('tanpa upah')) {
+                category = 'unpaid';
+            } else if (leaveTypeText.toLowerCase().includes('paid') ||
+                leaveTypeText.toLowerCase().includes('dibayar') ||
+                leaveTypeText.toLowerCase().includes('tahunan') ||
+                leaveTypeText.toLowerCase().includes('kawin') ||
+                leaveTypeText.toLowerCase().includes('melahirkan') ||
+                leaveTypeText.toLowerCase().includes('sakit')) {
+                category = 'paid';
+            }
+            // Note: LSL is handled by checkIfLSLAndPopulate function
 
-                $.get(url)
-                    .done(function(data) {
-                        const $select = $('#employee_id');
-                        $select.empty().append('<option value="">Select Employee</option>');
+            // Show appropriate conditional fields
+            handleConditionalFields(category);
+        }
 
-                        if (data.employees && data.employees.length > 0) {
-                            data.employees.forEach(function(employee) {
-                                $select.append(
-                                    `<option value="${employee.id}">${employee.nik} - ${employee.fullname}</option>`
-                                );
-                            });
+        // ============================================================================
+        // EVENT HANDLERS - PROJECT
+        // ============================================================================
+
+        function onProjectChange() {
+            const projectId = $(this).val();
+
+            if (!projectId) {
+                resetEmployeeField();
+                resetLeaveTypeField();
+                resetLeaveBalanceDisplay();
+                hideLeaveBalanceLink();
+                // Reconfigure date picker for default behavior
+                configureLeaveDatePicker();
+                return;
+            }
+
+            // Load employees for selected project
+            loadProjectEmployees(projectId);
+
+            // Reconfigure date picker based on project type
+            configureLeaveDatePicker();
+
+            // Recalculate total days if dates are already selected
+            if ($('#start_date').val() && $('#end_date').val()) {
+                calculateTotalDays();
+            }
+        }
+
+        // ============================================================================
+        // EVENT HANDLERS - EMPLOYEE
+        // ============================================================================
+
+        function onEmployeeChange() {
+            const employeeId = $(this).val();
+
+            if (!employeeId) {
+                resetLeaveTypeField();
+                resetLeaveBalanceDisplay();
+                hideLeaveBalanceLink();
+                $('#leave_period').val('');
+                return;
+            }
+
+            // Load employee leave balance and available leave types
+            loadEmployeeLeaveBalance(employeeId);
+            loadEmployeeLeaveTypes(employeeId);
+
+            // If leave type already selected, load period
+            const leaveTypeId = $('#leave_type_id').val();
+            if (leaveTypeId) {
+                loadEmployeeLeavePeriod(employeeId, leaveTypeId);
+            }
+        }
+
+        // ============================================================================
+        // EVENT HANDLERS - LEAVE TYPE
+        // ============================================================================
+
+        function onLeaveTypeChange() {
+            const leaveTypeId = $(this).val();
+            const employeeId = $('#employee_id').val();
+
+            if (!leaveTypeId) {
+                hideConditionalFields();
+                toggleLeavePeriodField('');
+                $('#leave_period').val('');
+                clearValidation();
+                return;
+            }
+
+            toggleLeavePeriodField();
+            applyPeriodFromSelectedLeaveType();
+            configureLeaveDatePicker();
+
+            // Load leave type info (for conditional fields)
+            loadLeaveTypeInfo(leaveTypeId);
+
+            // Check if leave type is LSL for flexible section
+            checkIfLSLAndPopulate(leaveTypeId);
+
+            // Load leave period if employee selected
+            if (employeeId) {
+                loadEmployeeLeavePeriod(employeeId, leaveTypeId);
+            }
+
+            // Validate total days if entered
+            const totalDays = parseInt($('#total_days_input').val());
+            if (totalDays > 0) {
+                validateLeaveBalance(totalDays);
+            }
+        }
+
+        // ============================================================================
+        // EVENT HANDLERS - TOTAL DAYS
+        // ============================================================================
+
+        function onTotalDaysChange() {
+            const totalDays = parseInt($(this).val());
+
+            if (totalDays > 0) {
+                $('#total_days_hidden').val(totalDays);
+                validateLeaveBalance(totalDays);
+            } else {
+                $('#total_days_hidden').val('');
+                clearValidation();
+            }
+        }
+
+        // ============================================================================
+        // AJAX CALLS - PROJECT
+        // ============================================================================
+
+        function loadProjectEmployees(projectId) {
+            const url = routes.employeesByProject.replace(':id', projectId);
+
+            $.get(url)
+                .done(function(data) {
+                    const $select = $('#employee_id');
+                    $select.empty().append('<option value="">Select Employee</option>');
+
+                    if (data.employees && data.employees.length > 0) {
+                        data.employees.forEach(function(employee) {
+                            $select.append(
+                                `<option value="${employee.id}">${employee.nik} - ${employee.fullname}</option>`
+                            );
+                        });
+                        if (!approvedLeaveLocked) {
                             $select.prop('disabled', false);
                         }
-                    })
-                    .fail(function() {
-                        showAlert('Failed to load employees', 'error');
-                    });
-            }
+                    }
+                })
+                .fail(function() {
+                    showAlert('Failed to load employees', 'error');
+                });
+        }
 
-            // ============================================================================
-            // AJAX CALLS - EMPLOYEE
-            // ============================================================================
+        // ============================================================================
+        // AJAX CALLS - EMPLOYEE
+        // ============================================================================
 
-            function loadEmployeeLeaveBalance(employeeId) {
-                const url = routes.employeeLeaveBalance.replace(':id', employeeId);
-                showLeaveBalanceLink();
-                $('#leave_balance_info').html(
-                    '<div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin"></i><div class="mt-2">Loading...</div></div>'
-                );
+        function loadEmployeeLeaveBalance(employeeId) {
+            const url = routes.employeeLeaveBalance.replace(':id', employeeId);
+            showLeaveBalanceLink();
+            $('#leave_balance_info').html(
+                '<div class="text-center py-3 text-muted"><i class="fas fa-spinner fa-spin"></i><div class="mt-2">Loading...</div></div>'
+            );
 
-                $.get(url)
-                    .done(function(data) {
-                        if (data.success && data.leave_balance) {
-                            displayLeaveBalance(data.leave_balance);
+            $.get(url)
+                .done(function(data) {
+                    if (data.success && data.leave_balance) {
+                        displayLeaveBalance(data.leave_balance);
 
-                            // Load approval preview with employee data
-                            if (data.employee && data.employee.project_id && data.employee.department_id) {
-                                const projectName = projects.find(p => p.id == data.employee.project_id)
-                                    ?.project_name || data.employee.project_id;
-                                const departmentName = departments.find(d => d.id == data.employee
-                                    .department_id)?.department_name || data.employee.department_id;
-                                loadApprovalPreview(data.employee.project_id, data.employee.department_id, data
-                                    .employee.level_id, projectName, departmentName);
-                            }
-                        } else {
-                            resetLeaveBalanceDisplay();
+                        // Load approval preview with employee data
+                        if (data.employee && data.employee.project_id && data.employee.department_id) {
+                            const projectName = projects.find(p => p.id == data.employee.project_id)
+                                ?.project_name || data.employee.project_id;
+                            const departmentName = departments.find(d => d.id == data.employee
+                                .department_id)?.department_name || data.employee.department_id;
+                            loadApprovalPreview(data.employee.project_id, data.employee.department_id, data
+                                .employee.level_id, projectName, departmentName);
                         }
-                    })
-                    .fail(function() {
-                        showAlert('Failed to load leave balance', 'error');
-                    });
+                    } else {
+                        resetLeaveBalanceDisplay();
+                    }
+                })
+                .fail(function() {
+                    showAlert('Failed to load leave balance', 'error');
+                });
+        }
+
+        function loadEmployeeLeaveTypes(employeeId) {
+            let url = routes.leaveTypesByEmployee.replace(':id', employeeId);
+            const keepLeaveTypeId = String(employeeId) === @json($editEmployeeId) ?
+                @json($editLeaveTypeId) :
+                0;
+            if (keepLeaveTypeId) {
+                url += '?include_leave_type_id=' + keepLeaveTypeId;
             }
 
-            function loadEmployeeLeaveTypes(employeeId) {
-                const url = routes.leaveTypesByEmployee.replace(':id', employeeId);
+            $.get(url)
+                .done(function(data) {
+                    const $select = $('#leave_type_id');
+                    const currentValue = $select.val(); // Preserve current selection
+                    const currentEntitlementId = $select.find('option:selected').data(
+                        'entitlement-id'); // Preserve entitlement ID
 
-                $.get(url)
-                    .done(function(data) {
-                        const $select = $('#leave_type_id');
-                        const currentValue = $select.val(); // Preserve current selection
-                        const currentEntitlementId = $select.find('option:selected').data(
-                            'entitlement-id'); // Preserve entitlement ID
+                    $select.empty().append('<option value="">Select Leave Type</option>');
 
-                        $select.empty().append('<option value="">Select Leave Type</option>');
+                    if (data.leaveTypes && data.leaveTypes.length > 0) {
+                        // Group by leave_type_id to detect duplicates
+                        const leaveTypeGroups = {};
+                        data.leaveTypes.forEach(function(item) {
+                            if (!leaveTypeGroups[item.leave_type_id]) {
+                                leaveTypeGroups[item.leave_type_id] = [];
+                            }
+                            leaveTypeGroups[item.leave_type_id].push(item);
+                        });
 
-                        if (data.leaveTypes && data.leaveTypes.length > 0) {
-                            // Group by leave_type_id to detect duplicates
-                            const leaveTypeGroups = {};
-                            data.leaveTypes.forEach(function(item) {
-                                if (!leaveTypeGroups[item.leave_type_id]) {
-                                    leaveTypeGroups[item.leave_type_id] = [];
-                                }
-                                leaveTypeGroups[item.leave_type_id].push(item);
-                            });
+                        // Create options
+                        data.leaveTypes.forEach(function(item) {
+                            // Always use normal format (without period in option text)
+                            const optionText =
+                                `${item.leave_type.name} (${item.leave_type.code}) - ${item.remaining_days} days remaining`;
 
-                            // Create options
-                            data.leaveTypes.forEach(function(item) {
-                                // Always use normal format (without period in option text)
-                                const optionText =
-                                    `${item.leave_type.name} (${item.leave_type.code}) - ${item.remaining_days} days remaining`;
-
-                                $select.append(
-                                    `<option value="${item.leave_type_id}"
+                            $select.append(
+                                `<option value="${item.leave_type_id}"
                                         data-entitlement-id="${item.entitlement_id}"
                                         data-remaining="${item.remaining_days}"
                                         data-category="${item.leave_type.category || ''}"
@@ -1039,339 +1097,385 @@
                                         data-period-display="${item.period_display}">
                                         ${optionText}
                                     </option>`
-                                );
-                            });
+                            );
+                        });
 
+                        if (!approvedLeaveLocked) {
                             $select.prop('disabled', false);
+                        }
 
-                            // Restore previous selection if exists
-                            if (currentValue && currentEntitlementId) {
-                                // Try to find exact match with entitlement ID
-                                const matchingOption = $select.find(
-                                    `option[value="${currentValue}"][data-entitlement-id="${currentEntitlementId}"]`
-                                );
-                                if (matchingOption.length) {
-                                    matchingOption.prop('selected', true);
-                                } else {
-                                    // Fallback to just leave_type_id
-                                    $select.val(currentValue);
-                                }
-                            } else if (currentValue) {
+                        // Restore previous selection if exists
+                        if (currentValue && currentEntitlementId) {
+                            // Try to find exact match with entitlement ID
+                            const matchingOption = $select.find(
+                                `option[value="${currentValue}"][data-entitlement-id="${currentEntitlementId}"]`
+                            );
+                            if (matchingOption.length) {
+                                matchingOption.prop('selected', true);
+                            } else {
+                                // Fallback to just leave_type_id
                                 $select.val(currentValue);
                             }
+                        } else if (currentValue) {
+                            $select.val(currentValue);
+                        }
 
-                            // Bind entitlementData for currently selected LSL type only
-                            window.entitlementData = null;
-                            const selectedLeaveTypeId = $select.val();
-                            if (selectedLeaveTypeId) {
-                                const $selectedOpt = $select.find('option:selected');
-                                const selectedEntitlementId = $selectedOpt.data('entitlement-id');
-                                const selectedItem = data.leaveTypes.find(function(item) {
-                                    if (String(item.leave_type_id) !== String(selectedLeaveTypeId)) {
-                                        return false;
-                                    }
-                                    if (selectedEntitlementId && String(item.entitlement_id) !== String(
-                                            selectedEntitlementId)) {
-                                        return false;
-                                    }
-                                    return true;
-                                });
-                                if (selectedItem && selectedItem.leave_type && selectedItem.leave_type
-                                    .category && selectedItem.leave_type.category.toLowerCase() === 'lsl') {
-                                    window.entitlementData = {
-                                        remaining_days: selectedItem.remaining_days,
-                                        leave_type_id: selectedItem.leave_type_id
-                                    };
-                                }
+                        if (approvedLeaveLocked) {
+                            $select.prop('disabled', true).trigger('change.select2');
+                        }
 
-                                // Refresh period limits now that option data-attributes exist
-                                const employeeId = $('#employee_id').val();
-                                if (employeeId) {
-                                    loadEmployeeLeavePeriod(employeeId, selectedLeaveTypeId);
+                        // Bind entitlementData for currently selected LSL type only
+                        window.entitlementData = null;
+                        const selectedLeaveTypeId = $select.val();
+                        if (selectedLeaveTypeId) {
+                            const $selectedOpt = $select.find('option:selected');
+                            const selectedEntitlementId = $selectedOpt.data('entitlement-id');
+                            const selectedItem = data.leaveTypes.find(function(item) {
+                                if (String(item.leave_type_id) !== String(selectedLeaveTypeId)) {
+                                    return false;
                                 }
+                                if (selectedEntitlementId && String(item.entitlement_id) !== String(
+                                        selectedEntitlementId)) {
+                                    return false;
+                                }
+                                return true;
+                            });
+                            if (selectedItem && selectedItem.leave_type && selectedItem.leave_type
+                                .category && selectedItem.leave_type.category.toLowerCase() === 'lsl') {
+                                window.entitlementData = {
+                                    remaining_days: selectedItem.remaining_days,
+                                    leave_type_id: selectedItem.leave_type_id
+                                };
+                            }
 
-                                // Validate current total days after restoring selection
-                                const currentTotalDays = parseInt($('#total_days_input').val());
-                                if (currentTotalDays > 0) {
-                                    validateLeaveBalance(currentTotalDays);
-                                }
+                            // Refresh period limits now that option data-attributes exist
+                            const employeeId = $('#employee_id').val();
+                            if (employeeId) {
+                                loadEmployeeLeavePeriod(employeeId, selectedLeaveTypeId);
+                            }
+
+                            // Validate current total days after restoring selection
+                            const currentTotalDays = parseInt($('#total_days_input').val());
+                            if (currentTotalDays > 0) {
+                                validateLeaveBalance(currentTotalDays);
                             }
                         }
-                    })
-                    .fail(function() {
-                        showAlert('Failed to load leave types', 'error');
-                    });
+                    }
+                })
+                .fail(function() {
+                    showAlert('Failed to load leave types', 'error');
+                });
+        }
+
+        function loadEmployeeLeavePeriod(employeeId, leaveTypeId) {
+            // Check if we have period info from selected option
+            const $selectedOption = $('#leave_type_id option:selected');
+            const periodStart = $selectedOption.data('period-start');
+            const periodEnd = $selectedOption.data('period-end');
+
+            // If period info is available from dropdown, use it directly (no API call needed)
+            if (periodStart && periodEnd) {
+                const startMoment = moment(periodStart);
+                const endMoment = moment(periodEnd);
+
+                if (startMoment.isValid() && endMoment.isValid()) {
+                    const periodDisplay = startMoment.format('DD MMM YYYY') + ' - ' + endMoment.format(
+                        'DD MMM YYYY');
+
+                    $('#leave_period').val(periodDisplay);
+                    currentEntitlementPeriod.start = startMoment;
+                    currentEntitlementPeriod.end = endMoment;
+                    configureLeaveDatePicker();
+                    return;
+                }
             }
 
-            function loadEmployeeLeavePeriod(employeeId, leaveTypeId) {
-                // Check if we have period info from selected option
-                const $selectedOption = $('#leave_type_id option:selected');
-                const periodStart = $selectedOption.data('period-start');
-                const periodEnd = $selectedOption.data('period-end');
+            // Fallback to API call (for backward compatibility or if data not in dropdown)
+            const url = routes.leavePeriod
+                .replace(':employee', employeeId)
+                .replace(':leavetype', leaveTypeId);
 
-                // If period info is available from dropdown, use it directly (no API call needed)
-                if (periodStart && periodEnd) {
-                    const startMoment = moment(periodStart);
-                    const endMoment = moment(periodEnd);
+            $.get(url)
+                .done(function(data) {
+                    if (data.success && data.leave_period) {
+                        $('#leave_period').val(data.leave_period);
 
-                    if (startMoment.isValid() && endMoment.isValid()) {
-                        const periodDisplay = startMoment.format('DD MMM YYYY') + ' - ' + endMoment.format(
-                            'DD MMM YYYY');
-
-                        $('#leave_period').val(periodDisplay);
-                        currentEntitlementPeriod.start = startMoment;
-                        currentEntitlementPeriod.end = endMoment;
-                        configureLeaveDatePicker();
-                        return;
-                    }
-                }
-
-                // Fallback to API call (for backward compatibility or if data not in dropdown)
-                const url = routes.leavePeriod
-                    .replace(':employee', employeeId)
-                    .replace(':leavetype', leaveTypeId);
-
-                $.get(url)
-                    .done(function(data) {
-                        if (data.success && data.leave_period) {
-                            $('#leave_period').val(data.leave_period);
-
-                            // Store period dates for date picker limits
-                            if (data.period_start && data.period_end) {
-                                currentEntitlementPeriod.start = moment(data.period_start);
-                                currentEntitlementPeriod.end = moment(data.period_end);
-                            } else {
-                                currentEntitlementPeriod.start = null;
-                                currentEntitlementPeriod.end = null;
-                            }
-
-                            // Reconfigure date picker with period limits
-                            configureLeaveDatePicker();
+                        // Store period dates for date picker limits
+                        if (data.period_start && data.period_end) {
+                            currentEntitlementPeriod.start = moment(data.period_start);
+                            currentEntitlementPeriod.end = moment(data.period_end);
                         } else {
-                            $('#leave_period').val('');
                             currentEntitlementPeriod.start = null;
                             currentEntitlementPeriod.end = null;
-                            configureLeaveDatePicker();
                         }
-                    })
-                    .fail(function() {
+
+                        // Reconfigure date picker with period limits
+                        configureLeaveDatePicker();
+                    } else {
                         $('#leave_period').val('');
                         currentEntitlementPeriod.start = null;
                         currentEntitlementPeriod.end = null;
                         configureLeaveDatePicker();
-                    });
-            }
+                    }
+                })
+                .fail(function() {
+                    $('#leave_period').val('');
+                    currentEntitlementPeriod.start = null;
+                    currentEntitlementPeriod.end = null;
+                    configureLeaveDatePicker();
+                });
+        }
 
-            // ============================================================================
-            // AJAX CALLS - LEAVE TYPE
-            // ============================================================================
+        // ============================================================================
+        // AJAX CALLS - LEAVE TYPE
+        // ============================================================================
 
-            function loadLeaveTypeInfo(leaveTypeId) {
-                const url = routes.leaveTypeInfo.replace(':id', leaveTypeId);
+        function loadLeaveTypeInfo(leaveTypeId) {
+            const url = routes.leaveTypeInfo.replace(':id', leaveTypeId);
 
-                $.get(url)
-                    .done(function(data) {
-                        if (data.success && data.leave_type) {
-                            handleConditionalFields(data.leave_type.category);
-                        } else {
-                            hideConditionalFields();
-                        }
-                    })
-                    .fail(function() {
+            $.get(url)
+                .done(function(data) {
+                    if (data.success && data.leave_type) {
+                        handleConditionalFields(data.leave_type.category);
+                    } else {
                         hideConditionalFields();
-                    });
+                    }
+                })
+                .fail(function() {
+                    hideConditionalFields();
+                });
+        }
+
+        // ============================================================================
+        // UI HELPERS - CONDITIONAL FIELDS
+        // ============================================================================
+
+        function handleConditionalFields(category) {
+            hideConditionalFields();
+            toggleLeavePeriodField(category);
+
+            const cat = category ? category.toLowerCase() : '';
+
+            if (cat === 'unpaid') {
+                $('#reason_field').show();
+                $('#reason').prop('required', true);
+            } else if (cat === 'paid') {
+                $('#document_field').show();
+            }
+            // Note: LSL is handled by checkIfLSLAndPopulate function
+        }
+
+        function hideConditionalFields() {
+            $('#reason_field, #document_field').hide();
+            $('#reason').prop('required', false);
+            // Note: LSL section is handled by checkIfLSLAndPopulate function
+        }
+
+        // ============================================================================
+        // UI HELPERS - LEAVE BALANCE DISPLAY
+        // ============================================================================
+
+        function displayLeaveBalance(balances) {
+            if (!balances || balances.length === 0) {
+                resetLeaveBalanceDisplay();
+                return;
             }
 
-            // ============================================================================
-            // UI HELPERS - CONDITIONAL FIELDS
-            // ============================================================================
+            let html = '<div class="table-responsive"><table class="table table-sm">';
+            html += '<thead><tr><th>Leave Type</th><th class="text-right">Balance</th></tr></thead><tbody>';
 
-            function handleConditionalFields(category) {
-                hideConditionalFields();
-                toggleLeavePeriodField(category);
-
-                const cat = category ? category.toLowerCase() : '';
-
-                if (cat === 'unpaid') {
-                    $('#reason_field').show();
-                    $('#reason').prop('required', true);
-                } else if (cat === 'paid') {
-                    $('#document_field').show();
-                }
-                // Note: LSL is handled by checkIfLSLAndPopulate function
-            }
-
-            function hideConditionalFields() {
-                $('#reason_field, #document_field').hide();
-                $('#reason').prop('required', false);
-                // Note: LSL section is handled by checkIfLSLAndPopulate function
-            }
-
-            // ============================================================================
-            // UI HELPERS - LEAVE BALANCE DISPLAY
-            // ============================================================================
-
-            function displayLeaveBalance(balances) {
-                if (!balances || balances.length === 0) {
-                    resetLeaveBalanceDisplay();
-                    return;
-                }
-
-                let html = '<div class="table-responsive"><table class="table table-sm">';
-                html += '<thead><tr><th>Leave Type</th><th class="text-right">Balance</th></tr></thead><tbody>';
-
-                balances.forEach(function(item) {
-                    html += `<tr>
+            balances.forEach(function(item) {
+                html += `<tr>
                         <td>${item.leave_type} (${item.leave_type_code})</td>
                         <td class="text-right">
                             <span class="badge badge-info">${item.remaining_days} days</span>
                         </td>
                     </tr>`;
-                });
+            });
 
-                html += '</tbody></table></div>';
-                $('#leave_balance_info').html(html);
+            html += '</tbody></table></div>';
+            $('#leave_balance_info').html(html);
+        }
+
+        // ============================================================================
+        // UI HELPERS - CALCULATIONS
+        // ============================================================================
+
+        function calculateTotalDays() {
+            const startDate = $('#start_date').val();
+            const endDate = $('#end_date').val();
+
+            if (!startDate || !endDate) {
+                $('#total_days_input, #total_days_hidden').val('');
+                return;
             }
 
-            // ============================================================================
-            // UI HELPERS - CALCULATIONS
-            // ============================================================================
+            const start = moment(startDate);
+            const end = moment(endDate);
 
-            function calculateTotalDays() {
-                const startDate = $('#start_date').val();
-                const endDate = $('#end_date').val();
-
-                if (!startDate || !endDate) {
-                    $('#total_days_input, #total_days_hidden').val('');
-                    return;
-                }
-
-                const start = moment(startDate);
-                const end = moment(endDate);
-
-                if (!start.isValid() || !end.isValid()) {
-                    $('#total_days_input, #total_days_hidden').val('');
-                    return;
-                }
-
-                // Calculate total days excluding disabled dates (weekends for non-roster projects)
-                const projectId = $('#project_id').val();
-                const isNonRosterProject = isProjectNonRoster(projectId);
-
-                let activeDays = 0;
-                const current = start.clone();
-
-                while (current.isSameOrBefore(end, 'day')) {
-                    if (dayCountsTowardLeave(current, isNonRosterProject)) {
-                        activeDays++;
-                    }
-                    current.add(1, 'day');
-                }
-
-                $('#total_days_input, #total_days_hidden').val(activeDays);
-
-                validateLeaveBalance(activeDays);
+            if (!start.isValid() || !end.isValid()) {
+                $('#total_days_input, #total_days_hidden').val('');
+                return;
             }
 
-            // ============================================================================
-            // VALIDATION
-            // ============================================================================
+            // Calculate total days excluding disabled dates (weekends for non-roster projects)
+            const projectId = $('#project_id').val();
+            const isNonRosterProject = isProjectNonRoster(projectId);
 
-            function validateLeaveBalance(requestedDays) {
-                const leaveTypeId = $('#leave_type_id').val();
-                const employeeId = $('#employee_id').val();
+            let activeDays = 0;
+            const current = start.clone();
 
-                if (!leaveTypeId || !employeeId) {
-                    clearValidation();
-                    return;
+            while (current.isSameOrBefore(end, 'day')) {
+                if (dayCountsTowardLeave(current, isNonRosterProject)) {
+                    activeDays++;
                 }
-
-                // Get remaining days from selected option
-                const $option = $('#leave_type_id option:selected');
-                const remainingDays = parseInt($option.data('remaining')) || 0;
-
-                if (requestedDays > remainingDays) {
-                    showValidation(
-                        `Total days (${requestedDays}) exceeds remaining leave balance (${remainingDays} days)`,
-                        'error'
-                    );
-                } else {
-                    clearValidation();
-                }
+                current.add(1, 'day');
             }
 
-            function showValidation(message, type = 'warning') {
+            $('#total_days_input, #total_days_hidden').val(activeDays);
+
+            validateLeaveBalance(activeDays);
+        }
+
+        // ============================================================================
+        // VALIDATION
+        // ============================================================================
+
+        const originalLeaveBalance = @json($originalLeaveBalancePayload);
+
+        function savedLeaveBalanceUnchanged(requestedDays) {
+            const leaveTypeId = $('#leave_type_id').val();
+            const employeeId = $('#employee_id').val();
+            const period = ($('#leave_period').val() || '').trim();
+            const savedPeriod = (originalLeaveBalance.leave_period || '').trim();
+            const lslTaken = parseInt($('#lsl_taken_days').val(), 10);
+            const lslCashout = parseInt($('#lsl_cashout_days').val(), 10);
+
+            if (String(leaveTypeId) !== String(originalLeaveBalance.leave_type_id)) {
+                return false;
+            }
+            if (String(employeeId) !== String(originalLeaveBalance.employee_id)) {
+                return false;
+            }
+            if (parseInt(requestedDays, 10) !== parseInt(originalLeaveBalance.total_days, 10)) {
+                return false;
+            }
+            if (savedPeriod !== '' && period !== '' && period !== savedPeriod) {
+                return false;
+            }
+            if ($('#lsl_taken_days').length && !Number.isNaN(lslTaken) && lslTaken !== originalLeaveBalance.lsl_taken_days) {
+                return false;
+            }
+            if ($('#lsl_cashout_days').length && !Number.isNaN(lslCashout) && lslCashout !== originalLeaveBalance.lsl_cashout_days) {
+                return false;
+            }
+
+            return true;
+        }
+
+        function validateLeaveBalance(requestedDays) {
+            const leaveTypeId = $('#leave_type_id').val();
+            const employeeId = $('#employee_id').val();
+
+            if (!leaveTypeId || !employeeId) {
                 clearValidation();
+                return;
+            }
 
-                const alertClass = type === 'error' ? 'alert-danger' : 'alert-warning';
-                const iconClass = type === 'error' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+            if (savedLeaveBalanceUnchanged(requestedDays)) {
+                clearValidation();
+                return;
+            }
 
-                const html = `
+            // Get remaining days from selected option
+            const $option = $('#leave_type_id option:selected');
+            let remainingDays = parseInt($option.data('remaining'), 10) || 0;
+            if (approvedLeaveLocked) {
+                remainingDays += parseInt(originalLeaveBalance.charged_days, 10) || 0;
+            }
+
+            if (requestedDays > remainingDays) {
+                showValidation(
+                    `Total days (${requestedDays}) exceeds remaining leave balance (${remainingDays} days)`,
+                    'error'
+                );
+            } else {
+                clearValidation();
+            }
+        }
+
+        function showValidation(message, type = 'warning') {
+            clearValidation();
+
+            const alertClass = type === 'error' ? 'alert-danger' : 'alert-warning';
+            const iconClass = type === 'error' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+
+            const html = `
                     <div class="alert ${alertClass} alert-dismissible fade show mt-2" id="validation-alert">
                         <i class="${iconClass} mr-2"></i>${message}
                     </div>
                 `;
 
-                $('#total_days_hidden').after(html);
-            }
+            $('#total_days_hidden').after(html);
+        }
 
-            function clearValidation() {
-                $('#validation-alert').remove();
-            }
+        function clearValidation() {
+            $('#validation-alert').remove();
+        }
 
-            // ============================================================================
-            // RESET FUNCTIONS
-            // ============================================================================
+        // ============================================================================
+        // RESET FUNCTIONS
+        // ============================================================================
 
-            function resetEmployeeField() {
-                $('#employee_id')
-                    .prop('disabled', true)
-                    .empty()
-                    .append('<option value="">Select Employee</option>');
-            }
+        function resetEmployeeField() {
+            $('#employee_id')
+                .prop('disabled', true)
+                .empty()
+                .append('<option value="">Select Employee</option>');
+        }
 
-            function resetLeaveTypeField() {
-                $('#leave_type_id')
-                    .prop('disabled', true)
-                    .empty()
-                    .append('<option value="">Select Leave Type</option>');
-                toggleLeavePeriodField('');
-            }
+        function resetLeaveTypeField() {
+            $('#leave_type_id')
+                .prop('disabled', true)
+                .empty()
+                .append('<option value="">Select Leave Type</option>');
+            toggleLeavePeriodField('');
+        }
 
-            function resetLeaveBalanceDisplay() {
-                $('#leave_balance_info').html(`
+        function resetLeaveBalanceDisplay() {
+            $('#leave_balance_info').html(`
                     <div class="text-center py-3">
                         <i class="fas fa-info-circle text-muted"></i>
                         <div class="mt-2 text-muted">Select an employee to view leave balance</div>
                     </div>
                 `);
-            }
+        }
 
-            // ============================================================================
-            // APPROVAL PREVIEW
-            // ============================================================================
+        // ============================================================================
+        // APPROVAL PREVIEW
+        // ============================================================================
 
-            function loadApprovalPreview(projectId, departmentId, levelId, projectName, departmentName) {
-                const requestData = {
-                    project_id: projectId,
-                    department_id: departmentId,
-                    level_id: levelId,
-                    document_type: 'leave_request'
-                };
+        function loadApprovalPreview(projectId, departmentId, levelId, projectName, departmentName) {
+            const requestData = {
+                project_id: projectId,
+                department_id: departmentId,
+                level_id: levelId,
+                document_type: 'leave_request'
+            };
 
-                $.ajax({
-                    url: routes.approvalPreview,
-                    method: 'GET',
-                    data: requestData,
-                    success: function(response) {
-                        console.log('Approval preview response:', response);
+            $.ajax({
+                url: routes.approvalPreview,
+                method: 'GET',
+                data: requestData,
+                success: function(response) {
+                    console.log('Approval preview response:', response);
 
-                        if (response.success && response.approvers && response.approvers.length > 0) {
-                            let html = '<div class="approval-flow preview-mode">';
+                    if (response.success && response.approvers && response.approvers.length > 0) {
+                        let html = '<div class="approval-flow preview-mode">';
 
-                            response.approvers.forEach(function(approver, index) {
-                                console.log('Processing approver:', approver);
-                                html += `
+                        response.approvers.forEach(function(approver, index) {
+                            console.log('Processing approver:', approver);
+                            html += `
                                     <div class="approval-step preview-step">
                                         <div class="step-number">${approver.order || index + 1}</div>
                                         <div class="step-content">
@@ -1381,102 +1485,102 @@
                                         </div>
                                     </div>
                                 `;
-                            });
+                        });
 
-                            html += '</div>';
-                            $('#approvalPreview').html(html);
-                        } else {
-                            const projectDisplay = projectName || `Project ${projectId}`;
-                            const departmentDisplay = departmentName || `Department ${departmentId}`;
-                            $('#approvalPreview').html(`
+                        html += '</div>';
+                        $('#approvalPreview').html(html);
+                    } else {
+                        const projectDisplay = projectName || `Project ${projectId}`;
+                        const departmentDisplay = departmentName || `Department ${departmentId}`;
+                        $('#approvalPreview').html(`
                                 <div class="text-center py-3">
                                     <i class="fas fa-info-circle text-warning"></i>
                                     <div class="mt-2">No approval flow configured for ${projectDisplay} - ${departmentDisplay}</div>
                                 </div>
                             `);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Failed to load approval preview:', error);
-                        const projectDisplay = projectName || `Project ${projectId}`;
-                        const departmentDisplay = departmentName || `Department ${departmentId}`;
-                        $('#approvalPreview').html(`
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Failed to load approval preview:', error);
+                    const projectDisplay = projectName || `Project ${projectId}`;
+                    const departmentDisplay = departmentName || `Department ${departmentId}`;
+                    $('#approvalPreview').html(`
                             <div class="text-center py-3">
                                 <i class="fas fa-exclamation-triangle text-danger"></i>
                                 <div class="mt-2">Failed to load approval flow for ${projectDisplay} - ${departmentDisplay}</div>
                             </div>
                         `);
-                    }
-                });
+                }
+            });
+        }
+
+        // ============================================================================
+        // UTILITY FUNCTIONS
+        // ============================================================================
+
+        @include('leave-requests.partials.leave-form-validation-scripts')
+
+        function showAlert(message, type = 'info') {
+            console.error(message);
+            // You can implement toast notification here if needed
+        }
+
+        // ============================================================================
+        // LSL FLEXIBLE - LONG SERVICE LEAVE WITH CASH OUT
+        // ============================================================================
+
+        window.entitlementData = null;
+
+        @include('leave-requests.partials.lsl-flexible-scripts')
+
+        function calculateActiveDaysFromDateRange() {
+            const startDate = $('#start_date').val();
+            const endDate = $('#end_date').val();
+
+            if (!startDate || !endDate) {
+                return 0;
             }
 
-            // ============================================================================
-            // UTILITY FUNCTIONS
-            // ============================================================================
+            const start = moment(startDate);
+            const end = moment(endDate);
 
-            @include('leave-requests.partials.leave-form-validation-scripts')
-
-            function showAlert(message, type = 'info') {
-                console.error(message);
-                // You can implement toast notification here if needed
+            if (!start.isValid() || !end.isValid()) {
+                return 0;
             }
 
-            // ============================================================================
-            // LSL FLEXIBLE - LONG SERVICE LEAVE WITH CASH OUT
-            // ============================================================================
+            const projectId = $('#project_id').val();
+            const isNonRosterProject = isProjectNonRoster(projectId);
 
-            window.entitlementData = null;
+            let activeDays = 0;
+            const current = start.clone();
 
-            @include('leave-requests.partials.lsl-flexible-scripts')
-
-            function calculateActiveDaysFromDateRange() {
-                const startDate = $('#start_date').val();
-                const endDate = $('#end_date').val();
-
-                if (!startDate || !endDate) {
-                    return 0;
+            while (current.isSameOrBefore(end, 'day')) {
+                if (dayCountsTowardLeave(current, isNonRosterProject)) {
+                    activeDays++;
                 }
-
-                const start = moment(startDate);
-                const end = moment(endDate);
-
-                if (!start.isValid() || !end.isValid()) {
-                    return 0;
-                }
-
-                const projectId = $('#project_id').val();
-                const isNonRosterProject = isProjectNonRoster(projectId);
-
-                let activeDays = 0;
-                const current = start.clone();
-
-                while (current.isSameOrBefore(end, 'day')) {
-                    if (dayCountsTowardLeave(current, isNonRosterProject)) {
-                        activeDays++;
-                    }
-                    current.add(1, 'day');
-                }
-
-                return activeDays;
+                current.add(1, 'day');
             }
 
-            // LSL Validation Functions
-            function showLSLValidation(message) {
-                clearLSLValidation();
+            return activeDays;
+        }
 
-                const html = `
+        // LSL Validation Functions
+        function showLSLValidation(message) {
+            clearLSLValidation();
+
+            const html = `
                     <div class="alert alert-danger alert-dismissible fade show mt-2" id="lsl-validation-alert">
                         <i class="fas fa-exclamation-triangle mr-2"></i>${message}
                     </div>
                 `;
 
-                $('#lsl_flexible_section .card-body').append(html);
-            }
+            $('#lsl_flexible_section .card-body').append(html);
+        }
 
-            function clearLSLValidation() {
-                $('#lsl-validation-alert').remove();
-            }
+        function clearLSLValidation() {
+            $('#lsl-validation-alert').remove();
+        }
 
-        });
-    </script>
+    });
+</script>
 @endsection
