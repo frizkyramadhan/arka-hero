@@ -80,7 +80,7 @@
                             @endif
                             @php
                             $approvedLeaveLocked = $leaveRequest->locksApprovedEditFields();
-                            $lockedProjectId = $leaveRequest->employee->administrations->first()->project_id ?? '';
+                            $lockedProjectId = $leaveRequest->administrationForForm()?->project_id ?? '';
                             @endphp
 
                             <!-- Project & Employee Selection -->
@@ -98,7 +98,7 @@
                                             <option value="">Select Project</option>
                                             @foreach ($projects as $project)
                                             <option value="{{ $project->id }}"
-                                                {{ old('project_id', $leaveRequest->employee->administrations->first()->project_id ?? '') == $project->id ? 'selected' : '' }}>
+                                                {{ old('project_id', $lockedProjectId) == $project->id ? 'selected' : '' }}>
                                                 {{ $project->project_code }} - {{ $project->project_name }}
                                             </option>
                                             @endforeach
@@ -123,17 +123,19 @@
                                             required>
                                             <option value="">Select Employee</option>
                                             @php
-                                            $projectId = old(
-                                            'project_id',
-                                            $leaveRequest->employee->administrations->first()->project_id ??
-                                            '',
-                                            );
+                                            $projectId = old('project_id', $lockedProjectId);
                                             $employees = \App\Models\Administration::with([
                                             'employee',
                                             'position',
                                             ])
-                                            ->where('project_id', $projectId)
-                                            ->where('is_active', 1)
+                                            ->where(function ($query) use ($projectId, $leaveRequest) {
+                                                $query->where(function ($query) use ($projectId) {
+                                                    $query->where('project_id', $projectId)->where('is_active', 1);
+                                                });
+                                                if ($leaveRequest->administration_id) {
+                                                    $query->orWhere('id', $leaveRequest->administration_id);
+                                                }
+                                            })
                                             ->orderBy('nik', 'asc')
                                             ->get()
                                             ->map(function ($admin) {

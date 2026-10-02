@@ -2,6 +2,8 @@
 
 namespace Tests\Unit;
 
+use App\Models\Administration;
+use App\Models\Employee;
 use App\Models\LeaveRequest;
 use Tests\TestCase;
 
@@ -74,6 +76,46 @@ class LeaveRequestBalanceChargeTest extends TestCase
             10,
             '17 Feb 2026 - 16 Feb 2027',
         ));
+    }
+
+    public function test_form_uses_the_leave_administration_not_an_older_assignment(): void
+    {
+        $older = new Administration;
+        $older->project_id = 7;
+        $older->is_active = 0;
+
+        $current = new Administration;
+        $current->project_id = 1;
+        $current->is_active = 1;
+
+        $employee = new Employee;
+        $employee->setRelation('administrations', collect([$older, $current]));
+
+        $request = new LeaveRequest;
+        $request->setRelation('employee', $employee);
+        $request->setRelation('administration', $current);
+
+        $this->assertSame(1, $request->administrationForForm()->project_id);
+    }
+
+    public function test_form_falls_back_to_the_active_assignment(): void
+    {
+        $older = new Administration;
+        $older->project_id = 7;
+        $older->is_active = 0;
+
+        $current = new Administration;
+        $current->project_id = 1;
+        $current->is_active = 1;
+
+        $employee = new Employee;
+        $employee->setRelation('administrations', collect([$older, $current]));
+
+        $request = new LeaveRequest;
+        $request->setRelation('employee', $employee);
+        $request->setRelation('administration', null);
+
+        $this->assertSame(1, $request->administrationForForm()->project_id);
     }
 
     private function savedRequest(): LeaveRequest
