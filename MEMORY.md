@@ -1,5 +1,11 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-10-02
+**Last Updated**: 2026-10-05
+
+### [078] Rehired NIK periods follow the first DOH (2026-10-05)
+
+**Issue**: Muhammad Fahmi Triaji (NIK 14812, earlier NIK 14414 with DOH 19 Nov 2021) had entitlements on 1 Jun boundaries from the rehire DOH. Current code already anchors to the service-start DOH, so the rows were old data.
+
+**Fix (server data only)**: Shifted both entitlement sets to 19 Nov boundaries and relabeled 26LV-00388/00435/00477 to "19 Nov 2025 - 18 Nov 2026". Kept annual entitled 4 / taken 3: HR set 4 on purpose as the balance left at launch.
 
 ### [077] Approved paid and unpaid edits keep document and reason (2026-10-02)
 

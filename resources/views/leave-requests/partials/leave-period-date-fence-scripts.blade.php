@@ -7,6 +7,22 @@
                 return cat === 'annual' || cat === 'lsl';
             }
 
+            function keepSavedLeavePeriodOnEdit() {
+                const cat = selectedLeaveCategory();
+                return cat === 'paid' || cat === 'unpaid' || cat === 'periodic';
+            }
+
+            function restoreKeptLeaveTypeOption($select, currentValue, $keptOption) {
+                if (!currentValue || !$keptOption || !$keptOption.val()) {
+                    return;
+                }
+                if ($select.find('option[value="' + currentValue + '"]').length) {
+                    return;
+                }
+                $select.append($keptOption);
+                $select.val(currentValue);
+            }
+
             function toggleLeavePeriodField(category) {
                 const cat = (category || selectedLeaveCategory()).toLowerCase();
                 if (cat === 'paid' || cat === 'unpaid') {
