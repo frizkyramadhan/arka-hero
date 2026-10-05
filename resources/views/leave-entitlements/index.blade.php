@@ -301,12 +301,12 @@
         }
 
         /* Compact table styling */
-        #employeesTable {
+        #employeesTable_wrapper table {
             font-size: 0.9rem;
         }
 
-        #employeesTable thead th {
-            padding: 0.5rem 0.4rem;
+        #employeesTable_wrapper thead th {
+            padding: 0.5rem 1.5rem 0.5rem 0.4rem;
             font-size: 0.85rem;
             font-weight: 600;
             white-space: nowrap;

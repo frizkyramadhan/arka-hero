@@ -786,113 +786,9 @@ class LeaveEntitlementController extends Controller
         DB::beginTransaction();
         try {
             foreach ($employees as $employee) {
-                $administration = $employee->administrations->where('is_active', 1)->first();
-                if (! $administration) {
-                    $administration = $employee->administrations->first();
-                }
-                if (! $administration) {
-                    $skippedCount++;
-
-                    continue;
-                }
-
-                // Note: Service start DOH calculation is handled in calculateEntitlementDays()
-                // which uses getServiceStartDoh() to handle rehire scenarios:
-                // - "End of Contract" termination → service continues from first DOH
-                // - Other termination reasons → service resets from new hire DOH
-
-                // Get eligible leave types based on project group
-                $eligibleCategories = $this->getEligibleLeaveCategories($project);
-
-                foreach ($eligibleCategories as $category) {
-                    // Get ALL leave types for this category (not just first one)
-                    $leaveTypesInCategory = LeaveType::where('category', $category)
-                        ->where('is_active', true)
-                        ->orderBy('code')
-                        ->get();
-
-                    foreach ($leaveTypesInCategory as $leaveType) {
-                        // Special filtering for LSL based on staff level
-                        if ($category === 'lsl') {
-                            $levelName = $administration->level ? $administration->level->name : '';
-                            $isStaff = $this->isStaffLevel($levelName);
-                            $hasStaffInName = str_contains($leaveType->name, 'Staff');
-                            $hasNonStaffInName = str_contains($leaveType->name, 'Non Staff');
-
-                            if ($isStaff) {
-                                // For Staff employees: show only "Cuti Panjang - Staff"
-                                if ($hasNonStaffInName) {
-                                    continue;
-                                }
-                            } else {
-                                // For Non-Staff employees: show only "Cuti Panjang - Non Staff"
-                                if ($hasStaffInName && ! $hasNonStaffInName) {
-                                    continue;
-                                }
-                            }
-                        }
-
-                        $entitlementDays = $this->calculateEntitlementDays($leaveType, $employee);
-
-                        // Special validation for LSL in Group 2 projects
-                        if ($category === 'lsl' && $project->leave_type === 'roster') {
-                            if (! $this->validateLSLForGroup2($employee, $currentYear)) {
-                                continue; // Skip LSL if special rules not met
-                            }
-                        }
-
-                        // For paid and unpaid leave, always create entitlement regardless of calculated days
-                        // For other categories, only create if employee is eligible (entitlementDays > 0)
-                        $shouldCreate = in_array($category, ['paid', 'unpaid']) || $entitlementDays > 0;
-
-                        if ($shouldCreate) {
-                            // Calculate period dates based on project group rules
-                            $periodDates = $this->calculatePeriodDates($employee, $currentYear, $leaveType);
-
-                            if ($periodDates === null) {
-                                continue;
-                            }
-
-                            // Check if entitlement already exists - only create if not exists
-                            // Use whereDate for proper date comparison with datetime columns
-                            $existingEntitlement = LeaveEntitlement::where('employee_id', $employee->id)
-                                ->where('leave_type_id', $leaveType->id)
-                                ->whereDate('period_start', $periodDates['start']->format('Y-m-d'))
-                                ->whereDate('period_end', $periodDates['end']->format('Y-m-d'))
-                                ->first();
-
-                            if (! $existingEntitlement) {
-                                $levelName = $this->getEmployeeLevelName($employee);
-                                $createAttributes = $this->carryOverService()->buildCreateAttributes(
-                                    $employee->id,
-                                    $leaveType,
-                                    $periodDates['start'],
-                                    $periodDates['end'],
-                                    0,
-                                    $levelName
-                                );
-
-                                if (! $this->carryOverService()->supportsCarryOver($leaveType, $levelName)) {
-                                    $createAttributes['entitled_days'] = $entitlementDays;
-                                }
-
-                                LeaveEntitlement::create([
-                                    'employee_id' => $employee->id,
-                                    'leave_type_id' => $leaveType->id,
-                                    'period_start' => $periodDates['start'],
-                                    'period_end' => $periodDates['end'],
-                                    'entitled_days' => $createAttributes['entitled_days'],
-                                    'deposit_days' => $createAttributes['deposit_days'],
-                                    'taken_days' => 0,
-                                ]);
-
-                                $generatedCount++;
-                            } else {
-                                $skippedCount++;
-                            }
-                        }
-                    }
-                }
+                $result = $this->generateEmployeeEntitlements($employee, $currentYear);
+                $generatedCount += $result['generated'];
+                $skippedCount += $result['skipped'];
             }
 
             DB::commit();
@@ -1299,16 +1195,13 @@ class LeaveEntitlementController extends Controller
                 ->where('is_active', true);
         })
             ->with([
-                // Load ALL administrations (including inactive) for service start DOH calculation
-                'administrations' => function ($q) use ($project) {
-                    $q->where('project_id', $project->id)
-                        ->orderBy('doh', 'asc');
+                // Every project: an earlier NIK elsewhere still sets the service start DOH.
+                'administrations' => function ($q) {
+                    $q->orderBy('doh', 'asc');
                 },
+                'administrations.project',
                 'administrations.level',
                 'mutations.project',
-                'leaveEntitlements.leaveType' => function ($q) {
-                    $q->where('is_active', true);
-                },
             ])
             ->join('administrations', 'employees.id', '=', 'administrations.employee_id')
             ->where('administrations.project_id', $project->id)

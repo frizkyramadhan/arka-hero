@@ -67,6 +67,14 @@ class LeaveType extends Model
         return in_array($this->category, ['annual', 'lsl'], true);
     }
 
+    /**
+     * Periodic site leave is rostered and has no entitlement balance to charge.
+     */
+    public function tracksEntitlementBalance(): bool
+    {
+        return $this->category !== 'periodic';
+    }
+
     public function requiresApproval()
     {
         return in_array($this->category, ['paid', 'unpaid']);
