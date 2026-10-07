@@ -54,6 +54,10 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: FPTK Approval Status card shows for older FPTKs that have approval plans but no manual_approvers; approvers who lost the role stay listed [manual-approver-selector, requests/show] (completed: 2026-10-07)`
+
+-   `[done] P1: FPTK close for Promosi/Mutasi Internal or Void with notes, auto-cancel in-process sessions, reopen with Close History [RecruitmentRequestController::close/reopen, recruitment_request_closures] (completed: 2026-10-07)`
+
 -   `[done] P1: Approved paid leave can upload a document; approved unpaid leave can edit the reason [edit.blade.php, LeaveRequestController::update] (completed: 2026-10-02)`
 
 -   `[done] P1: Approved LSL edit can change usage mode, leave days, and cash out [LeaveRequestController::update, lsl-flexible-scripts] (completed: 2026-10-02)`

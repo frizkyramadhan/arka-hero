@@ -4,6 +4,7 @@
 
 | **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                                                                                                                                                             |
 | :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.6       | 2026-10-07  | **Close FPTK** — FPTK **Approved** dapat di-close dengan alasan **Promosi / Mutasi Internal** atau **Void** beserta catatan; sesi yang masih berjalan otomatis dibatalkan; **Reopen FPTK** dan kartu **Close History**. |
 | 1.5       | 2026-08-28  | **FPTK Internship/Daily Worker** — tabel **Recruitment Sessions** di detail FPTK hanya **MCU** dan **Hiring & Onboarding**; session baru dimulai di MCU. |
 | 1.4       | 2026-07-28  | **Hold FPTK** — panduan diperluas: syarat status, aksi yang dibekukan, kartu **Hold History**, filter **On Hold**, dampak dashboard/laporan; field **Requested By** / **Requested On** digabung ke kartu **FPTK Information**. |
 | 1.3       | 2026-07-28  | **HOLD / UNHOLD** FPTK & MPP — HR dengan permission `recruitment-requests.hold` / `mpp.hold` dapat menahan rekrutmen; masa hold tidak dihitung di Time to Hire / Aging / Stale; dashboard menampilkan kartu **On Hold**. |
@@ -27,7 +28,7 @@ Panduan ini menjelaskan modul rekrutmen di ARKA HERO untuk **staf HR** yang meng
 | **Global Status**          | Status kandidat di pool: **Available**, **In Process**, **Hired**, **Blacklisted**.                                                                                                                                                  |
 | **Final Status**           | Status akhir sesi: **In Process**, **Hired**, **Rejected**, **Withdrawn**, **Cancelled**.                                                                                                                                            |
 | **My Recruitment Request** | Submenu **My Features** bagi karyawan untuk mengajukan dan memantau FPTK mandiri (nomor sementara **REQxxxxx** sampai HR menetapkan nomor resmi).                                                                                    |
-| **Close Request**          | Penutupan FPTK/MPP yang sudah terpenuhi atau tidak lagi dibuka rekrutmen; tersedia di halaman sesi FPTK/MPP yang disetujui.                                                                                                          |
+| **Close Request**          | Penutupan FPTK/MPP yang tidak lagi dibuka rekrutmen. FPTK di-close dengan alasan (**Promosi / Mutasi Internal** atau **Void**) dan catatan; lihat [§3.5](#fptk-close-reopen).                                                     |
 | **HOLD / UNHOLD**          | Penahanan sementara FPTK (**Submitted**/**Approved**) atau MPP (**Active**) oleh HR (permission khusus). Saat **On Hold**, approval & rekrutmen dibekukan; rentang waktu hold tidak dihitung di laporan Time to Hire / Aging / Stale. |
 
 ---
@@ -204,7 +205,8 @@ Buka detail lewat ikon **View** pada daftar. Judul: **Detail Recruitment Request
 | **Submitted**                 | Approver memproses lewat **My Approvals**; HR dapat **Update Approvers** selama masih ada langkah **Pending** (lihat di bawah) |
 | **Submitted** / **Approved**  | HR dengan izin **`recruitment-requests.hold`** dapat **Hold** (lihat [§3.4](#fptk-hold-unhold))                              |
 | **On Hold**                   | **Unhold** (izin yang sama); approval, rekrutmen, dan **Close Request** dibekukan hingga unhold                                |
-| **Approved**                  | **Assign Letter Number** jika belum ada nomor surat resmi                                                                      |
+| **Approved**                  | **Assign Letter Number** jika belum ada nomor surat resmi; **Close FPTK** (izin hold, lihat [§3.5](#fptk-close-reopen))       |
+| **Closed** (manual)           | **Reopen FPTK** (izin hold)                                                                                                    |
 | Semua (kecuali ditolak/batal) | **Print FPTK**, **Back to List**                                                                                               |
 
 **Catatan:** Setelah **Submit for Approval**, field FPTK (department, posisi, quantity, dll.) **tidak dapat diedit** lagi; yang masih dapat disesuaikan HR hanya **approver pada langkah Pending** lewat **Update Approvers**.
@@ -313,6 +315,27 @@ Riwayat bersifat audit; periode hold yang sudah ditutup tetap tersimpan setelah 
 - Hold **tidak** menggantikan **Rejected**, **Cancelled**, atau **Closed**; gunakan hold hanya untuk penundaan sementara yang disepakati HR/Management.
 - Penutupan otomatis FPTK jangka panjang (jika ada kebijakan/command terpisah di lingkungan Anda) **tidak** diubah oleh fitur hold — koordinasikan dengan administrator bila perlu.
 - Untuk **MPP** (**Active** → **On Hold**), permission **`mpp.hold`**, dan perilaku freeze serupa di level rencana proyek, lihat penjelasan singkat di [bagian 4](#recruitment-mpp-hold) (MPP tidak otomatis men-hold FPTK turunannya).
+
+<a id="fptk-close-reopen"></a>
+
+### 3.5 Close dan Reopen FPTK
+
+Gunakan **Close FPTK** bila FPTK yang sudah **Approved** tidak lagi direkrut dari luar, misalnya posisi diisi lewat **promosi / mutasi karyawan existing**, atau FPTK **di-void** karena alasan tertentu (berbeda dengan hold yang hanya menunda sementara). Tombol hanya muncul untuk pengguna dengan izin **`recruitment-requests.hold`**.
+
+**Langkah — close FPTK**
+
+1. Buka detail FPTK **Approved** (atau halaman sesinya di menu **Sessions**).
+2. Klik **Close FPTK** (di halaman sesi: **Close Request**).
+3. Pilih **Close Reason**: **Promosi / Mutasi Internal** atau **Void**, lalu isi **Notes** (wajib), misalnya nama karyawan yang dipromosikan atau dasar void.
+4. Konfirmasi. Status menjadi **Closed · {alasan}**. Semua sesi kandidat yang masih **In Process** otomatis **dibatalkan** dengan catatan tersebut.
+
+**Langkah — reopen FPTK**
+
+1. Buka detail FPTK **Closed** yang di-close manual (promosi/void).
+2. Klik **Reopen FPTK**, isi **Reopen Reason**, lalu konfirmasi. Status kembali **Approved**.
+3. Sesi yang dibatalkan saat close **tidak** aktif kembali; tambahkan kandidat baru bila perlu. Batas 6 bulan penutupan otomatis dihitung ulang sejak tanggal reopen.
+
+FPTK yang tertutup otomatis karena **Terpenuhi** (semua posisi terisi) atau **Kedaluwarsa** (6 bulan) tidak dapat dibuka kembali. Kartu **Close History** di detail FPTK mencatat setiap close (alasan, catatan, pelaku, tanggal) dan reopen.
 
 ---
 
@@ -539,7 +562,7 @@ Sesi rekrutmen menghubungkan **kandidat** dengan FPTK **Approved** atau baris **
 | **Add Candidate**    | Modal **Add Candidate to FPTK** / **MPP Detail**: cari kandidat di bank CV (**Search Candidate/CV**), pilih **Select**, konfirmasi penambahan sesi. |
 | **View Dashboard**   | Kembali ke **Recruitment Dashboard**.                                                                                                               |
 | **Back to Sessions** | Kembali ke daftar **Recruitment Sessions**.                                                                                                         |
-| **Close Request**    | _(FPTK saja, belum **Closed**)_ Menutup permintaan rekrutmen; konfirmasi di layar; sesi baru tidak dapat dibuat lagi. **Tidak tersedia** jika FPTK/MPP induk **On Hold** — **Unhold** terlebih dahulu. |
+| **Close Request**    | _(FPTK **Approved** saja, izin hold)_ Membuka form close dengan alasan dan catatan, sama seperti [§3.5](#fptk-close-reopen). **Tidak tersedia** jika FPTK induk **On Hold** — **Unhold** terlebih dahulu. |
 
 **FPTK/MPP On Hold**
 

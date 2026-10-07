@@ -40,7 +40,7 @@ class RecruitmentRequestController extends Controller
         $this->middleware('permission:recruitment-requests.create')->only('create', 'store');
         $this->middleware('permission:recruitment-requests.edit')->only('edit', 'update', 'updateApprovers', 'acknowledge', 'approveByPM', 'approveByDirector', 'approve', 'reject', 'assignLetterNumber');
         $this->middleware('permission:recruitment-requests.delete')->only('destroy');
-        $this->middleware('permission:recruitment-requests.hold')->only('hold', 'unhold');
+        $this->middleware('permission:recruitment-requests.hold')->only('hold', 'unhold', 'close', 'reopen');
 
         // Personal/self-service permissions
         $this->middleware('permission:personal.recruitment.view-own')->only(
@@ -89,6 +89,7 @@ class RecruitmentRequestController extends Controller
             'level',
             'createdBy',
             'letterNumber',
+            'activeClosure',
         ]);
 
         // Apply filters
@@ -172,6 +173,10 @@ class RecruitmentRequestController extends Controller
                     'closed' => '<span class="badge badge-info">Closed</span>',
                     'on_hold' => '<span class="badge badge-dark">On Hold</span>',
                 ];
+
+                if ($fptk->status === RecruitmentRequest::STATUS_CLOSED && $fptk->activeClosure) {
+                    return '<span class="badge badge-info">Closed · '.e($fptk->activeClosure->reason_label).'</span>';
+                }
 
                 return $badges[$fptk->status] ?? '<span class="badge badge-light">'.ucfirst($fptk->status).'</span>';
             })
@@ -427,6 +432,8 @@ class RecruitmentRequestController extends Controller
             'holds.heldBy',
             'holds.releasedBy',
             'activeHold',
+            'closures.closedBy',
+            'closures.reopenedBy',
         ])->findOrFail($id);
 
         if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
@@ -1086,6 +1093,83 @@ class RecruitmentRequestController extends Controller
 
             return redirect()->back()
                 ->with('toast_error', 'Gagal unhold FPTK. Silakan coba lagi.')
+                ->withInput();
+        }
+    }
+
+    /**
+     * Close an approved FPTK manually (internal promotion/mutation or void). In-process sessions are cancelled.
+     */
+    public function close(Request $request, $id)
+    {
+        $fptk = RecruitmentRequest::findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
+
+        if ($fptk->status !== RecruitmentRequest::STATUS_APPROVED) {
+            return redirect()->back()
+                ->with('toast_error', 'Hanya FPTK berstatus Approved yang dapat di-close. Unhold terlebih dahulu bila sedang On Hold.');
+        }
+
+        $request->validate([
+            'close_reason' => ['required', Rule::in(RecruitmentRequest::MANUAL_CLOSE_REASONS)],
+            'close_notes' => 'required|string|max:2000',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $label = RecruitmentRequest::CLOSE_REASONS[$request->close_reason];
+            $fptk->activeSessions()->with('candidate')->get()
+                ->each(fn (RecruitmentSession $session) => $session->cancel('FPTK closed ('.$label.'): '.$request->close_notes));
+
+            $fptk->closeWith($request->close_reason, $request->close_notes, Auth::id());
+
+            DB::commit();
+
+            return redirect()->back()->with('toast_success', 'FPTK berhasil di-close ('.$label.').');
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Error closing FPTK: '.$e->getMessage());
+
+            return redirect()->back()
+                ->with('toast_error', 'Gagal close FPTK. Silakan coba lagi.')
+                ->withInput();
+        }
+    }
+
+    /**
+     * Reopen a manually closed FPTK back to Approved. Cancelled sessions stay cancelled.
+     */
+    public function reopen(Request $request, $id)
+    {
+        $fptk = RecruitmentRequest::findOrFail($id);
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
+
+        if (! $fptk->canBeReopened()) {
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_error', 'FPTK ini tidak dapat dibuka kembali.');
+        }
+
+        $request->validate([
+            'reopen_reason' => 'required|string|max:2000',
+        ]);
+
+        try {
+            DB::transaction(fn () => $fptk->reopen(Auth::id(), $request->reopen_reason));
+
+            return redirect()->route('recruitment.requests.show', $id)
+                ->with('toast_success', 'FPTK berhasil dibuka kembali.');
+        } catch (Exception $e) {
+            Log::error('Error reopening FPTK: '.$e->getMessage());
+
+            return redirect()->back()
+                ->with('toast_error', 'Gagal membuka kembali FPTK. Silakan coba lagi.')
                 ->withInput();
         }
     }

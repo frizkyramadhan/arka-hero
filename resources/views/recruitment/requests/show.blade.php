@@ -401,7 +401,7 @@
                     @endphp
 
                     <!-- Manual Approvers Card -->
-                    @if (! empty($fptk->manual_approvers) || $canChangeApprovers)
+                    @if (! empty($fptk->manual_approvers) || $canChangeApprovers || $fptk->approval_plans->isNotEmpty())
                         <div class="fptk-card mb-4">
                             <div class="card-head">
                                 <h2><i class="fas fa-users"></i> Approval Status</h2>
@@ -413,7 +413,7 @@
                                         @csrf
                                         @method('PUT')
                                         @include('components.manual-approver-selector', [
-                                            'selectedApprovers' => old('manual_approvers', $fptk->manual_approvers ?? []),
+                                            'selectedApprovers' => old('manual_approvers', $fptk->manual_approvers ?: $fptk->approval_plans->sortBy('approval_order')->pluck('approver_id')->all()),
                                             'required' => true,
                                             'multiple' => true,
                                             'helpText' => 'Pilih minimal 1 approver dengan role approver',
@@ -456,6 +456,42 @@
                             </div>
                             <div class="card-body py-3">
                                 @include('recruitment.partials.hold-history', ['holds' => $fptk->holds])
+                            </div>
+                        </div>
+                    @endif
+
+                    @if ($fptk->closures->isNotEmpty())
+                        <div class="fptk-card hold-history-card mb-4">
+                            <div class="card-head">
+                                <h2><i class="fas fa-lock"></i> Close History</h2>
+                            </div>
+                            <div class="card-body py-3">
+                                @foreach ($fptk->closures as $closure)
+                                    <div class="{{ $loop->last ? '' : 'border-bottom pb-3 mb-3' }}">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap mb-1">
+                                            <span class="badge {{ $closure->reopened_at ? 'badge-secondary' : 'badge-info' }}">
+                                                Closed · {{ $closure->reason_label }}
+                                            </span>
+                                            <small class="text-muted">
+                                                {{ $closure->closed_at->format('d M Y H:i') }}
+                                                · {{ $closure->closedBy->name ?? 'System' }}
+                                            </small>
+                                        </div>
+                                        @if ($closure->close_notes)
+                                            <div class="small" style="white-space: pre-line">{{ $closure->close_notes }}</div>
+                                        @endif
+                                        @if ($closure->reopened_at)
+                                            <div class="small text-muted mt-2">
+                                                <i class="fas fa-lock-open"></i> Reopened
+                                                {{ $closure->reopened_at->format('d M Y H:i') }}
+                                                · {{ $closure->reopenedBy->name ?? 'System' }}
+                                                @if ($closure->reopen_reason)
+                                                    — {{ $closure->reopen_reason }}
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     @endif
@@ -568,6 +604,18 @@
                                         <button type="button" class="btn-action unhold-btn"
                                             data-toggle="modal" data-target="#unholdModal">
                                             <i class="fas fa-play"></i> Unhold
+                                        </button>
+                                    @endif
+
+                                    @if ($fptk->status === 'approved')
+                                        <button type="button" class="btn-action close-fptk-btn"
+                                            data-toggle="modal" data-target="#closeFptkModal">
+                                            <i class="fas fa-lock"></i> Close FPTK
+                                        </button>
+                                    @elseif ($fptk->canBeReopened())
+                                        <button type="button" class="btn-action unhold-btn"
+                                            data-toggle="modal" data-target="#reopenFptkModal">
+                                            <i class="fas fa-lock-open"></i> Reopen FPTK
                                         </button>
                                     @endif
                                 @endcan
@@ -899,6 +947,8 @@
                     </form>
                 </div>
             </div>
+
+            @include('recruitment.requests.partials.close-modals')
         @endif
     @endcan
 
@@ -1357,6 +1407,16 @@
 
         .btn-action.unhold-btn:hover {
             background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #fff;
+        }
+
+        .btn-action.close-fptk-btn {
+            background: linear-gradient(135deg, #475569, #334155);
+            color: #fff;
+        }
+
+        .btn-action.close-fptk-btn:hover {
+            background: linear-gradient(135deg, #334155, #1e293b);
             color: #fff;
         }
 

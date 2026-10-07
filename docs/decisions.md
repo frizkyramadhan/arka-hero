@@ -30,6 +30,19 @@ Decision: [Title] - [YYYY-MM-DD]
 
 ## Recent Decisions
 
+### Decision: FPTK close is a history table, reopen allowed - 2026-10-07
+
+**Context**: HR needs to close an approved FPTK because the position is filled by an internal promotion/transfer, or because the FPTK is voided for reasons that are not a hold. HR closes promotion cases only once they are final, but asked for a rare reopen option.
+
+**Options Considered**:
+
+1. **Columns on `recruitment_requests`** (close_reason, close_notes): the notes are overwritten on reopen
+2. **`recruitment_request_closures` table** (one row per close, reopen fields on the same row), like `recruitment_request_holds`
+
+**Decision**: Option 2. Promotion is a note only (no employee link). In-process sessions are auto-cancelled. The hold permission is reused.
+
+**Implementation**: See MEMORY [079]. Fulfilled and expired closes also record a row and cannot be reopened. Review: 2027-04 (decide whether promotion should link the employee).
+
 ### Decision: FOA No = FOA-{project_code}-{sequence} - 2026-09-21
 
 **Context**: Same letter string (FOA4965) exists per project; users confuse FOA No with letter number. Want distinct FOA No without changing letter master format.

@@ -33,16 +33,20 @@
         ->values()
         ->all();
 
+    // Older documents have approval plans but no manual_approvers; view mode shows the plans then.
+    $displayApproverIds = $mode === 'view' && empty($selectedApprovers) ? $approvalPlans->keys() : $selectedApprovers;
+
     // Get selected approvers data with approval status
-    $selectedApproversData = collect($selectedApprovers)
+    $selectedApproversData = collect($displayApproverIds)
         ->map(function ($id) use ($approvers, $approvalPlans) {
-            $approver = $approvers->find($id);
+            // Get approval plan for this approver
+            $approvalPlan = $approvalPlans->get($id);
+
+            // Decided approvers stay visible after losing the approver role
+            $approver = $approvers->find($id) ?? $approvalPlan?->approver;
             if (!$approver) {
                 return null;
             }
-
-            // Get approval plan for this approver
-            $approvalPlan = $approvalPlans->get($id);
 
             $statusAt = null;
             if ($approvalPlan && (int) $approvalPlan->status !== 0 && $approvalPlan->decisionAt()) {
