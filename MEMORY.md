@@ -1,5 +1,21 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-10-05
+**Last Updated**: 2026-10-07
+
+### [080] Approval card falls back to approval plans (2026-10-07)
+
+**Issue**: The FPTK detail page hid the Approval Status card when `manual_approvers` was empty. Older FPTKs only have `approval_plans`, so approved ones showed no approval history. The component also dropped any approver who had since lost the `approver` role.
+
+**Fix**: In view mode, `manual-approver-selector` lists the approvers from the plans when no manual ones are set, and it takes the user from the plan when the role lookup misses. The FPTK page shows the card whenever plans exist, and the Submitted edit form is prefilled from the plans in order. Every page that uses the component in view mode benefits.
+
+**Files**: `components/manual-approver-selector.blade.php`, `recruitment/requests/show.blade.php`.
+
+### [079] FPTK close reasons + reopen with history (2026-10-07)
+
+**Change**: An approved FPTK can be closed by HR as **Promosi / Mutasi Internal** or **Void**, with required notes. In-process sessions are cancelled with the note as the reason. A manually closed FPTK can be reopened to Approved (reason required); cancelled sessions stay cancelled. Fulfilled and expired auto-closes also write a closure row and cannot be reopened. Closed FPTKs from before this change have no row and can be reopened.
+
+**Gotchas**: Close and reopen reuse the `recruitment-requests.hold` permission and project scope. The 6-month expiry cron counts from the latest reopen, otherwise a reopened FPTK would expire again that same night. The old session route `recruitment.sessions.close-request` was removed; the session page now opens the same close modal.
+
+**Files**: `recruitment_request_closures` migration, `RecruitmentRequestClosure`, `RecruitmentRequest::closeWith/canBeReopened/reopen`, `RecruitmentRequestController::close/reopen`, `CloseExpiredRecruitmentRequests`, `requests/partials/close-modals.blade.php`, `requests/show.blade.php`, `sessions/show.blade.php`.
 
 ### [078] Rehired NIK periods follow the first DOH (2026-10-05)
 

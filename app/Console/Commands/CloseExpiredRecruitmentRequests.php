@@ -46,9 +46,10 @@ class CloseExpiredRecruitmentRequests extends Command
                 continue; // skip if not determinable
             }
 
-            $expiry = Carbon::parse($approvedAt)->addMonthsNoOverflow(6);
+            $startedAt = max(Carbon::parse($approvedAt), Carbon::parse($fptk->closures()->max('reopened_at') ?? $approvedAt));
+            $expiry = $startedAt->copy()->addMonthsNoOverflow(6);
             if ($now->greaterThan($expiry)) {
-                $fptk->update(['status' => RecruitmentRequest::STATUS_CLOSED]);
+                $fptk->closeWith('expired');
                 $closed++;
                 Log::info('Auto-closed FPTK after 6 months', [
                     'fptk_id' => $fptk->id,

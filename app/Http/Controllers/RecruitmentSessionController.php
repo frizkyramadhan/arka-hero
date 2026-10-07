@@ -2072,53 +2072,6 @@ class RecruitmentSessionController extends Controller
         return round($progress);
     }
 
-    public function closeRequest(Request $request, $sessionOrFptkId)
-    {
-        try {
-            DB::beginTransaction();
-
-            // Accept either session ID (UUID) or FPTK ID (UUID) to improve robustness
-            $fptk = null;
-            if (strlen($sessionOrFptkId) === 36) {
-                // Try resolve as Session first
-                $session = RecruitmentSession::with('fptk')->find($sessionOrFptkId);
-                if ($session) {
-                    if (! in_array($session->status, ['hired', 'rejected', 'withdrawn', 'cancelled'])) {
-                        return back()->with('toast_error', 'Recruitment request can be closed only after the session is finished.');
-                    }
-                    $fptk = $session->fptk;
-                }
-            }
-
-            // If not resolved via session, treat as FPTK ID directly
-            if (! $fptk) {
-                $fptk = \App\Models\RecruitmentRequest::findOrFail($sessionOrFptkId);
-            }
-
-            if ($fptk->isOnHold()) {
-                DB::rollBack();
-
-                return redirect()->route('recruitment.sessions.index')
-                    ->with('toast_error', 'FPTK sedang On Hold. Unhold terlebih dahulu sebelum close.');
-            }
-
-            // Close FPTK
-            $fptk->update(['status' => \App\Models\RecruitmentRequest::STATUS_CLOSED]);
-
-            DB::commit();
-
-            return redirect()->route('recruitment.sessions.index')->with('toast_success', 'Recruitment request has been closed.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Failed to close recruitment request', [
-                'input_id' => $sessionOrFptkId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return redirect()->route('recruitment.sessions.index')->with('toast_error', 'Failed to close recruitment request.');
-        }
-    }
-
     private function hireCompletionValidationRules(): array
     {
         return [

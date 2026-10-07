@@ -401,16 +401,13 @@
                                 <a href="{{ route('recruitment.sessions.index') }}" class="btn-action back-btn">
                                     <i class="fas fa-arrow-left"></i> Back to Sessions
                                 </a>
-                                @if ($isFptk && !in_array($fptk->status, ['closed', 'on_hold'], true))
-                                    <form method="POST"
-                                        action="{{ route('recruitment.sessions.close-request', $fptk->id) }}"
-                                        class="d-block confirm-submit"
-                                        data-confirm-message="Close this recruitment request (FPTK)? You cannot undo this action.">
-                                        @csrf
-                                        <button type="submit" class="btn btn-warning btn-block">
+                                @if ($isFptk && $fptk->status === 'approved')
+                                    @can('recruitment-requests.hold')
+                                        <button type="button" class="btn btn-warning btn-block"
+                                            data-toggle="modal" data-target="#closeFptkModal">
                                             <i class="fas fa-lock"></i> Close Request
                                         </button>
-                                    </form>
+                                    @endcan
                                 @endif
                             </div>
                         </div>
@@ -930,6 +927,10 @@
             </div>
         </div>
     </div>
+
+    @if ($isFptk)
+        @include('recruitment.requests.partials.close-modals')
+    @endif
 @endsection
 
 @section('styles')
@@ -1416,33 +1417,6 @@
             // Initialize Bootstrap tooltips
             $('[data-toggle="tooltip"]').tooltip();
 
-            // Confirm submit for Close Request with toast feedback
-            $(document).on('submit', 'form.confirm-submit', function(e) {
-                const form = this;
-                if (form.dataset.submitting === 'true') return;
-                e.preventDefault();
-                const message = form.getAttribute('data-confirm-message') ||
-                    'Submit? Data cannot be edited after submission.';
-                const proceed = () => {
-                    form.dataset.submitting = 'true';
-                    if (typeof toast_ === 'function') toast_('info', 'Submitting...');
-                    form.submit();
-                };
-                if (typeof Swal !== 'undefined' && Swal.fire) {
-                    Swal.fire({
-                        title: 'Are you sure?',
-                        text: message,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonText: 'Yes, submit',
-                        cancelButtonText: 'Cancel'
-                    }).then((result) => {
-                        if (result.isConfirmed) proceed();
-                    });
-                } else {
-                    if (confirm(message)) proceed();
-                }
-            });
             // Search candidate functionality
             $('#search_candidate').click(function() {
                 searchCandidates();

@@ -825,6 +825,8 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{id}/assign-letter-number', [RecruitmentRequestController::class, 'assignLetterNumber'])->name('assign-letter-number');
             Route::post('/{id}/hold', [RecruitmentRequestController::class, 'hold'])->name('hold');
             Route::post('/{id}/unhold', [RecruitmentRequestController::class, 'unhold'])->name('unhold');
+            Route::post('/{id}/close', [RecruitmentRequestController::class, 'close'])->name('close');
+            Route::post('/{id}/reopen', [RecruitmentRequestController::class, 'reopen'])->name('reopen');
 
             // AJAX Routes
         });
@@ -889,7 +891,6 @@ Route::group(['middleware' => ['auth']], function () {
             Route::post('/{sessionId}/register-employee', [RecruitmentSessionController::class, 'registerEmployeeFromHire'])->name('register-employee');
 
             Route::post('/{sessionId}/transition-stage', [RecruitmentSessionController::class, 'transitionStage'])->name('transition-stage');
-            Route::post('/{sessionId}/close-request', [RecruitmentSessionController::class, 'closeRequest'])->name('close-request');
             Route::delete('/{id}', [RecruitmentSessionController::class, 'destroy'])->name('destroy');
 
             // AJAX Routes

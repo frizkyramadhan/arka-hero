@@ -127,6 +127,14 @@ class RecruitmentRequest extends Model implements NotifiableDocument
     public const STATUSES = ['draft', 'submitted', 'approved', 'rejected', 'cancelled', 'closed', 'on_hold'];
     public const HOLDABLE_STATUSES = ['submitted', 'approved'];
 
+    public const CLOSE_REASONS = [
+        'promotion' => 'Promosi / Mutasi Internal',
+        'void' => 'Void',
+        'fulfilled' => 'Terpenuhi',
+        'expired' => 'Kedaluwarsa',
+    ];
+    public const MANUAL_CLOSE_REASONS = ['promotion', 'void'];
+
     /**
      * Get status options for forms
      */
@@ -197,6 +205,16 @@ class RecruitmentRequest extends Model implements NotifiableDocument
     public function activeHold()
     {
         return $this->hasOne(RecruitmentRequestHold::class, 'recruitment_request_id')->whereNull('released_at');
+    }
+
+    public function closures()
+    {
+        return $this->hasMany(RecruitmentRequestClosure::class, 'recruitment_request_id')->orderByDesc('closed_at');
+    }
+
+    public function activeClosure()
+    {
+        return $this->hasOne(RecruitmentRequestClosure::class, 'recruitment_request_id')->whereNull('reopened_at');
     }
 
     // Core relationship: FPTK has many sessions
@@ -353,21 +371,46 @@ class RecruitmentRequest extends Model implements NotifiableDocument
         $this->increment('positions_filled');
 
         // Auto-close if all positions filled
-        if ($this->positions_filled >= $this->required_qty) {
-            $this->update(['status' => 'closed']);
+        if ($this->positions_filled >= $this->required_qty && $this->status !== self::STATUS_CLOSED) {
+            $this->closeWith('fulfilled', null, auth()->id());
         }
     }
 
-    public function decrementPositionsFilled()
+    public function closeWith(string $reason, ?string $notes = null, ?int $userId = null): void
     {
-        if ($this->positions_filled > 0) {
-            $this->decrement('positions_filled');
+        $this->closures()->create([
+            'close_reason' => $reason,
+            'close_notes' => $notes,
+            'closed_by' => $userId,
+            'closed_at' => now(),
+        ]);
 
-            // Reopen if was closed and now has available positions
-            if ($this->status === 'closed' && $this->positions_filled < $this->required_qty) {
-                $this->update(['status' => 'approved']);
-            }
+        $this->update(['status' => self::STATUS_CLOSED]);
+    }
+
+    /**
+     * Fulfilled and expired closes are system outcomes; reopening them would be undone by the next hire or expiry run.
+     */
+    public function canBeReopened(): bool
+    {
+        if ($this->status !== self::STATUS_CLOSED) {
+            return false;
         }
+
+        $reason = $this->activeClosure()->value('close_reason');
+
+        return ! in_array($reason, ['fulfilled', 'expired'], true);
+    }
+
+    public function reopen(?int $userId, ?string $reason = null): void
+    {
+        $this->activeClosure()->update([
+            'reopened_by' => $userId,
+            'reopened_at' => now(),
+            'reopen_reason' => $reason,
+        ]);
+
+        $this->update(['status' => self::STATUS_APPROVED]);
     }
 
     public function approve($approverId, $notes = null)
