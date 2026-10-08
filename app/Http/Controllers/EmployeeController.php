@@ -32,8 +32,10 @@ use App\Models\Religion;
 use App\Models\Taxidentification;
 use App\Support\EmployeeSupportingDocumentStorage;
 use App\Support\UserProject;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -761,46 +763,50 @@ class EmployeeController extends Controller
             return UserProject::redirectAccessDenied();
         }
 
-        EmployeeSupportingDocumentStorage::deleteIfExists($employee->ktp_document_path);
-        EmployeeSupportingDocumentStorage::deleteIfExists($employee->kk_document_path);
-        foreach (Employeebank::where('employee_id', $employee_id)->get() as $eb) {
-            EmployeeSupportingDocumentStorage::deleteIfExists($eb->passbook_document_path);
-        }
-        foreach (Taxidentification::where('employee_id', $employee_id)->get() as $tx) {
-            EmployeeSupportingDocumentStorage::deleteIfExists($tx->npwp_document_path);
-        }
-        foreach (Insurance::where('employee_id', $employee_id)->get() as $ins) {
-            EmployeeSupportingDocumentStorage::deleteIfExists($ins->document_path);
-        }
-        foreach (License::where('employee_id', $employee_id)->get() as $lic) {
-            EmployeeSupportingDocumentStorage::deleteIfExists($lic->document_path);
-        }
-        foreach (Education::where('employee_id', $employee_id)->get() as $edu) {
-            EmployeeSupportingDocumentStorage::deleteIfExists($edu->diploma_document_path);
+        $documentPaths = array_merge(
+            [$employee->ktp_document_path, $employee->kk_document_path],
+            Employeebank::where('employee_id', $employee_id)->pluck('passbook_document_path')->all(),
+            Taxidentification::where('employee_id', $employee_id)->pluck('npwp_document_path')->all(),
+            Insurance::where('employee_id', $employee_id)->pluck('document_path')->all(),
+            License::where('employee_id', $employee_id)->pluck('document_path')->all(),
+            Education::where('employee_id', $employee_id)->pluck('diploma_document_path')->all(),
+        );
+        $imageFiles = Image::where('employee_id', $employee_id)->pluck('filename')
+            ->map(fn ($filename) => public_path('images/'.$employee_id.'/'.$filename));
+
+        try {
+            DB::transaction(function () use ($employee_id) {
+                Image::where('employee_id', $employee_id)->delete();
+                Administration::where('employee_id', $employee_id)->delete();
+                Employeebank::where('employee_id', $employee_id)->delete();
+                Taxidentification::where('employee_id', $employee_id)->delete();
+                Insurance::where('employee_id', $employee_id)->delete();
+                License::where('employee_id', $employee_id)->delete();
+                Family::where('employee_id', $employee_id)->delete();
+                Education::where('employee_id', $employee_id)->delete();
+                Course::where('employee_id', $employee_id)->delete();
+                Jobexperience::where('employee_id', $employee_id)->delete();
+                Operableunit::where('employee_id', $employee_id)->delete();
+                Emrgcall::where('employee_id', $employee_id)->delete();
+                Additionaldata::where('employee_id', $employee_id)->delete();
+                Employee::where('id', $employee_id)->delete();
+            });
+        } catch (QueryException $e) {
+            if (($e->errorInfo[1] ?? null) !== 1451) {
+                throw $e;
+            }
+
+            return redirect()->back()->with('toast_error', 'Employee cannot be deleted because it is still used in other records (leave, official travel, flight request, roster, etc.).');
         }
 
-        $images = Image::where('employee_id', $employee_id)->get();
-        foreach ($images as $image) {
-            // delete image
-            $img = public_path('images/'.$image->employee_id.'/'.$image->filename);
+        foreach ($documentPaths as $path) {
+            EmployeeSupportingDocumentStorage::deleteIfExists($path);
+        }
+        foreach ($imageFiles as $img) {
             if (file_exists($img)) {
                 unlink($img);
-                Image::where('id', $image->id)->delete();
             }
         }
-        Administration::where('employee_id', $employee_id)->delete();
-        Employeebank::where('employee_id', $employee_id)->delete();
-        Taxidentification::where('employee_id', $employee_id)->delete();
-        Insurance::where('employee_id', $employee_id)->delete();
-        License::where('employee_id', $employee_id)->delete();
-        Family::where('employee_id', $employee_id)->delete();
-        Education::where('employee_id', $employee_id)->delete();
-        Course::where('employee_id', $employee_id)->delete();
-        Jobexperience::where('employee_id', $employee_id)->delete();
-        Operableunit::where('employee_id', $employee_id)->delete();
-        Emrgcall::where('employee_id', $employee_id)->delete();
-        Additionaldata::where('employee_id', $employee_id)->delete();
-        Employee::where('id', $employee_id)->delete();
 
         return redirect('employees')->with('toast_success', 'Employee Delete Successfully');
     }
