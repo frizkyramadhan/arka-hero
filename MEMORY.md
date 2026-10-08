@@ -1,5 +1,15 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-10-07
+**Last Updated**: 2026-10-08
+
+### [081] Employee delete blocked by history shows a toast, not a 500 (2026-10-08)
+
+**Issue**: Deleting a duplicate employee (Muhammad Mastur Reza) gave a 500. The employee's administration was still the `traveler_id` of official travels (FK 1451). `destroy` also deleted document and image files before the DB deletes ran, outside any transaction, so a failed delete could leave rows pointing to removed files.
+
+**Fix**: `EmployeeController@destroy` collects file paths first, runs all DB deletes in `DB::transaction`, and catches FK error 1451 with a `toast_error`. Files are removed only after the commit. For duplicates, keep the record that has transactions and delete the empty one. Prod data fix: kept `a786df5b…` (KTP corrected to `6471050811750001`) and removed `7ca07276…`.
+
+**Related**: `administrations.nik` is duplicated for 20 NIKs on prod (e.g. `10244` Hanggoro/Muhammad). `AdministrationController@update` uses `unique:administrations,nik,{id}`, so editing any of those rows fails with "nik has already been taken" until the data is fixed.
+
+**Files**: `app/Http/Controllers/EmployeeController.php`.
 
 ### [080] Approval card falls back to approval plans (2026-10-07)
 
