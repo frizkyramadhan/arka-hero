@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Reuse FOA letter number when the previous FOA is cancelled [VehicleAssignmentController::resolveLetterAndFormNumber, active_letter_number_id] (completed: 2026-10-21)`
+
 -   `[done] P1: FPTK Approval Status card shows for older FPTKs that have approval plans but no manual_approvers; approvers who lost the role stay listed [manual-approver-selector, requests/show] (completed: 2026-10-07)`
 
 -   `[done] P1: FPTK close for Promosi/Mutasi Internal or Void with notes, auto-cancel in-process sessions, reopen with Close History [RecruitmentRequestController::close/reopen, recruitment_request_closures] (completed: 2026-10-07)`

@@ -854,9 +854,12 @@ class VehicleAssignmentController extends Controller
         $projectCode = $letter->project?->project_code ?? $letter->project_code;
         $formNumber = VehicleAssignment::formatFormNumber($letterNumberString, $projectCode);
 
-        // Uniqueness is per letter_number_id (DB unique). FOA No includes project_code.
+        // A cancelled FOA releases the letter (status reserved). Ignore it so the
+        // same letter can be used on a new FOA. Active rows stay unique via
+        // active_letter_number_id (NULL when cancelled).
         $dup = VehicleAssignment::query()
             ->where('letter_number_id', $letter->id)
+            ->where('status', '!=', VehicleAssignment::STATUS_CANCELLED)
             ->when($doc, fn ($q) => $q->where('id', '!=', $doc->id))
             ->exists();
         if ($dup) {

@@ -30,6 +30,12 @@ Decision: [Title] - [YYYY-MM-DD]
 
 ## Recent Decisions
 
+### Decision: Cancelled FOA does not hold the letter - 2026-10-21
+
+**Context**: Cancel returns the letter to reserved, but unique `letter_number_id` and the duplicate check still blocked a new FOA (FOA4971).
+
+**Decision**: Duplicate check skips `cancelled`. Uniqueness is a generated `active_letter_number_id` that is NULL when status is cancelled, so the letter can be saved on a new FOA. The cancelled row keeps `letter_number_id` for history.
+
 ### Decision: FPTK close is a history table, reopen allowed - 2026-10-07
 
 **Context**: HR needs to close an approved FPTK because the position is filled by an internal promotion/transfer, or because the FPTK is voided for reasons that are not a hold. HR closes promotion cases only once they are final, but asked for a rare reopen option.

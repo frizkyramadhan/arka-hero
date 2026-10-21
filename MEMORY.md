@@ -1,5 +1,21 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-10-08
+**Last Updated**: 2026-10-21
+
+### [083] Reuse FOA letter after cancel (2026-10-21)
+
+**Symptom**: Letter FOA4971 returned to `reserved` after the FOA was cancelled, but a new FOA failed with "FOA No dari surat ini sudah digunakan".
+
+**Cause**: Duplicate check and unique `letter_number_id` still counted the cancelled FOA.
+
+**Fix**: `resolveLetterAndFormNumber` ignores `status = cancelled`. Unique moves to generated `active_letter_number_id` (NULL when cancelled). Migration `2026_10_21_100000_allow_reusing_cancelled_foa_letter`.
+
+### [082] Mutation entered after entitlements leaves stale periods (2026-10-13)
+
+**Issue**: Estu Sasongko (NIK 11391, 025C, DOH 29 Apr 2011) had annual rows on 29 Apr boundaries. HR entered a mutation (`mutated_at` 2022-01-01) on 13 Oct 2026, after the rows existed. The annual anchor moved to 1 Jan, but saved rows never re-anchor themselves.
+
+**Fix (server data only)**: Shifted all non-LSL rows to 1 Jan–31 Dec 2025 and 2026 (15 + 15 rows, nothing taken, entitled 5 kept). Then ran `generateEmployeeEntitlements` for him, which created the new LSL cycle 29 Apr 2026–28 Apr 2031 with carry-over (100 days). LSL stays on the DOH; mutations only move the annual anchor.
+
+**Lesson**: Entering or editing a mutation does not update existing entitlements. Re-check that employee's periods afterwards.
 
 ### [081] Employee delete blocked by history shows a toast, not a 500 (2026-10-08)
 
