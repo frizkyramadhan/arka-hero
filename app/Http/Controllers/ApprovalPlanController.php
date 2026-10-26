@@ -13,8 +13,10 @@ use App\Models\Project;
 use App\Models\RecruitmentRequest;
 use App\Models\RoomConsumptionRequest;
 use App\Models\SupplyOrder;
+use App\Models\User;
 use App\Services\DocumentNotificationService;
 use App\Services\ItWoZoomClient;
+use App\Support\LeaveDirectorApproval;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -796,14 +798,14 @@ class ApprovalPlanController extends Controller
      * Get hierarchical approvers for leave request based on level hierarchy
      *
      * This method implements hierarchical approval based on level order:
-     * - Director (level 6): Self-approval
+     * - Director (level 6): One other Director
      * - Manager (level 5): Approved by Director only
      * - Other levels (1-4): Approved by maximum 2 levels above
      *
      * Ketentuan:
      * - Non Staff/Foreman/SPV/SPT: approval berjenjang max 2 level di atas
      * - Manager: approval langsung ke Director
-     * - Director: self-approval
+     * - Director: satu approval ke sesama Director
      */
     private function getHierarchicalApprovers($leaveRequest, $projectId, $departmentId)
     {
@@ -827,57 +829,17 @@ class ApprovalPlanController extends Controller
             'department_id' => $departmentId,
         ]);
 
-        // CASE 1: Director level - follow approval_stages setup
+        // CASE 1: Director -> one other Director
         if ($this->isDirectorLevel($applicantLevelOrder)) {
-            Log::info('Director level detected - following approval_stages setup', [
+            Log::info('Director level detected - one peer director approver', [
                 'applicant_level' => $applicantLevel->name,
                 'project_id' => $projectId,
                 'department_id' => $departmentId,
             ]);
 
-            // For Director level, still follow the approval_stages configuration
-            // Get approval stages filtered by project and department from approval_stage_details
-            $approvalStages = ApprovalStage::where('document_type', 'leave_request')
-                ->whereHas('details', function ($query) use ($projectId, $departmentId) {
-                    $query->where('project_id', $projectId)
-                        ->where('department_id', $departmentId)
-                        ->whereNull('request_reason');
-                })
-                ->with(['approver.employee.administrations' => function ($query) {
-                    $query->where('is_active', 1)
-                        ->with('level');
-                }])
-                ->orderBy('approval_order', 'asc')
-                ->get();
+            $applicantUserId = User::where('employee_id', $leaveRequest->employee_id)->value('id');
 
-            $approvers = collect();
-
-            foreach ($approvalStages as $stage) {
-                $approver = $stage->approver;
-
-                if (! $approver || ! $approver->employee) {
-                    continue;
-                }
-
-                // Get level from any active administration (not limited to same project)
-                $approverAdministration = $approver->employee->administrations
-                    ->where('is_active', 1)
-                    ->first();
-
-                if (! $approverAdministration || ! $approverAdministration->level) {
-                    continue;
-                }
-
-                $approvers->push((object) [
-                    'approver_id' => $approver->id,
-                    'approval_order' => $stage->approval_order,
-                    'level_id' => $approverAdministration->level->id,
-                ]);
-            }
-
-            Log::info("Found {$approvers->count()} approvers for Director level from approval_stages");
-
-            return $approvers;
+            return $this->getPeerDirectorApprover($projectId, $departmentId, $applicantUserId);
         }
 
         // CASE 2: Manager -> Director only
@@ -924,9 +886,9 @@ class ApprovalPlanController extends Controller
      * - Supervisor (level 3): SPT(4) + PM(5)
      * - Superintendent (level 4): SPT(4) + PM(5) (can be self)
      * - Manager (level 5): Director(6) only
-     * - Director (level 6): Follow approval_stages setup
+     * - Director (level 6): One other Director
      *
-     * Total approvers: 2 (hierarchical + PM) or 1 (PM to Director)
+     * Total approvers: 2 (hierarchical + PM) or 1 (Manager/Director)
      */
     private function getPeriodicLeaveHierarchicalApprovers($leaveRequest, $projectId, $departmentId)
     {
@@ -950,52 +912,13 @@ class ApprovalPlanController extends Controller
             'department_id' => $departmentId,
         ]);
 
-        // CASE 1: Director level (6) - follow approval_stages setup
+        // CASE 1: Director level (6) - one other Director
         if ($applicantLevelOrder == 6) {
-            Log::info('Director level detected - following approval_stages setup for periodic leave');
+            Log::info('Director level detected - one peer director approver for periodic leave');
 
-            // Get approval stages filtered by project and department from approval_stage_details
-            $approvalStages = ApprovalStage::where('document_type', 'leave_request')
-                ->whereHas('details', function ($query) use ($projectId, $departmentId) {
-                    $query->where('project_id', $projectId)
-                        ->where('department_id', $departmentId)
-                        ->whereNull('request_reason');
-                })
-                ->with(['approver.employee.administrations' => function ($query) {
-                    $query->where('is_active', 1)
-                        ->with('level');
-                }])
-                ->orderBy('approval_order', 'asc')
-                ->get();
+            $applicantUserId = User::where('employee_id', $leaveRequest->employee_id)->value('id');
 
-            $approvers = collect();
-
-            foreach ($approvalStages as $stage) {
-                $approver = $stage->approver;
-
-                if (! $approver || ! $approver->employee) {
-                    continue;
-                }
-
-                // Get level from any active administration (not limited to same project)
-                $approverAdministration = $approver->employee->administrations
-                    ->where('is_active', 1)
-                    ->first();
-
-                if (! $approverAdministration || ! $approverAdministration->level) {
-                    continue;
-                }
-
-                $approvers->push((object) [
-                    'approver_id' => $approver->id,
-                    'approval_order' => $stage->approval_order,
-                    'level_id' => $approverAdministration->level->id,
-                ]);
-            }
-
-            Log::info("Found {$approvers->count()} approvers for Director level periodic leave");
-
-            return $approvers;
+            return $this->getPeerDirectorApprover($projectId, $departmentId, $applicantUserId);
         }
 
         // CASE 2: Manager level (5) - Director only
@@ -1115,6 +1038,39 @@ class ApprovalPlanController extends Controller
         ]);
 
         return $approvers;
+    }
+
+    /**
+     * One Director approver, excluding the applicant.
+     */
+    private function getPeerDirectorApprover($projectId, $departmentId, $excludeUserId = null)
+    {
+        $directors = $this->getDirectorApprovers($projectId, $departmentId);
+        $peerId = LeaveDirectorApproval::firstPeerId(
+            $directors->pluck('approver_id')->all(),
+            $excludeUserId
+        );
+
+        if ($peerId === null) {
+            Log::info('No peer director approver found', [
+                'project_id' => $projectId,
+                'department_id' => $departmentId,
+                'exclude_user_id' => $excludeUserId,
+            ]);
+
+            return collect();
+        }
+
+        $peer = $directors->first(function ($approver) use ($peerId) {
+            return (int) $approver->approver_id === $peerId;
+        });
+        $peer->approval_order = 1;
+
+        Log::info('Selected peer director approver', [
+            'approver_id' => $peerId,
+        ]);
+
+        return collect([$peer]);
     }
 
     /**

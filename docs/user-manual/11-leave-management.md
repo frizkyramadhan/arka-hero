@@ -2,6 +2,7 @@
 
 | **Versi** | **Tanggal** | **Revisi (ringkas)**                                                                                                                                                                                                                        |
 | :-------- | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1.4       | 2026-10-26  | **Level Director**: approver minimal satu, boleh lebih, dan setiap approver harus level **Director** (bukan pemohon sendiri). |
 | 1.3       | 2026-08-19  | **Leave Period** sebagai pagar tanggal hanya untuk **Cuti Tahunan** dan **Cuti Panjang**. **Cuti Dibayar** / **Izin Tanpa Upah**: field disembunyikan di form, tanggal tidak dibatasi periode, kuota periode berjalan tetap dipotong (snapshot). |
 | 1.2       | 2026-06-29  | **LSL Usage Mode** pada formulir cuti panjang: **Take Leave Only**, **Cash Out Only**, **Combined**; tanpa checkbox cash out; nilai form tetap saat ganti mode saat edit; cetak & detail untuk pencairan saja.                              |
 | 1.1       | 2026-05-20  | **Export/Import entitlement** baru: **satu baris per karyawan**, header **dua baris**, hanya **periode terakhir** (tahunan & cuti panjang), format tanggal **`d M Y`**, **carry over** LSL & annual **Manager/Director** saat **Generate**. |
@@ -393,7 +394,7 @@ Tabel di layar menampilkan **Sheet**, **Row**, **Column** (sering berisi referen
 
 9. Di bagian **Flight Request**, centang **Check if you need flight ticket reservation** ketika Anda memerlukan pemesanan udara dalam pengajuan. Isilah **Flight 1** dan segmen lain (**Return**, **Add** segmen baru) sampai konsisten dengan rencana perjalanan.
 
-10. Di **Approver Selection**, temukan serta tambahkan setidaknya satu nama **approver** lewat kotak telusuran (nama/email) hingga pola minimal terpenuhi menurut teks panduan kartu tersebut.
+10. Di **Approver Selection**, temukan serta tambahkan setidaknya satu nama **approver** lewat kotak telusuran (nama/email) hingga pola minimal terpenuhi menurut teks panduan kartu tersebut. Untuk pemohon level **Director**, pilih minimal satu approver level **Director** (bukan pemohon sendiri). Lebih dari satu tetap boleh, asal semuanya level Director.
 
 <p align="center" id="leave-request-create-step-10">
     <img

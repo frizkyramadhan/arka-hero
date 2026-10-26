@@ -10,6 +10,7 @@ use App\Models\Officialtravel;
 use App\Models\Project;
 use App\Models\RecruitmentRequest;
 use App\Models\User;
+use App\Support\LeaveDirectorApproval;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Yajra\DataTables\Facades\DataTables;
@@ -690,6 +691,7 @@ class ApprovalStageController extends Controller
                 'department_id' => 'nullable|integer|exists:departments,id',
                 'request_reason' => 'nullable|string',
                 'level_id' => 'nullable|integer|exists:levels,id',
+                'employee_id' => 'nullable',
             ]);
 
             // For recruitment_request, use department_id from request
@@ -735,7 +737,7 @@ class ApprovalStageController extends Controller
             ]);
 
             // Get approval stages for the specified criteria with order
-            $approvalStages = ApprovalStage::with(['approver.departments', 'details' => function ($query) use ($request, $departmentId, $requestReason) {
+            $approvalStages = ApprovalStage::with(['approver.departments', 'approver.employee.administrations.level', 'details' => function ($query) use ($request, $departmentId, $requestReason) {
                 $query->where('project_id', $request->project_id)
                     ->where('department_id', $departmentId);
 
@@ -769,6 +771,8 @@ class ApprovalStageController extends Controller
                 'stages' => $approvalStages->toArray(),
             ]);
 
+            $singleDirectorStep = false;
+
             // For leave_request, filter approvers based on level hierarchy with hierarchical rules
             if ($request->document_type === 'leave_request' && $request->has('level_id')) {
                 $levelId = $request->level_id;
@@ -791,15 +795,37 @@ class ApprovalStageController extends Controller
                     $managerLevelOrder = $managerLevel ? $managerLevel->level_order : 5;
                     $directorLevelOrder = $directorLevel ? $directorLevel->level_order : 6;
 
-                    // CASE 1: Director level - follow approval_stages setup
+                    // CASE 1: Director -> one other Director
                     if ($applicantLevelOrder == $directorLevelOrder) {
-                        Log::info('Director level detected - following approval_stages setup');
-                        // For Director level, still follow the approval_stages configuration
-                        // If no approval stages are configured, return empty collection
-                        $filteredStages = $approvalStages->filter(function ($stage) {
-                            // Include all approvers configured in approval_stages for this project/department
-                            return true; // All configured approvers are valid for Director level
-                        });
+                        Log::info('Director level detected - one peer director approver');
+                        $singleDirectorStep = true;
+                        $directorUserIds = [];
+
+                        foreach ($approvalStages as $stage) {
+                            $approver = $stage->approver;
+                            $administration = $approver?->employee?->administrations
+                                ?->where('is_active', 1)
+                                ->first();
+
+                            if (! $administration || ! $administration->level) {
+                                continue;
+                            }
+
+                            if ((int) $administration->level->level_order !== (int) $directorLevelOrder) {
+                                continue;
+                            }
+
+                            if ($request->filled('employee_id') && (string) $approver->employee_id === (string) $request->employee_id) {
+                                continue;
+                            }
+
+                            $directorUserIds[] = $approver->id;
+                        }
+
+                        $peerId = LeaveDirectorApproval::firstPeerId($directorUserIds, null);
+                        $filteredStages = $approvalStages->filter(function ($stage) use ($peerId) {
+                            return $peerId !== null && (int) $stage->approver_id === $peerId;
+                        })->take(1);
                     }
                     // CASE 2: Manager -> Director only
                     elseif ($applicantLevelOrder == $managerLevelOrder) {
@@ -896,14 +922,14 @@ class ApprovalStageController extends Controller
                 }
             }
 
-            $approvers = $approvalStages->map(function ($stage) {
+            $approvers = $approvalStages->values()->map(function ($stage, $index) use ($singleDirectorStep) {
                 return [
                     'id' => $stage->approver->id,
                     'name' => $stage->approver->name,
                     'department' => $stage->approver->departments->first()->department_name ?? 'No Department',
-                    'order' => $stage->approval_order,
+                    'order' => $singleDirectorStep ? 1 : ($stage->approval_order ?? ($index + 1)),
                 ];
-            })->values(); // Re-index array to ensure it's sequential
+            })->values();
 
             return response()->json([
                 'success' => true,

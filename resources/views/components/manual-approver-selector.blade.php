@@ -256,7 +256,7 @@
                                 </li>
                                 <li><strong>Level Manager:</strong> Approval dilakukan oleh <strong>Director</strong>
                                 </li>
-                                <li><strong>Level Director:</strong> Approval dilakukan oleh <strong>Director</strong>
+                                <li><strong>Level Director:</strong> Minimal satu approver level <strong>Director</strong> (bukan diri sendiri). Lebih dari satu tetap boleh, asal semuanya level Director
                                 </li>
                                 <li>Approval dilakukan secara <strong>sequential</strong> sesuai urutan yang dipilih
                                 </li>

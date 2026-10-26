@@ -14,6 +14,7 @@ use App\Models\LeaveType;
 use App\Models\NationalHoliday;
 use App\Models\Project;
 use App\Models\User;
+use App\Support\LeaveDirectorApproval;
 use App\Support\UserProject;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -554,6 +555,12 @@ class LeaveRequestController extends Controller
             // Ensure array values are preserved in order (array_values to reset keys)
             $manualApprovers = array_values(array_filter($manualApprovers));
 
+            if ($error = $this->directorLeaveApproverError($request->employee_id, $manualApprovers)) {
+                DB::rollback();
+
+                return $this->rejectForm(['manual_approvers' => $error]);
+            }
+
             // Set reason to null if leave type is not unpaid
             $reason = $request->reason;
             if ($leaveType && $leaveType->category !== 'unpaid') {
@@ -1049,6 +1056,12 @@ class LeaveRequestController extends Controller
             // Ensure array values are preserved in order (array_values to reset keys)
             $manualApprovers = array_values(array_map('intval', array_filter($manualApprovers)));
 
+            if (! $approvedLeaveLocked && ($error = $this->directorLeaveApproverError($request->employee_id, $manualApprovers))) {
+                DB::rollBack();
+
+                return $this->rejectForm(['manual_approvers' => $error]);
+            }
+
             // Check if manual_approvers changed - following pattern from RecruitmentRequestController
             $currentApprovers = array_values(array_map('intval', $leaveRequest->manual_approvers ?? []));
             $approversChanged = json_encode($currentApprovers) !== json_encode($manualApprovers);
@@ -1170,6 +1183,13 @@ class LeaveRequestController extends Controller
             $submittedApprovers = [];
         }
         $submittedApprovers = array_values(array_map('intval', array_filter($submittedApprovers)));
+
+        if ($error = $this->directorLeaveApproverError($leaveRequest->employee_id, $submittedApprovers)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('toast_error', $error)
+                ->withErrors(['manual_approvers' => $error]);
+        }
 
         $currentApprovers = array_values(array_map('intval', $leaveRequest->manual_approvers ?? []));
         $approversChanged = json_encode($currentApprovers) !== json_encode($submittedApprovers);
@@ -2613,6 +2633,73 @@ class LeaveRequestController extends Controller
         }
 
         return $request->leave_period;
+    }
+
+    /**
+     * Director applicants need at least one other Director. Extra approvers are allowed.
+     *
+     * @param  array<int, int|string>  $approverIds
+     */
+    private function directorLeaveApproverError(int|string $employeeId, array $approverIds): ?string
+    {
+        $applicantIsDirector = Administration::with('level')
+            ->where('employee_id', $employeeId)
+            ->where('is_active', 1)
+            ->get()
+            ->contains(fn ($administration) => $administration->level?->name === 'Director');
+
+        $approverUsers = User::with(['employee.administrations' => function ($query) {
+            $query->where('is_active', 1)->with('level');
+        }])->whereIn('id', $approverIds)->get();
+
+        $approvers = [];
+        foreach ($approverIds as $approverId) {
+            $user = $approverUsers->first(fn ($approverUser) => (int) $approverUser->id === (int) $approverId);
+            $employee = $this->employeeForApproverUser($user);
+            $isDirector = $employee?->administrations
+                ?->contains(fn ($administration) => (int) $administration->is_active === 1 && $administration->level?->name === 'Director')
+                ?? false;
+            $approvers[] = [
+                'employee_id' => $employee?->id,
+                'is_director' => $isDirector,
+            ];
+        }
+
+        return LeaveDirectorApproval::error(
+            $applicantIsDirector ? 'Director' : null,
+            $employeeId,
+            $approvers
+        );
+    }
+
+    /**
+     * Approver accounts are sometimes not linked on users.employee_id.
+     * Fall back to an employee with the same full name.
+     */
+    private function employeeForApproverUser(?User $user): ?Employee
+    {
+        if (! $user) {
+            return null;
+        }
+
+        if ($user->employee) {
+            if (! $user->employee->relationLoaded('administrations')) {
+                $user->employee->load(['administrations' => function ($query) {
+                    $query->where('is_active', 1)->with('level');
+                }]);
+            }
+
+            return $user->employee;
+        }
+
+        $name = trim((string) $user->name);
+        if ($name === '') {
+            return null;
+        }
+
+        return Employee::with(['administrations' => function ($query) {
+            $query->where('is_active', 1)->with('level');
+        }])->where('fullname', $name)->first();
     }
 
     private function leaveRequestValidationMessages(): array
