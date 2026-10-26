@@ -284,18 +284,26 @@ class BulkLeaveRequestController extends Controller
             }
 
             // Helper function to get approval flow for a specific employee level
-            $getApprovalFlowForLevel = function ($employeeLevelOrder, $approversWithLevel, $managerApprover, $directorApprover, $hierarchicalApprover) {
+            $getApprovalFlowForLevel = function ($employeeLevelOrder, $approversWithLevel, $managerApprover, $directorApprover, $hierarchicalApprover, $employeeId) {
                 $approvers = [];
 
                 if ($employeeLevelOrder == 6) {
-                    // Director level - show configured stages
-                    $approvers[] = [
-                        'order' => 1,
-                        'name' => 'Follow configured approval stages',
-                        'level' => 'Various',
-                        'level_order' => 0, // Special marker for Director
-                        'note' => 'Director-level requests follow standard approval flow',
-                    ];
+                    foreach ($approversWithLevel as $item) {
+                        if ((int) $item['level_order'] !== 6) {
+                            continue;
+                        }
+                        if ((string) ($item['approver']->employee_id ?? '') === (string) $employeeId) {
+                            continue;
+                        }
+                        $approvers[] = [
+                            'order' => 1,
+                            'name' => $item['approver']->name,
+                            'level' => $item['level_name'],
+                            'level_order' => $item['level_order'],
+                            'note' => 'One approval by another Director',
+                        ];
+                        break;
+                    }
                 } elseif ($employeeLevelOrder == 5) {
                     // Manager level - Director only
                     if ($directorApprover) {
@@ -492,7 +500,8 @@ class BulkLeaveRequestController extends Controller
                     $departmentApprovers[$deptId]['approversWithLevel'],
                     $departmentApprovers[$deptId]['managerApprover'],
                     $departmentApprovers[$deptId]['directorApprover'],
-                    $departmentApprovers[$deptId]['hierarchicalApprover']
+                    $departmentApprovers[$deptId]['hierarchicalApprover'],
+                    $admin->employee_id
                 );
 
                 // Group by department_id only (not by approval flow signature)

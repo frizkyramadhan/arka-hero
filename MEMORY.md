@@ -398,6 +398,14 @@ Cash-out-only still stores placeholder `start_date`/`end_date` (often today, col
 
 ## Project Memory Entries - ARKA HERO HRMS
 
+### [037] Director leave: one peer Director (2026-10-26) ✅ COMPLETE
+
+**Rule**: A leave applicant at level Director needs at least one approver. More than one is allowed. Every approver must be another Director. If the approver login has no `users.employee_id`, the level is taken from the employee with the same full name (M. Reza on leave `e8c17e08-8c11-4d35-afd7-cd41900c3b66`). The applicant cannot approve their own leave.
+
+**Files**: `App\Support\LeaveDirectorApproval`, `LeaveRequestController::directorLeaveApproverError`, `ApprovalPlanController::getPeerDirectorApprover`, `ApprovalStageController::preview`, `manual-approver-selector` leave rules.
+
+---
+
 ### [036] Form of Assignment (FOA) requestor → driver (2026-08-11) ✅ COMPLETE
 
 **Challenge**: Digitalize Form of Assignment (ARKA/HCS/IV/04.02) using existing `vehicles` master: requestor prepares trip assignment, prints for driver; driver logs jam/KM, adds destinations (project or external), returns and closes at origin.

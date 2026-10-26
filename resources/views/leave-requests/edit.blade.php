@@ -1042,7 +1042,7 @@ $nationalHolidayNamesJs = $nationalHolidayMap ?? (object) [];
                             const departmentName = departments.find(d => d.id == data.employee
                                 .department_id)?.department_name || data.employee.department_id;
                             loadApprovalPreview(data.employee.project_id, data.employee.department_id, data
-                                .employee.level_id, projectName, departmentName);
+                                .employee.level_id, projectName, departmentName, data.employee.id);
                         }
                     } else {
                         resetLeaveBalanceDisplay();
@@ -1453,11 +1453,12 @@ $nationalHolidayNamesJs = $nationalHolidayMap ?? (object) [];
         // APPROVAL PREVIEW
         // ============================================================================
 
-        function loadApprovalPreview(projectId, departmentId, levelId, projectName, departmentName) {
+        function loadApprovalPreview(projectId, departmentId, levelId, projectName, departmentName, employeeId = null) {
             const requestData = {
                 project_id: projectId,
                 department_id: departmentId,
                 level_id: levelId,
+                employee_id: employeeId,
                 document_type: 'leave_request'
             };
 

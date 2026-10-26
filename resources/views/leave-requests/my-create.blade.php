@@ -925,7 +925,7 @@
                                 const projectName = projects[data.employee.project_id] || null;
                                 const departmentName = departments[data.employee.department_id] || null;
                                 loadApprovalPreview(data.employee.project_id, data.employee.department_id, data
-                                    .employee.level_id, projectName, departmentName);
+                                    .employee.level_id, projectName, departmentName, data.employee.id);
                             }
                         } else {
                             resetLeaveBalanceDisplay();
@@ -1289,7 +1289,7 @@
             // ============================================================================
 
             function loadApprovalPreview(projectId, departmentId, levelId, projectName = null, departmentName =
-                null) {
+                null, employeeId = null) {
                 if (!projectId || !departmentId) {
                     $('#approvalPreview').html(`
                         <div class="text-center py-3">
@@ -1312,7 +1312,8 @@
                 const requestData = {
                     project_id: projectId,
                     department_id: departmentId,
-                    document_type: 'leave_request'
+                    document_type: 'leave_request',
+                    employee_id: employeeId
                 };
 
                 // Add level_id if available
