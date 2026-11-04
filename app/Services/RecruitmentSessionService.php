@@ -12,11 +12,14 @@ use App\Models\RecruitmentInterview;
 use App\Models\RecruitmentOffering;
 use App\Models\RecruitmentMcu;
 use App\Models\RecruitmentHiring;
+use App\Models\RecruitmentDocument;
 
 use App\Models\User;
 use App\Services\RecruitmentLetterNumberService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Exception;
 
 class RecruitmentSessionService
@@ -1413,7 +1416,7 @@ class RecruitmentSessionService
     /**
      * Get valid stages for a session based on its type (FPTK/MMP and employment type)
      */
-    private function getValidStagesForSession($session): array
+    public function getValidStagesForSession($session): array
     {
         // For magang and harian: only MCU and Hire stages
         if ($session->fptk_id && $session->fptk && $session->fptk->usesSimplifiedRecruitmentFlow()) {
@@ -1429,6 +1432,322 @@ class RecruitmentSessionService
         }
 
         return array_values($stages);
+    }
+
+    /**
+     * Continue a candidate from a previous FPTK session onto a new approved FPTK.
+     * Mode "copy" clones completed stage data that is valid on the target; "fresh" starts from the beginning.
+     * Source session history is kept; in_process sources are cancelled with a continue note.
+     *
+     * @param  string  $mode  copy|fresh
+     * @return array{session: RecruitmentSession, warning: string|null}
+     *
+     * @throws Exception
+     */
+    public function reuseOnFptk(
+        RecruitmentCandidate $candidate,
+        RecruitmentRequest $targetFptk,
+        RecruitmentSession $sourceSession,
+        string $mode = 'fresh'
+    ): array {
+        $mode = in_array($mode, ['copy', 'fresh'], true) ? $mode : 'fresh';
+
+        if (in_array($candidate->global_status, ['hired', 'blacklisted'], true)) {
+            throw new Exception('Candidate cannot be reused due to status: '.$candidate->global_status);
+        }
+
+        if ($sourceSession->candidate_id !== $candidate->id) {
+            throw new Exception('Source session does not belong to this candidate.');
+        }
+
+        if ($sourceSession->status === 'hired') {
+            throw new Exception('Cannot reuse a hired session.');
+        }
+
+        if (! $targetFptk->canReceiveApplications()) {
+            throw new Exception($targetFptk->isOnHold()
+                ? 'FPTK sedang On Hold. Tidak dapat menerima aplikasi hingga Unhold.'
+                : 'Target FPTK cannot receive applications.');
+        }
+
+        if ($sourceSession->fptk_id && $sourceSession->fptk_id === $targetFptk->id) {
+            throw new Exception('Target FPTK must be different from the source FPTK.');
+        }
+
+        $existing = RecruitmentSession::where('fptk_id', $targetFptk->id)
+            ->where('candidate_id', $candidate->id)
+            ->exists();
+        if ($existing) {
+            throw new Exception('Candidate already has a session on the target FPTK.');
+        }
+
+        $warning = null;
+
+        DB::beginTransaction();
+        try {
+            $isSimplified = $targetFptk->usesSimplifiedRecruitmentFlow();
+            $fptkLabel = $targetFptk->request_number ?: $targetFptk->id;
+            $continueNote = 'Forwarded to FPTK '.$fptkLabel;
+
+            $session = RecruitmentSession::create([
+                'session_number' => RecruitmentSession::generateSessionNumber(),
+                'fptk_id' => $targetFptk->id,
+                'candidate_id' => $candidate->id,
+                'source_session_id' => $sourceSession->id,
+                'applied_date' => now()->toDateString(),
+                'source' => $sourceSession->source ?: 'website',
+                'current_stage' => $isSimplified ? 'mcu' : 'cv_review',
+                'stage_status' => 'pending',
+                'stage_started_at' => now(),
+                'overall_progress' => $isSimplified ? 0 : 14.3,
+                'status' => 'in_process',
+                'responsible_person_id' => $sourceSession->responsible_person_id,
+                'created_by' => auth()->id(),
+            ]);
+
+            if ($mode === 'copy') {
+                $warning = $this->copyProcessFromSession($sourceSession, $session);
+                $session->refresh();
+                $session->load(['fptk', 'cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring']);
+                $this->remapSessionWorkflowAfterCopy($session);
+            }
+
+            $this->closeSourceSessionAfterReuse($sourceSession, $continueNote);
+
+            $candidate->update(['global_status' => 'in_process']);
+
+            DB::commit();
+
+            $session->load(['fptk', 'candidate', 'sourceSession.fptk']);
+
+            Log::info('Recruitment session reused on new FPTK', [
+                'session_id' => $session->id,
+                'source_session_id' => $sourceSession->id,
+                'mode' => $mode,
+                'fptk_id' => $targetFptk->id,
+            ]);
+
+            return ['session' => $session, 'warning' => $warning];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to reuse session on FPTK', [
+                'error' => $e->getMessage(),
+                'candidate_id' => $candidate->id,
+                'fptk_id' => $targetFptk->id,
+                'source_session_id' => $sourceSession->id,
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Clone stage rows and documents from source onto target; only stages valid on target are kept.
+     */
+    protected function copyProcessFromSession(RecruitmentSession $source, RecruitmentSession $target): ?string
+    {
+        $source->loadMissing([
+            'fptk', 'cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'documents',
+        ]);
+        $target->loadMissing('fptk');
+
+        $validTargetStages = $this->getValidStagesForSession($target);
+        $copied = [];
+        $skipped = [];
+
+        $stageCopyMap = [
+            'cv_review' => fn () => $source->cvReview,
+            'psikotes' => fn () => $source->psikotes,
+            'tes_teori' => fn () => $source->tesTeori,
+            'offering' => fn () => $source->offering,
+            'mcu' => fn () => $source->mcu,
+        ];
+
+        foreach (['cv_review', 'psikotes', 'tes_teori', 'interview', 'offering', 'mcu', 'hire'] as $stage) {
+            if (! in_array($stage, $validTargetStages, true)) {
+                if ($this->sourceHasStageData($source, $stage)) {
+                    $skipped[] = $stage;
+                }
+                continue;
+            }
+
+            if ($stage === 'interview') {
+                if ($source->interviews->isEmpty()) {
+                    continue;
+                }
+                foreach ($source->interviews as $interview) {
+                    if ($target->shouldSkipTheoryTest() && $interview->type === 'trainer') {
+                        $skipped[] = 'interview_trainer';
+                        continue;
+                    }
+                    RecruitmentInterview::create([
+                        'session_id' => $target->id,
+                        'type' => $interview->type,
+                        'result' => $interview->result,
+                        'notes' => $interview->notes,
+                        'reviewed_by' => $interview->reviewed_by,
+                        'reviewed_at' => $interview->reviewed_at,
+                    ]);
+                }
+                $copied[] = 'interview';
+                continue;
+            }
+
+            if ($stage === 'hire') {
+                // Never copy employee registration linkage; leave hire pending on target.
+                if ($source->hiring) {
+                    $skipped[] = 'hire';
+                }
+                continue;
+            }
+
+            $row = $stageCopyMap[$stage]() ?? null;
+            if (! $row) {
+                continue;
+            }
+
+            $attrs = collect($row->getAttributes())
+                ->except(['id', 'session_id', 'created_at', 'updated_at'])
+                ->all();
+            $attrs['session_id'] = $target->id;
+
+            match ($stage) {
+                'cv_review' => RecruitmentCvReview::create($attrs),
+                'psikotes' => RecruitmentPsikotes::create($attrs),
+                'tes_teori' => RecruitmentTesTeori::create($attrs),
+                'offering' => RecruitmentOffering::create($attrs),
+                'mcu' => RecruitmentMcu::create($attrs),
+                default => null,
+            };
+            $copied[] = $stage;
+        }
+
+        $this->cloneSessionDocuments($source, $target);
+
+        if (empty($copied) && ! empty($skipped)) {
+            return 'No overlapping stages to copy for the target FPTK flow; session started fresh with source link only.';
+        }
+
+        if (! empty($skipped)) {
+            return 'Some stages were skipped (not valid on target FPTK): '.implode(', ', array_unique($skipped)).'.';
+        }
+
+        return null;
+    }
+
+    protected function sourceHasStageData(RecruitmentSession $source, string $stage): bool
+    {
+        return match ($stage) {
+            'cv_review' => (bool) $source->cvReview,
+            'psikotes' => (bool) $source->psikotes,
+            'tes_teori' => (bool) $source->tesTeori,
+            'interview' => $source->interviews->isNotEmpty(),
+            'offering' => (bool) $source->offering,
+            'mcu' => (bool) $source->mcu,
+            'hire' => (bool) $source->hiring,
+            default => false,
+        };
+    }
+
+    protected function cloneSessionDocuments(RecruitmentSession $source, RecruitmentSession $target): void
+    {
+        foreach ($source->documents as $doc) {
+            $newPath = $doc->file_path;
+            if ($doc->file_path && Storage::disk('local')->exists($doc->file_path)) {
+                $ext = pathinfo($doc->file_path, PATHINFO_EXTENSION);
+                $newStored = Str::uuid()->toString().($ext ? '.'.$ext : '');
+                $dir = trim(dirname($doc->file_path), '.');
+                $newPath = ($dir && $dir !== '' ? $dir.'/' : 'recruitment/documents/').$newStored;
+                Storage::disk('local')->copy($doc->file_path, $newPath);
+            }
+
+            RecruitmentDocument::create([
+                'session_id' => $target->id,
+                'document_type' => $doc->document_type,
+                'original_filename' => $doc->original_filename,
+                'stored_filename' => basename($newPath),
+                'file_path' => $newPath,
+                'file_size' => $doc->file_size,
+                'mime_type' => $doc->mime_type,
+                'uploaded_by' => $doc->uploaded_by,
+                'is_verified' => $doc->is_verified,
+                'stage_type' => $doc->stage_type ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * After copying assessments, set current_stage / stage_status / overall_progress from target flow rules.
+     */
+    protected function remapSessionWorkflowAfterCopy(RecruitmentSession $session): void
+    {
+        $session->refresh();
+        $session->load(['fptk', 'cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'sourceSession']);
+
+        $stages = $this->getValidStagesForSession($session);
+        $nextPending = $stages[0] ?? ($session->shouldSkipStagesForEmploymentType() ? 'mcu' : 'cv_review');
+
+        foreach ($stages as $stage) {
+            if ($session->isStageCompleted($stage)) {
+                continue;
+            }
+            $nextPending = $stage;
+            break;
+        }
+
+        $progress = $session->calculateActualProgress();
+        $durations = $this->filterStageDurationsForTarget($session, $stages);
+
+        $session->update([
+            'current_stage' => $nextPending,
+            'stage_status' => 'pending',
+            'stage_started_at' => now(),
+            'stage_completed_at' => null,
+            'status' => 'in_process',
+            'overall_progress' => $progress,
+            'stage_durations' => $durations,
+        ]);
+    }
+
+    protected function filterStageDurationsForTarget(RecruitmentSession $session, array $validStages): ?array
+    {
+        $source = $session->relationLoaded('sourceSession')
+            ? $session->sourceSession
+            : RecruitmentSession::find($session->source_session_id);
+        $sourceDurations = $source?->stage_durations ?? [];
+
+        if (! is_array($sourceDurations) || empty($sourceDurations)) {
+            return null;
+        }
+
+        $filtered = array_intersect_key($sourceDurations, array_flip($validStages));
+
+        return $filtered ?: null;
+    }
+
+    protected function closeSourceSessionAfterReuse(RecruitmentSession $source, string $continueNote): void
+    {
+        // Always mark source as Forwarded (not cancelled) so history stays distinct from FPTK-close cancels.
+        if (in_array($source->status, ['in_process', 'cancelled', 'rejected', 'withdrawn'], true)) {
+            $existing = trim((string) $source->final_decision_notes);
+            $notes = $existing === '' || $source->status === 'in_process'
+                ? $continueNote
+                : (str_contains($existing, $continueNote) ? $existing : $existing.' | '.$continueNote);
+
+            $source->forward($notes);
+
+            return;
+        }
+
+        $existing = trim((string) $source->final_decision_notes);
+        $notes = $existing === ''
+            ? $continueNote
+            : (str_contains($existing, $continueNote) ? $existing : $existing.' | '.$continueNote);
+
+        $source->update([
+            'status' => 'forwarded',
+            'final_decision_notes' => $notes,
+            'final_decision_date' => $source->final_decision_date ?: now(),
+        ]);
     }
 
     /**

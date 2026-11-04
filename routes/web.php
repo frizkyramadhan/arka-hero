@@ -862,6 +862,7 @@ Route::group(['middleware' => ['auth']], function () {
 
             // Candidate Actions
             Route::post('/{id}/apply-to-fptk', [RecruitmentCandidateController::class, 'applyToFPTK'])->name('apply-to-fptk');
+            Route::post('/{id}/reuse-on-fptk', [RecruitmentCandidateController::class, 'reuseOnFptk'])->name('reuse-on-fptk');
             Route::post('/{id}/blacklist', [RecruitmentCandidateController::class, 'blacklist'])->name('blacklist');
             Route::post('/{id}/remove-from-blacklist', [RecruitmentCandidateController::class, 'removeFromBlacklist'])->name('remove-from-blacklist');
             Route::get('/{id}/download-cv', [RecruitmentCandidateController::class, 'downloadCV'])->name('download-cv');

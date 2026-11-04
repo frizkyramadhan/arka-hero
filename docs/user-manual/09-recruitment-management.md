@@ -428,9 +428,10 @@ MPP **Active** dapat ditahan dengan permission **`mpp.hold`**: tombol **Hold** /
 Menu **Candidates (CV)** berfungsi sebagai **bank CV** (_candidate pool_) — repositori data pelamar dan berkas CV yang **terpisah** dari permintaan rekrutmen (**Requests (FPTK)** / **Requests (MPP)**). HR terlebih dahulu menyimpan dan mengelola profil kandidat di sini; kandidat dengan **Global Status** **Available** dapat dipilih dan dimasukkan ke proses rekrutmen dengan cara:
 
 - **Apply to FPTK** — dari detail kandidat, pilih FPTK **Approved** yang masih membuka slot (lihat bagian **3. Requests (FPTK)**).
+- **Reuse on FPTK** — lanjutkan kandidat dari sesi FPTK sebelumnya ke FPTK baru (salin proses atau mulai dari awal); histori FPTK lama tetap tersimpan.
 - **Add Candidate** — dari detail **MPP Details**, pilih kandidat untuk baris posisi MPP **Active** (lihat bagian **4. Requests (MPP)**).
 
-Kedua cara di atas membuat **Recruitment Session** baru yang menghubungkan kandidat dengan FPTK atau MPP, lalu melanjutkan tahap rekrutmen di menu **Sessions** (lihat bagian **6**).
+**Apply** / **Reuse** membuat **Recruitment Session** baru yang menghubungkan kandidat dengan FPTK, lalu melanjutkan tahap rekrutmen di menu **Sessions** (lihat bagian **6**).
 
 <br>
 
@@ -511,14 +512,36 @@ Kedua cara di atas membuat **Recruitment Session** baru yang menghubungkan kandi
 | **Edit**                  | Ubah data kandidat.                                                                                                                                                                                    |
 | **Download CV**           | Unduh lampiran CV kandidat.                                                                                                                                                                            |
 | **Apply to FPTK**         | Modal **Apply to FPTK**: pilih FPTK **Approved** yang masih membuka slot; sistem membuat **Recruitment Session** baru. Tersedia untuk kandidat **Available** (juga di kartu **Recruitment Sessions**). |
+| **Reuse on FPTK**         | Modal **Reuse Candidate on FPTK**: pilih **session sumber** (FPTK lama), **FPTK target**, dan mode proses. Tersedia bila ada sesi non-hired yang bisa dilanjutkan dan FPTK **Approved** yang belum pernah dilamar kandidat ini. |
 | **Blacklist**             | Modal **Blacklist Candidate** dengan **Blacklist Reason** wajib; kandidat tidak dapat dilamar ke FPTK/MPP baru.                                                                                        |
 | **Remove from Blacklist** | Muncul jika kandidat sudah **Blacklisted**; mengembalikan kandidat ke pool.                                                                                                                            |
+
+#### Reuse on FPTK (lanjutkan kandidat antar FPTK)
+
+Gunakan bila FPTK lama sudah terpenuhi/ditutup dan kandidat lain masih layak dilanjutkan ke FPTK baru untuk posisi yang sama (atau terkait), tanpa input ulang data kandidat.
+
+**Langkah-langkah**
+
+1. Buka detail kandidat di **Candidates (CV)**.
+2. Klik **Reuse on FPTK**.
+3. Pilih **Source Session** (sesi FPTK sebelumnya — status misalnya **Cancelled** / **Rejected**).
+4. Pilih **Target FPTK** (**Approved**, belum pernah dilamar kandidat ini).
+5. Pilih mode:
+   - **Salin proses sebelumnya** — tahap yang sudah lulus dan **valid** di alur FPTK target disalin; **Progress Summary** / `overall_progress` dihitung ulang sesuai FPTK target (teori / magang / penuh).
+   - **Mulai dari awal** — session baru mulai dari tahap awal FPTK target (CV Review atau MCU).
+6. Klik **Continue on FPTK**.
+
+**Hasil**
+
+- Session baru di FPTK target berstatus **In Process**, dengan jejak **Continued From** ke session lama.
+- Session di FPTK sumber **ditutup / terhenti** (`cancelled` jika masih in process); histori tahap & dokumen tetap ada; badge **Closed — Continued on next FPTK**.
+- Kartu **Summary** di hub FPTK (Total / In Process / Hired / Fill Rate) menyesuaikan: In Process turun di FPTK lama, naik di FPTK baru.
 
 **Pintasan dari daftar:** ikon plus biru pada kolom **Action** (hanya kandidat **Available**) membuka alur yang sama dengan **Apply to FPTK**.
 
 Untuk MPP, kandidat dari bank CV juga dapat dimasukkan lewat **Add Candidate** pada detail **MPP Details** (bukan dari halaman detail kandidat).
 
-**Catatan:** Bank CV bukan dokumen rekrutmen tersendiri — kandidat baru masuk proses hanya setelah dihubungkan ke FPTK/MPP lewat **Recruitment Session**. Kandidat **Blacklisted** tidak dapat dilamar ke FPTK/MPP baru. **Global Status** berubah otomatis saat masuk sesi (**In Process**) atau selesai (**Hired**).
+**Catatan:** Bank CV bukan dokumen rekrutmen tersendiri — kandidat baru masuk proses hanya setelah dihubungkan ke FPTK/MPP lewat **Recruitment Session**. Kandidat **Blacklisted** / **Hired** tidak dapat di-reuse ke FPTK baru. **Global Status** berubah otomatis saat masuk sesi (**In Process**) atau selesai (**Hired**). Saat FPTK terpenuhi (**fulfilled**) atau kedaluwarsa, sisa sesi **In Process** otomatis dibatalkan agar kandidat bisa **Available** lagi dan siap di-reuse.
 
 ---
 

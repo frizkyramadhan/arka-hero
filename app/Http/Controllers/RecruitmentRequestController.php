@@ -428,6 +428,7 @@ class RecruitmentRequestController extends Controller
             'sessions.mcu',
             'sessions.hiring',
             'sessions.onboarding',
+            'sessions.continuedSession.fptk',
             'activeSessions',
             'holds.heldBy',
             'holds.releasedBy',
@@ -1122,9 +1123,6 @@ class RecruitmentRequestController extends Controller
             DB::beginTransaction();
 
             $label = RecruitmentRequest::CLOSE_REASONS[$request->close_reason];
-            $fptk->activeSessions()->with('candidate')->get()
-                ->each(fn (RecruitmentSession $session) => $session->cancel('FPTK closed ('.$label.'): '.$request->close_notes));
-
             $fptk->closeWith($request->close_reason, $request->close_notes, Auth::id());
 
             DB::commit();

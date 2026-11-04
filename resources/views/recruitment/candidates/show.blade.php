@@ -266,6 +266,8 @@
                                                                 'completed' => 'badge-success',
                                                                 'rejected' => 'badge-danger',
                                                                 'withdrawn' => 'badge-secondary',
+                                                                'cancelled' => 'badge-secondary',
+                                                                'forwarded' => 'badge-info',
                                                                 'hired' => 'badge-success',
                                                             ];
                                                             $sessionStatusClass =
@@ -359,6 +361,18 @@
                                 <button type="button" class="btn-action apply-btn btn-apply"
                                     data-id="{{ $candidate->id }}">
                                     <i class="fas fa-plus"></i> Apply to FPTK
+                                </button>
+                            @endif
+
+                            @if (
+                                !in_array($candidate->global_status, ['hired', 'blacklisted'], true)
+                                && isset($reusableSessions)
+                                && $reusableSessions->isNotEmpty()
+                                && $availableFptks->isNotEmpty()
+                            )
+                                <button type="button" class="btn-action reuse-btn btn-reuse"
+                                    data-id="{{ $candidate->id }}">
+                                    <i class="fas fa-share"></i> Reuse on FPTK
                                 </button>
                             @endif
 
@@ -493,6 +507,88 @@
                         <div class="modal-footer justify-content-between">
                             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
                             <button type="submit" class="btn btn-primary">Apply</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reuse on FPTK Modal -->
+        <div class="modal fade" id="reuseModal">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Reuse Candidate on FPTK</h4>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form id="reuseForm">
+                        <div class="modal-body">
+                            @csrf
+                            <input type="hidden" id="reuse_candidate_id" name="candidate_id" value="{{ $candidate->id }}">
+                            <div class="form-group">
+                                <label for="reuse_source_session_id">Source Session (previous FPTK) *</label>
+                                <select class="form-control select2bs4" id="reuse_source_session_id" name="source_session_id" required>
+                                    <option value="">Select previous session</option>
+                                    @foreach ($reusableSessions ?? [] as $src)
+                                        <option value="{{ $src->id }}"
+                                            data-stage="{{ $src->current_stage }}"
+                                            data-status="{{ $src->status }}"
+                                            data-progress="{{ $src->overall_progress }}"
+                                            data-employment="{{ $src->fptk->employment_type ?? '' }}"
+                                            data-theory="{{ !empty($src->fptk) && $src->fptk->requires_theory_test ? '1' : '0' }}">
+                                            {{ $src->session_number }} —
+                                            {{ $src->fptk->request_number ?? 'N/A' }}
+                                            ({{ ucfirst(str_replace('_', ' ', $src->status)) }},
+                                            {{ ucfirst(str_replace('_', ' ', $src->current_stage)) }},
+                                            {{ $src->overall_progress }}%)
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="reuse_fptk_id">Target FPTK *</label>
+                                <select class="form-control select2bs4" id="reuse_fptk_id" name="fptk_id" required>
+                                    <option value="">Select FPTK</option>
+                                    @foreach ($availableFptks as $fptk)
+                                        <option value="{{ $fptk->id }}"
+                                            data-employment="{{ $fptk->employment_type }}"
+                                            data-theory="{{ $fptk->requires_theory_test ? '1' : '0' }}"
+                                            data-simplified="{{ $fptk->usesSimplifiedRecruitmentFlow() ? '1' : '0' }}">
+                                            {{ $fptk->request_number }} - {{ $fptk->position->position_name ?? 'N/A' }}
+                                            ({{ $fptk->department->department_name ?? 'N/A' }})
+                                            — {{ strtoupper($fptk->employment_type) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Process mode *</label>
+                                <div class="custom-control custom-radio">
+                                    <input type="radio" id="reuse_mode_copy" name="mode" value="copy"
+                                        class="custom-control-input" checked>
+                                    <label class="custom-control-label" for="reuse_mode_copy">
+                                        Salin proses sebelumnya (copy stages that match the target FPTK flow)
+                                    </label>
+                                </div>
+                                <div class="custom-control custom-radio mt-1">
+                                    <input type="radio" id="reuse_mode_fresh" name="mode" value="fresh"
+                                        class="custom-control-input">
+                                    <label class="custom-control-label" for="reuse_mode_fresh">
+                                        Mulai dari awal (create new process on target FPTK)
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="reuseHint" class="alert alert-info d-none mb-0"></div>
+                            <p class="text-muted small mt-3 mb-0">
+                                Session di FPTK sumber akan di-close / terhenti; histori tetap tersimpan.
+                                Progress Summary di FPTK baru dihitung ulang sesuai tahapan FPTK target.
+                            </p>
+                        </div>
+                        <div class="modal-footer justify-content-between">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Continue on FPTK</button>
                         </div>
                     </form>
                 </div>
@@ -814,6 +910,14 @@
             color: white;
         }
 
+        .reuse-btn {
+            background-color: #0d9488;
+        }
+
+        .reuse-btn:hover {
+            color: white;
+        }
+
         .blacklist-btn {
             background-color: #333;
         }
@@ -953,6 +1057,35 @@
                 $('#applyModal').modal('show');
             });
 
+            $(document).on('click', '.btn-reuse', function() {
+                $('#reuseModal').modal('show');
+                updateReuseHint();
+            });
+
+            function updateReuseHint() {
+                var $src = $('#reuse_source_session_id option:selected');
+                var $tgt = $('#reuse_fptk_id option:selected');
+                var mode = $('input[name="mode"]:checked').val();
+                var $hint = $('#reuseHint');
+                if (!$src.val() || !$tgt.val()) {
+                    $hint.addClass('d-none').text('');
+                    return;
+                }
+                var msgs = [];
+                if (mode === 'copy') {
+                    msgs.push('Stages completed on the source session will be copied when valid on the target FPTK.');
+                    if ($src.data('theory') !== $tgt.data('theory') || String($tgt.data('simplified')) === '1' ||
+                        $src.data('employment') !== $tgt.data('employment')) {
+                        msgs.push('Flow differs (employment type / theory test). Some stages may be skipped; progress will be recalculated for the target FPTK.');
+                    }
+                } else {
+                    msgs.push('New session starts from the beginning on the target FPTK. Source session will be closed.');
+                }
+                $hint.removeClass('d-none').text(msgs.join(' '));
+            }
+
+            $('#reuse_source_session_id, #reuse_fptk_id, input[name="mode"]').on('change', updateReuseHint);
+
             $(document).on('click', '.btn-blacklist', function() {
                 var id = $(this).data('id');
                 $('#blacklistForm').attr('action', "{{ route('recruitment.candidates.blacklist', ':id') }}"
@@ -978,6 +1111,38 @@
                     },
                     error: function(xhr) {
                         toastr.error('Error applying candidate to FPTK');
+                    }
+                });
+            });
+
+            $('#reuseForm').on('submit', function(e) {
+                e.preventDefault();
+                var id = $('#reuse_candidate_id').val();
+                $.ajax({
+                    url: "{{ route('recruitment.candidates.reuse-on-fptk', ':id') }}".replace(':id', id),
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    success: function(response) {
+                        $('#reuseModal').modal('hide');
+                        if (response.redirect) {
+                            window.location.href = response.redirect;
+                        } else {
+                            location.reload();
+                        }
+                        if (typeof toastr !== 'undefined') {
+                            toastr.success(response.message || 'Candidate reused on FPTK');
+                        }
+                    },
+                    error: function(xhr) {
+                        var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                            ? xhr.responseJSON.message
+                            : 'Error reusing candidate on FPTK';
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error(msg);
+                        } else {
+                            alert(msg);
+                        }
                     }
                 });
             });

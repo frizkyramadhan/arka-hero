@@ -20,6 +20,7 @@ class RecruitmentDocument extends Model
         'uploaded_by',
         'is_verified',
         'related_assessment_id',
+        'stage_type',
     ];
 
     protected $casts = [

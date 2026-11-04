@@ -23,6 +23,7 @@ class RecruitmentCandidateController extends Controller
         $this->sessionService = $sessionService;
         $this->middleware('permission:recruitment-candidates.show')->only('index', 'show', 'search', 'getRecruitmentCandidates', 'getCandidateData', 'getAvailableFPTKs', 'print', 'downloadCV');
         $this->middleware('permission:recruitment-candidates.create')->only('create', 'store', 'applyToFPTK');
+        $this->middleware('permission:recruitment-candidates.create|recruitment-sessions.create')->only('reuseOnFptk');
         $this->middleware('permission:recruitment-candidates.edit')->only('edit', 'update', 'blacklist', 'removeFromBlacklist');
         $this->middleware('permission:recruitment-candidates.delete')->only('destroy', 'deleteCV');
     }
@@ -367,7 +368,17 @@ class RecruitmentCandidateController extends Controller
         UserProject::scopeToAssignedProjects($availableFptksQuery);
         $availableFptks = $availableFptksQuery->get();
 
-        return view('recruitment.candidates.show', compact('candidate', 'title', 'subtitle', 'availableFptks'));
+        $reusableSessions = $candidate->sessions
+            ->filter(fn ($s) => $s->canBeReusedOnNewFptk())
+            ->values();
+
+        return view('recruitment.candidates.show', compact(
+            'candidate',
+            'title',
+            'subtitle',
+            'availableFptks',
+            'reusableSessions'
+        ));
     }
 
     /**
@@ -839,16 +850,79 @@ class RecruitmentCandidateController extends Controller
                     'id' => $fptk->id,
                     'request_number' => $fptk->request_number,
                     'letter_number' => $fptk->getFPTKLetterNumber(),
-                    'department' => $fptk->department->name,
-                    'position' => $fptk->position->name,
-                    'project' => $fptk->project->name,
+                    'department' => $fptk->department->name ?? $fptk->department->department_name ?? '',
+                    'position' => $fptk->position->name ?? $fptk->position->position_name ?? '',
+                    'project' => $fptk->project->name ?? $fptk->project->project_name ?? '',
                     'required_qty' => $fptk->required_qty,
                     'remaining_positions' => $fptk->remaining_positions,
                     'required_date' => $fptk->required_date,
                     'employment_type' => $fptk->employment_type,
+                    'requires_theory_test' => (bool) $fptk->requires_theory_test,
+                    'simplified_flow' => $fptk->usesSimplifiedRecruitmentFlow(),
                 ];
             }),
         ]);
+    }
+
+    /**
+     * Reuse candidate on a new FPTK (copy process or start fresh), keeping source session history.
+     */
+    public function reuseOnFptk(Request $request, $candidateId)
+    {
+        $request->validate([
+            'fptk_id' => 'required|exists:recruitment_requests,id',
+            'source_session_id' => 'required|exists:recruitment_sessions,id',
+            'mode' => 'required|in:copy,fresh',
+        ]);
+
+        $candidate = RecruitmentCandidate::findOrFail($candidateId);
+        $fptk = RecruitmentRequest::findOrFail($request->fptk_id);
+        $sourceSession = RecruitmentSession::with(['fptk', 'cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'documents'])
+            ->findOrFail($request->source_session_id);
+
+        if (! UserProject::canViewRecruitmentCandidate($candidate)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        if ($denied = UserProject::guardProjectInAssignmentScope((int) $fptk->project_id)) {
+            return $denied;
+        }
+
+        try {
+            $result = $this->sessionService->reuseOnFptk(
+                $candidate,
+                $fptk,
+                $sourceSession,
+                $request->mode
+            );
+
+            $message = 'Candidate continued on FPTK. Session: '.$result['session']->session_number;
+            if (! empty($result['warning'])) {
+                $message .= ' Note: '.$result['warning'];
+            }
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'redirect' => route('recruitment.sessions.candidate', $result['session']->id),
+                ]);
+            }
+
+            return redirect()->route('recruitment.sessions.candidate', $result['session']->id)
+                ->with('toast_success', $message);
+        } catch (Exception $e) {
+            Log::error('Error reusing candidate on FPTK: '.$e->getMessage());
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+
+            return redirect()->back()->with('toast_error', $e->getMessage());
+        }
     }
 
     /**
