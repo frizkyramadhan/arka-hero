@@ -510,6 +510,47 @@
                                         <div class="info-value">{{ $session->session_number }}</div>
                                     </div>
                                 </div>
+                                @if ($session->sourceSession)
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #0d9488;">
+                                            <i class="fas fa-share"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Continued From</div>
+                                            <div class="info-value">
+                                                <a href="{{ route('recruitment.sessions.candidate', $session->sourceSession->id) }}">
+                                                    {{ $session->sourceSession->session_number }}
+                                                </a>
+                                                <br>
+                                                <small class="text-muted">
+                                                    FPTK {{ $session->sourceSession->fptk->request_number ?? 'N/A' }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                                @if ($session->continuedSessions && $session->continuedSessions->isNotEmpty())
+                                    <div class="info-item">
+                                        <div class="info-icon" style="background-color: #64748b;">
+                                            <i class="fas fa-forward"></i>
+                                        </div>
+                                        <div class="info-content">
+                                            <div class="info-label">Closed — Continued On Next FPTK</div>
+                                            <div class="info-value">
+                                                @foreach ($session->continuedSessions as $continued)
+                                                    <div>
+                                                        <a href="{{ route('recruitment.sessions.candidate', $continued->id) }}">
+                                                            {{ $continued->session_number }}
+                                                        </a>
+                                                        <small class="text-muted">
+                                                            ({{ $continued->fptk->request_number ?? 'N/A' }})
+                                                        </small>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
                                 <div class="info-item">
                                     <div class="info-icon" style="background-color: #e74c3c;">
                                         <i class="fas fa-user"></i>
@@ -796,16 +837,37 @@
                                     <div class="progress-detail-item">
                                         <div class="detail-label">Final Status</div>
                                         <div class="detail-value">
-                                            @if ($session->status === 'active')
-                                                <span class="badge badge-success">Active</span>
-                                            @elseif ($session->status === 'completed')
-                                                <span class="badge badge-info">Completed</span>
+                                            @if ($session->status === 'in_process')
+                                                <span class="badge badge-info">In Process</span>
+                                            @elseif ($session->status === 'hired')
+                                                <span class="badge badge-success">Hired</span>
                                             @elseif ($session->status === 'rejected')
                                                 <span class="badge badge-danger">Rejected</span>
-                                            @elseif ($session->status === 'failed')
-                                                <span class="badge badge-danger">Failed</span>
+                                            @elseif ($session->status === 'forwarded')
+                                                <span class="badge" style="background:#0d9488;color:#fff;">Forwarded</span>
+                                                @if ($session->continuedSessions && $session->continuedSessions->isNotEmpty())
+                                                    <div class="mt-1">
+                                                        @foreach ($session->continuedSessions as $continued)
+                                                            <a href="{{ route('recruitment.sessions.candidate', $continued->id) }}"
+                                                                class="badge badge-info">
+                                                                Open new session
+                                                            </a>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
+                                            @elseif ($session->status === 'cancelled')
+                                                <span class="badge badge-secondary">Cancelled / Closed</span>
+                                                @if ($session->continuedSessions && $session->continuedSessions->isNotEmpty())
+                                                    <div class="mt-1">
+                                                        <span class="badge badge-teal" style="background:#0d9488;">
+                                                            Continued on next FPTK
+                                                        </span>
+                                                    </div>
+                                                @endif
+                                            @elseif ($session->status === 'withdrawn')
+                                                <span class="badge badge-secondary">Withdrawn</span>
                                             @else
-                                                <span class="badge badge-secondary">{{ ucfirst($session->status) }}</span>
+                                                <span class="badge badge-secondary">{{ ucfirst(str_replace('_', ' ', $session->status)) }}</span>
                                             @endif
                                         </div>
                                     </div>

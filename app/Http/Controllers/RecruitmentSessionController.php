@@ -652,6 +652,7 @@ class RecruitmentSessionController extends Controller
                 'offering',
                 'mcu',
                 'hiring',
+                'continuedSession.fptk',
             ])->get();
 
             return view('recruitment.sessions.show', compact('fptk', 'sessions', 'title', 'subtitle'));
@@ -685,6 +686,8 @@ class RecruitmentSessionController extends Controller
             'mcu',
             'hiring.employee',
             'documents',
+            'sourceSession.fptk',
+            'continuedSessions.fptk',
         ])->findOrFail($id);
         $subtitle = 'Session Details: '.$session->session_number;
 

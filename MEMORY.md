@@ -1,5 +1,16 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-10-21
+**Last Updated**: 2026-11-04
+
+### [084] Reuse kandidat antar FPTK (2026-11-04)
+
+**Need**: Setelah satu kandidat hired dan FPTK terpenuhi, sisa kandidat terhenti; HR ingin lanjutkan mereka ke FPTK baru tanpa input ulang, dengan opsi salin proses atau mulai dari awal.
+
+**Behavior**:
+- `RecruitmentRequest::closeWith` (termasuk `fulfilled` / `expired`) membatalkan semua `activeSessions` lalu update `global_status` kandidat.
+- `RecruitmentSessionService::reuseOnFptk($candidate, $targetFptk, $sourceSession, copy|fresh)` membuat session baru dengan `source_session_id`; mode copy meng-clone tahap valid di target + recalc `overall_progress` via `calculateActualProgress()`; mode fresh mulai dari awal. Source `in_process` di-`cancel` dengan catatan "Continued on FPTK …".
+- UI: tombol **Reuse on FPTK** di detail kandidat; Session Information menampilkan Continued From / Continued on next FPTK; Progress Summary Final Status mengenali `cancelled`.
+
+**Files**: migration `source_session_id`, `RecruitmentSessionService`, `RecruitmentCandidateController::reuseOnFptk`, `candidates/show.blade.php`, `sessions/show-session.blade.php`, `tests/Feature/RecruitmentReuseOnFptkTest.php`.
 
 ### [083] Reuse FOA letter after cancel (2026-10-21)
 

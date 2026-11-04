@@ -17,6 +17,7 @@ class RecruitmentSession extends Model
         'fptk_id',
         'mpp_detail_id',
         'candidate_id',
+        'source_session_id',
         'applied_date',
         'source',
         'current_stage',
@@ -65,7 +66,7 @@ class RecruitmentSession extends Model
     ];
 
     public const STAGE_STATUSES = ['pending', 'in_progress', 'completed', 'failed', 'skipped'];
-    public const statusES = ['in_process', 'hired', 'rejected', 'withdrawn', 'cancelled'];
+    public const statusES = ['in_process', 'hired', 'rejected', 'withdrawn', 'cancelled', 'forwarded'];
 
     // Stage progress percentages
     public const STAGE_PROGRESS = [
@@ -180,6 +181,43 @@ class RecruitmentSession extends Model
     public function candidate()
     {
         return $this->belongsTo(RecruitmentCandidate::class, 'candidate_id');
+    }
+
+    public function sourceSession()
+    {
+        return $this->belongsTo(self::class, 'source_session_id');
+    }
+
+    public function continuedSessions()
+    {
+        return $this->hasMany(self::class, 'source_session_id');
+    }
+
+    /**
+     * Whether this session can be the source for reuse onto another FPTK.
+     * Allowed for in_process (move mid-flow) and terminal non-hired outcomes.
+     */
+    public function canBeReusedOnNewFptk(): bool
+    {
+        if ($this->status === 'hired' || ! $this->fptk_id || ! $this->candidate_id) {
+            return false;
+        }
+
+        $candidate = $this->relationLoaded('candidate') ? $this->candidate : $this->candidate()->first();
+        if (! $candidate || in_array($candidate->global_status, ['hired', 'blacklisted'], true)) {
+            return false;
+        }
+
+        // Already forwarded sessions are continued on another FPTK — reuse again from the new session.
+        return in_array($this->status, ['in_process', 'cancelled', 'rejected', 'withdrawn'], true);
+    }
+
+    /**
+     * Latest session this one was forwarded/continued to (if any).
+     */
+    public function continuedSession()
+    {
+        return $this->hasOne(self::class, 'source_session_id')->latestOfMany('created_at');
     }
 
     public function responsiblePerson()
@@ -666,7 +704,7 @@ class RecruitmentSession extends Model
 
     public function getIsCompletedAttribute()
     {
-        return in_array($this->status, ['hired', 'rejected', 'withdrawn', 'cancelled']);
+        return in_array($this->status, ['hired', 'rejected', 'withdrawn', 'cancelled', 'forwarded']);
     }
 
     /**
@@ -1029,6 +1067,19 @@ class RecruitmentSession extends Model
         ]);
 
         // Update candidate global status
+        $this->candidate->updateGlobalStatus();
+
+        return true;
+    }
+
+    public function forward($reason = null)
+    {
+        $this->update([
+            'status' => 'forwarded',
+            'final_decision_date' => now(),
+            'final_decision_notes' => $reason,
+        ]);
+
         $this->candidate->updateGlobalStatus();
 
         return true;

@@ -764,6 +764,10 @@
                                                                             '<span class="badge badge-danger">Rejected</span>',
                                                                         'cancelled' =>
                                                                             '<span class="badge badge-warning">Cancelled</span>',
+                                                                        'forwarded' =>
+                                                                            '<span class="badge" style="background:#0d9488;color:#fff;">Forwarded</span>',
+                                                                        'withdrawn' =>
+                                                                            '<span class="badge badge-secondary">Withdrawn</span>',
                                                                     ];
                                                                 @endphp
                                                                 {!! $finalStatusMap[$session->status] ??
@@ -777,7 +781,7 @@
                                                                                 && $fptk->status !== 'on_hold'
                                                                                 && $session->current_stage === 'cv_review'
                                                                                 && ! in_array($session->stage_status, ['completed', 'failed'], true)
-                                                                                && ! in_array($session->status, ['rejected', 'hired', 'cancelled'], true);
+                                                                                && ! in_array($session->status, ['rejected', 'hired', 'cancelled', 'forwarded'], true);
                                                                         @endphp
                                                                         @if ($canMyRequestCvReview)
                                                                             <button type="button"
@@ -806,6 +810,13 @@
                                                                             @endif
                                                                         @endif
                                                                     @endcan
+                                                                @elseif ($session->status === 'forwarded' && $session->continuedSession)
+                                                                    <a href="{{ route('recruitment.sessions.candidate', $session->continuedSession->id) }}"
+                                                                        class="btn btn-sm"
+                                                                        style="background:#0d9488;color:#fff;border-color:#0d9488;"
+                                                                        title="View session on new FPTK{{ $session->continuedSession->fptk ? ' ('.$session->continuedSession->fptk->request_number.')' : '' }}">
+                                                                        <i class="fas fa-external-link-alt"></i>
+                                                                    </a>
                                                                 @else
                                                                     @can('recruitment-sessions.delete')
                                                                         <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
@@ -814,8 +825,26 @@
                                                                             <i class="fas fa-eye"></i>
                                                                         </a>
                                                                     @endcan
+                                                                    @canany(['recruitment-candidates.create', 'recruitment-sessions.create'])
+                                                                        @if ($session->canBeReusedOnNewFptk())
+                                                                            <button type="button"
+                                                                                class="btn btn-sm btn-reuse-on-fptk"
+                                                                                style="background:#0d9488;color:#fff;border-color:#0d9488;"
+                                                                                title="Reuse on new FPTK"
+                                                                                data-candidate-id="{{ $session->candidate_id }}"
+                                                                                data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
+                                                                                data-session-id="{{ $session->id }}"
+                                                                                data-session-number="{{ $session->session_number }}"
+                                                                                data-fptk-number="{{ $fptk->request_number ?? '' }}"
+                                                                                data-stage="{{ $session->current_stage }}"
+                                                                                data-status="{{ $session->status }}"
+                                                                                data-progress="{{ $session->overall_progress }}">
+                                                                                <i class="fas fa-share"></i>
+                                                                            </button>
+                                                                        @endif
+                                                                    @endcanany
                                                                     @can('recruitment-sessions.delete')
-                                                                        @if ($session->status !== 'hired')
+                                                                        @if (! in_array($session->status, ['hired', 'forwarded'], true))
                                                                             <button type="button"
                                                                                 class="btn btn-sm btn-danger delete-session-btn"
                                                                                 data-session-id="{{ $session->id }}"
@@ -955,6 +984,10 @@
     @if (Request::is('recruitment/my-requests*') && ! $fptk->usesSimplifiedRecruitmentFlow())
         @include('recruitment.requests.partials.my-request-cv-review-modal')
     @endif
+
+    @unless (Request::is('recruitment/my-requests*'))
+        @include('recruitment.partials.reuse-on-fptk-modal')
+    @endunless
 
 @endsection
 

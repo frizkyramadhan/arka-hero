@@ -764,37 +764,66 @@
                                                     'hired' => '<span class="badge badge-success">Hired</span>',
                                                     'rejected' => '<span class="badge badge-danger">Rejected</span>',
                                                     'cancelled' => '<span class="badge badge-warning">Cancelled</span>',
+                                                    'forwarded' => '<span class="badge" style="background:#0d9488;color:#fff;">Forwarded</span>',
+                                                    'withdrawn' => '<span class="badge badge-secondary">Withdrawn</span>',
                                                 ];
                                             @endphp
                                             {!! $finalStatusMap[$session->status] ??
                                                 '<span class="badge badge-secondary">' . ucfirst($session->status) . '</span>' !!}
                                         </td>
                                         <td class="text-center text-nowrap">
-                                            <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
-                                                class="btn btn-sm btn-info" title="View Session Details">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            @can('recruitment-candidates.show')
-                                                @if ($session->candidate)
-                                                    <a href="{{ route('recruitment.candidates.show', $session->candidate->id) }}"
-                                                        class="btn btn-sm btn-primary" title="View Candidate Details">
-                                                        <i class="fas fa-user"></i>
-                                                    </a>
-                                                @endif
-                                            @endcan
-                                            @can('recruitment-sessions.delete')
-                                                @if ($session->status !== 'hired')
-                                                    <button type="button" class="btn btn-sm btn-danger delete-session-btn"
-                                                        data-session-id="{{ $session->id }}"
-                                                        data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
-                                                        data-candidate-id="{{ $session->candidate_id ?? '' }}"
-                                                        data-session-number="{{ $session->session_number ?? '' }}"
-                                                        data-toggle="modal" data-target="#deleteSessionModal"
-                                                        title="Remove Candidate from Session">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                @endif
-                                            @endcan
+                                            @if ($session->status === 'forwarded' && $session->continuedSession)
+                                                <a href="{{ route('recruitment.sessions.candidate', $session->continuedSession->id) }}"
+                                                    class="btn btn-sm"
+                                                    style="background:#0d9488;color:#fff;border-color:#0d9488;"
+                                                    title="View session on new FPTK{{ $session->continuedSession->fptk ? ' ('.$session->continuedSession->fptk->request_number.')' : '' }}">
+                                                    <i class="fas fa-external-link-alt"></i>
+                                                </a>
+                                            @else
+                                                <a href="{{ route('recruitment.sessions.candidate', $session->id) }}"
+                                                    class="btn btn-sm btn-info" title="View Session Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                @canany(['recruitment-candidates.create', 'recruitment-sessions.create'])
+                                                    @if ($session->canBeReusedOnNewFptk())
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-reuse-on-fptk"
+                                                            style="background:#0d9488;color:#fff;border-color:#0d9488;"
+                                                            title="Reuse on new FPTK"
+                                                            data-candidate-id="{{ $session->candidate_id }}"
+                                                            data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
+                                                            data-session-id="{{ $session->id }}"
+                                                            data-session-number="{{ $session->session_number }}"
+                                                            data-fptk-number="{{ $isFptk ? ($fptk->request_number ?? '') : '' }}"
+                                                            data-stage="{{ $session->current_stage }}"
+                                                            data-status="{{ $session->status }}"
+                                                            data-progress="{{ $session->overall_progress }}">
+                                                            <i class="fas fa-share"></i>
+                                                        </button>
+                                                    @endif
+                                                @endcanany
+                                                @can('recruitment-candidates.show')
+                                                    @if ($session->candidate)
+                                                        <a href="{{ route('recruitment.candidates.show', $session->candidate->id) }}"
+                                                            class="btn btn-sm btn-primary" title="View Candidate Details">
+                                                            <i class="fas fa-user"></i>
+                                                        </a>
+                                                    @endif
+                                                @endcan
+                                                @can('recruitment-sessions.delete')
+                                                    @if (! in_array($session->status, ['hired', 'forwarded'], true))
+                                                        <button type="button" class="btn btn-sm btn-danger delete-session-btn"
+                                                            data-session-id="{{ $session->id }}"
+                                                            data-candidate-name="{{ $session->candidate->fullname ?? 'N/A' }}"
+                                                            data-candidate-id="{{ $session->candidate_id ?? '' }}"
+                                                            data-session-number="{{ $session->session_number ?? '' }}"
+                                                            data-toggle="modal" data-target="#deleteSessionModal"
+                                                            title="Remove Candidate from Session">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    @endif
+                                                @endcan
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -931,6 +960,8 @@
     @if ($isFptk)
         @include('recruitment.requests.partials.close-modals')
     @endif
+
+    @include('recruitment.partials.reuse-on-fptk-modal')
 @endsection
 
 @section('styles')

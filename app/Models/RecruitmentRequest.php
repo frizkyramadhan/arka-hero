@@ -378,6 +378,19 @@ class RecruitmentRequest extends Model implements NotifiableDocument
 
     public function closeWith(string $reason, ?string $notes = null, ?int $userId = null): void
     {
+        $label = self::CLOSE_REASONS[$reason] ?? $reason;
+        $cancelNote = match ($reason) {
+            'fulfilled' => 'FPTK fulfilled — another candidate hired',
+            'expired' => 'FPTK closed (expired)',
+            default => $notes
+                ? 'FPTK closed ('.$label.'): '.$notes
+                : 'FPTK closed ('.$label.')',
+        };
+
+        // Cancel remaining in-process sessions so Summary In Process drops and candidates become reusable.
+        $this->activeSessions()->with('candidate')->get()
+            ->each(fn (RecruitmentSession $session) => $session->cancel($cancelNote));
+
         $this->closures()->create([
             'close_reason' => $reason,
             'close_notes' => $notes,

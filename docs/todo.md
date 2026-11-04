@@ -54,6 +54,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Reuse kandidat antar FPTK (copy proses atau fresh) + auto-cancel sibling saat FPTK fulfilled/expired; Progress Summary dihitung ulang [RecruitmentSessionService::reuseOnFptk, source_session_id, candidates/show] (completed: 2026-11-04)`
+
 -   `[done] P1: Director leave approvers must be other Directors; at least one, more allowed [LeaveDirectorApproval, LeaveRequestController] (completed: 2026-10-26)`
 
 -   `[done] P1: Reuse FOA letter number when the previous FOA is cancelled [VehicleAssignmentController::resolveLetterAndFormNumber, active_letter_number_id] (completed: 2026-10-21)`
