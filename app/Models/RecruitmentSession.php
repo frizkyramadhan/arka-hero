@@ -195,21 +195,25 @@ class RecruitmentSession extends Model
 
     /**
      * Whether this session can be the source for reuse onto another FPTK.
-     * Allowed for in_process (move mid-flow) and terminal non-hired outcomes.
+     * Allowed for in_process, hired (histori tetap), and terminal non-forwarded outcomes.
      */
     public function canBeReusedOnNewFptk(): bool
     {
-        if ($this->status === 'hired' || ! $this->fptk_id || ! $this->candidate_id) {
+        if (! $this->fptk_id || ! $this->candidate_id) {
+            return false;
+        }
+
+        // Already forwarded — continue from the new session instead.
+        if ($this->status === 'forwarded') {
             return false;
         }
 
         $candidate = $this->relationLoaded('candidate') ? $this->candidate : $this->candidate()->first();
-        if (! $candidate || in_array($candidate->global_status, ['hired', 'blacklisted'], true)) {
+        if (! $candidate || $candidate->global_status === 'blacklisted') {
             return false;
         }
 
-        // Already forwarded sessions are continued on another FPTK — reuse again from the new session.
-        return in_array($this->status, ['in_process', 'cancelled', 'rejected', 'withdrawn'], true);
+        return in_array($this->status, ['in_process', 'hired', 'cancelled', 'rejected', 'withdrawn'], true);
     }
 
     /**

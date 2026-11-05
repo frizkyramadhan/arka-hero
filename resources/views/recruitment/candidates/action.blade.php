@@ -24,8 +24,8 @@
     </form>
 @endcan
 
-<!-- Apply to FPTK Button -->
-@if ($candidate->global_status === 'available')
+<!-- Apply to FPTK Button (available or previously hired e.g. magang → karyawan) -->
+@if (in_array($candidate->global_status, ['available', 'hired'], true))
     <button type="button" class="btn btn-sm btn-primary btn-apply" data-id="{{ $candidate->id }}"
         title="Apply to FPTK">
         <i class="fas fa-plus"></i>

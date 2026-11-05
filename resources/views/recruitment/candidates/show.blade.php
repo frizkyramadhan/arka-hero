@@ -357,7 +357,7 @@
                                 </div>
                             @endif
 
-                            @if ($candidate->global_status === 'available')
+                            @if (in_array($candidate->global_status, ['available', 'hired'], true))
                                 <button type="button" class="btn-action apply-btn btn-apply"
                                     data-id="{{ $candidate->id }}">
                                     <i class="fas fa-plus"></i> Apply to FPTK
@@ -365,7 +365,7 @@
                             @endif
 
                             @if (
-                                !in_array($candidate->global_status, ['hired', 'blacklisted'], true)
+                                $candidate->global_status !== 'blacklisted'
                                 && isset($reusableSessions)
                                 && $reusableSessions->isNotEmpty()
                                 && $availableFptks->isNotEmpty()
@@ -537,7 +537,8 @@
                                             data-status="{{ $src->status }}"
                                             data-progress="{{ $src->overall_progress }}"
                                             data-employment="{{ $src->fptk->employment_type ?? '' }}"
-                                            data-theory="{{ !empty($src->fptk) && $src->fptk->requires_theory_test ? '1' : '0' }}">
+                                            data-theory="{{ !empty($src->fptk) && $src->fptk->requires_theory_test ? '1' : '0' }}"
+                                            data-simplified="{{ !empty($src->fptk) && $src->fptk->usesSimplifiedRecruitmentFlow() ? '1' : '0' }}">
                                             {{ $src->session_number }} —
                                             {{ $src->fptk->request_number ?? 'N/A' }}
                                             ({{ ucfirst(str_replace('_', ' ', $src->status)) }},
@@ -581,9 +582,9 @@
                                 </div>
                             </div>
                             <div id="reuseHint" class="alert alert-info d-none mb-0"></div>
-                            <p class="text-muted small mt-3 mb-0">
-                                Session di FPTK sumber akan di-close / terhenti; histori tetap tersimpan.
-                                Progress Summary di FPTK baru dihitung ulang sesuai tahapan FPTK target.
+                            <p class="text-muted small mt-3 mb-0" id="reuseFooterNote">
+                                Jika sesi lama belum Hired, statusnya menjadi <strong>Forwarded</strong> (sudah dilanjutkan).
+                                Jika sudah Hired, riwayat Hired di FPTK lama tetap. Progress di FPTK baru dihitung ulang sesuai alur FPTK tujuan.
                             </p>
                         </div>
                         <div class="modal-footer justify-content-between">
@@ -1068,20 +1069,38 @@
                 var mode = $('input[name="mode"]:checked').val();
                 var $hint = $('#reuseHint');
                 if (!$src.val() || !$tgt.val()) {
-                    $hint.addClass('d-none').text('');
+                    $hint.addClass('d-none').empty();
                     return;
                 }
                 var msgs = [];
+                var srcHired = String($src.data('status')) === 'hired';
+                var srcSimplified = String($src.data('simplified')) === '1';
+                var tgtFull = String($tgt.data('simplified')) !== '1';
+                if (srcHired) {
+                    msgs.push(
+                        'Kandidat sudah <strong>Hired</strong> di FPTK lama. Status itu <strong>tidak diubah</strong> — tetap tersimpan sebagai riwayat.');
+                }
                 if (mode === 'copy') {
-                    msgs.push('Stages completed on the source session will be copied when valid on the target FPTK.');
-                    if ($src.data('theory') !== $tgt.data('theory') || String($tgt.data('simplified')) === '1' ||
+                    msgs.push(
+                        'Tahap yang sudah selesai di FPTK lama akan <strong>disalin</strong> ke FPTK baru, selama tahap itu ada di alur FPTK baru.');
+                    if (srcSimplified && tgtFull) {
+                        msgs.push(
+                            'Hasil <strong>MCU</strong> dan <strong>Hiring</strong> ikut tersalin. Tahap awal (CV Review, Psikotes, dll.) masih kosong — setelah lanjut, buka sesi baru lalu gunakan tombol <strong>Transition Stage</strong> untuk pindah ke tahap tersebut dan mengisinya.');
+                    } else if ($src.data('theory') !== $tgt.data('theory') || String($tgt.data('simplified')) ===
+                        '1' ||
                         $src.data('employment') !== $tgt.data('employment')) {
-                        msgs.push('Flow differs (employment type / theory test). Some stages may be skipped; progress will be recalculated for the target FPTK.');
+                        msgs.push(
+                            'Jenis kontrak atau tes teori berbeda. Beberapa tahap mungkin tidak disalin; progress dihitung ulang sesuai FPTK baru.');
                     }
                 } else {
-                    msgs.push('New session starts from the beginning on the target FPTK. Source session will be closed.');
+                    msgs.push(srcHired
+                        ? 'Proses di FPTK baru dimulai dari awal. Riwayat Hired di FPTK lama tetap ada.'
+                        : 'Proses di FPTK baru dimulai dari awal. Sesi di FPTK lama akan ditandai <strong>Forwarded</strong> (dilanjutkan ke FPTK lain).'
+                    );
                 }
-                $hint.removeClass('d-none').text(msgs.join(' '));
+                $hint.removeClass('d-none').html(msgs.map(function(m) {
+                    return '<p class="mb-1">' + m + '</p>';
+                }).join(''));
             }
 
             $('#reuse_source_session_id, #reuse_fptk_id, input[name="mode"]').on('change', updateReuseHint);

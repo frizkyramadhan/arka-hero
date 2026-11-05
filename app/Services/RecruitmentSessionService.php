@@ -1452,16 +1452,20 @@ class RecruitmentSessionService
     ): array {
         $mode = in_array($mode, ['copy', 'fresh'], true) ? $mode : 'fresh';
 
-        if (in_array($candidate->global_status, ['hired', 'blacklisted'], true)) {
-            throw new Exception('Candidate cannot be reused due to status: '.$candidate->global_status);
+        if ($candidate->global_status === 'blacklisted') {
+            throw new Exception('Candidate cannot be reused due to status: blacklisted');
         }
 
         if ($sourceSession->candidate_id !== $candidate->id) {
             throw new Exception('Source session does not belong to this candidate.');
         }
 
-        if ($sourceSession->status === 'hired') {
-            throw new Exception('Cannot reuse a hired session.');
+        if ($sourceSession->status === 'forwarded') {
+            throw new Exception('Cannot reuse a forwarded session; continue from the new session instead.');
+        }
+
+        if (! in_array($sourceSession->status, ['in_process', 'hired', 'cancelled', 'rejected', 'withdrawn'], true)) {
+            throw new Exception('Source session status cannot be reused: '.$sourceSession->status);
         }
 
         if (! $targetFptk->canReceiveApplications()) {
@@ -1593,10 +1597,20 @@ class RecruitmentSessionService
             }
 
             if ($stage === 'hire') {
-                // Never copy employee registration linkage; leave hire pending on target.
-                if ($source->hiring) {
-                    $skipped[] = 'hire';
+                if (! $source->hiring) {
+                    continue;
                 }
+                // Copy hire metadata without employee registration linkage (re-register on target FPTK).
+                $targetEmployment = $target->fptk->employment_type ?? $source->hiring->agreement_type;
+                RecruitmentHiring::create([
+                    'session_id' => $target->id,
+                    'agreement_type' => RecruitmentHiring::getAgreementTypeFromEmploymentType((string) $targetEmployment),
+                    'letter_number' => $source->hiring->letter_number,
+                    'notes' => $source->hiring->notes,
+                    'reviewed_by' => $source->hiring->reviewed_by,
+                    'reviewed_at' => $source->hiring->reviewed_at,
+                ]);
+                $copied[] = 'hire';
                 continue;
             }
 
@@ -1622,6 +1636,14 @@ class RecruitmentSessionService
         }
 
         $this->cloneSessionDocuments($source, $target);
+
+        $sourceSimplified = $source->fptk && $source->fptk->usesSimplifiedRecruitmentFlow();
+        $targetFull = $target->fptk && ! $target->fptk->usesSimplifiedRecruitmentFlow();
+        $copiedMcuOrHire = count(array_intersect($copied, ['mcu', 'hire'])) > 0;
+
+        if ($sourceSimplified && $targetFull && $copiedMcuOrHire) {
+            return 'MCU dan Hiring sudah disalin. Tahap awal (CV Review, Psikotes, dll.) masih kosong — gunakan Transition Stage di halaman sesi untuk mengisinya.';
+        }
 
         if (empty($copied) && ! empty($skipped)) {
             return 'No overlapping stages to copy for the target FPTK flow; session started fresh with source link only.';
@@ -1677,6 +1699,8 @@ class RecruitmentSessionService
 
     /**
      * After copying assessments, set current_stage / stage_status / overall_progress from target flow rules.
+     * When later stages are complete but earlier ones are empty (e.g. magang MCU+Hire → full flow),
+     * land on the last completed stage so HR can Transition Stage into the gaps.
      */
     protected function remapSessionWorkflowAfterCopy(RecruitmentSession $session): void
     {
@@ -1684,24 +1708,41 @@ class RecruitmentSessionService
         $session->load(['fptk', 'cvReview', 'psikotes', 'tesTeori', 'interviews', 'offering', 'mcu', 'hiring', 'sourceSession']);
 
         $stages = $this->getValidStagesForSession($session);
-        $nextPending = $stages[0] ?? ($session->shouldSkipStagesForEmploymentType() ? 'mcu' : 'cv_review');
+        $fallback = $session->shouldSkipStagesForEmploymentType() ? 'mcu' : 'cv_review';
 
+        $firstPending = null;
+        $lastCompleted = null;
         foreach ($stages as $stage) {
             if ($session->isStageCompleted($stage)) {
-                continue;
+                $lastCompleted = $stage;
+            } elseif ($firstPending === null) {
+                $firstPending = $stage;
             }
-            $nextPending = $stage;
-            break;
         }
+        $firstPending = $firstPending ?? ($stages[0] ?? $fallback);
+
+        $hasGapBeforeCompleted = false;
+        if ($lastCompleted !== null) {
+            $lastIdx = array_search($lastCompleted, $stages, true);
+            for ($i = 0; $i < $lastIdx; $i++) {
+                if (! $session->isStageCompleted($stages[$i])) {
+                    $hasGapBeforeCompleted = true;
+                    break;
+                }
+            }
+        }
+
+        $currentStage = ($hasGapBeforeCompleted && $lastCompleted) ? $lastCompleted : $firstPending;
+        $stageStatus = ($hasGapBeforeCompleted && $lastCompleted) ? 'completed' : 'pending';
 
         $progress = $session->calculateActualProgress();
         $durations = $this->filterStageDurationsForTarget($session, $stages);
 
         $session->update([
-            'current_stage' => $nextPending,
-            'stage_status' => 'pending',
+            'current_stage' => $currentStage,
+            'stage_status' => $stageStatus,
             'stage_started_at' => now(),
-            'stage_completed_at' => null,
+            'stage_completed_at' => $stageStatus === 'completed' ? now() : null,
             'status' => 'in_process',
             'overall_progress' => $progress,
             'stage_durations' => $durations,
@@ -1726,7 +1767,12 @@ class RecruitmentSessionService
 
     protected function closeSourceSessionAfterReuse(RecruitmentSession $source, string $continueNote): void
     {
-        // Always mark source as Forwarded (not cancelled) so history stays distinct from FPTK-close cancels.
+        // Hired history stays hired (e.g. magang fulfilled); new session links via source_session_id.
+        if ($source->status === 'hired') {
+            return;
+        }
+
+        // Mark source as Forwarded (not cancelled) so history stays distinct from FPTK-close cancels.
         if (in_array($source->status, ['in_process', 'cancelled', 'rejected', 'withdrawn'], true)) {
             $existing = trim((string) $source->final_decision_notes);
             $notes = $existing === '' || $source->status === 'in_process'

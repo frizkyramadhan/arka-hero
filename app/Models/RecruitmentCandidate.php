@@ -198,8 +198,8 @@ class RecruitmentCandidate extends Model
      */
     public function canApplyToFptk($fptkId)
     {
-        // Check if candidate is available
-        if ($this->global_status !== 'available') {
+        // Available or previously hired (e.g. magang → karyawan); blacklist / active in_process blocked.
+        if (! in_array($this->global_status, ['available', 'hired'], true)) {
             return false;
         }
 
