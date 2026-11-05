@@ -48,8 +48,8 @@
 
                     <div id="reuse_on_fptk_hint" class="alert alert-info d-none mb-0"></div>
                     <p class="text-muted small mt-3 mb-0">
-                        Session di FPTK sumber akan di-close / terhenti; histori tetap tersimpan.
-                        Progress Summary di FPTK baru dihitung ulang sesuai tahapan FPTK target.
+                        Jika sesi lama belum Hired, statusnya menjadi <strong>Forwarded</strong> (sudah dilanjutkan).
+                        Jika sudah Hired, riwayat Hired di FPTK lama tetap. Progress di FPTK baru dihitung ulang sesuai alur FPTK tujuan.
                     </p>
                 </div>
                 <div class="modal-footer justify-content-between">
@@ -76,23 +76,36 @@
                     var mode = $('#reuseOnFptkForm input[name="mode"]:checked').val();
                     var $opt = $('#reuse_on_fptk_target_id option:selected');
                     var $hint = $('#reuse_on_fptk_hint');
+                    var sourceStatus = String($('#reuseOnFptkForm').data('source-status') || '');
+                    var sourceSimplified = String($('#reuseOnFptkForm').data('source-simplified') || '') === '1';
                     if (!$opt.val()) {
-                        $hint.addClass('d-none').text('');
+                        $hint.addClass('d-none').empty();
                         return;
                     }
                     var msgs = [];
+                    if (sourceStatus === 'hired') {
+                        msgs.push(
+                            'Kandidat sudah <strong>Hired</strong> di FPTK lama. Status itu <strong>tidak diubah</strong> — tetap tersimpan sebagai riwayat.');
+                    }
                     if (mode === 'copy') {
                         msgs.push(
-                            'Stages completed on the source session will be copied when valid on the target FPTK.');
-                        if (String($opt.data('simplified')) === '1') {
-                            msgs.push('Target uses simplified flow (MCU + Hire). Some stages may be skipped.');
+                            'Tahap yang sudah selesai di FPTK lama akan <strong>disalin</strong> ke FPTK baru, selama tahap itu ada di alur FPTK baru.');
+                        if (sourceSimplified && String($opt.data('simplified')) !== '1') {
+                            msgs.push(
+                                'Hasil <strong>MCU</strong> dan <strong>Hiring</strong> ikut tersalin. Tahap awal (CV Review, Psikotes, dll.) masih kosong — setelah lanjut, buka sesi baru lalu gunakan tombol <strong>Transition Stage</strong> untuk pindah ke tahap tersebut dan mengisinya.');
+                        } else if (String($opt.data('simplified')) === '1') {
+                            msgs.push(
+                                'FPTK tujuan memakai alur singkat (MCU + Hiring). Beberapa tahap dari FPTK lama mungkin tidak disalin.');
                         }
                     } else {
-                        msgs.push(
-                            'New session starts from the beginning on the target FPTK. Source session will be closed.'
+                        msgs.push(sourceStatus === 'hired'
+                            ? 'Proses di FPTK baru dimulai dari awal. Riwayat Hired di FPTK lama tetap ada.'
+                            : 'Proses di FPTK baru dimulai dari awal. Sesi di FPTK lama akan ditandai <strong>Forwarded</strong> (dilanjutkan ke FPTK lain).'
                         );
                     }
-                    $hint.removeClass('d-none').text(msgs.join(' '));
+                    $hint.removeClass('d-none').html(msgs.map(function(m) {
+                        return '<p class="mb-1">' + m + '</p>';
+                    }).join(''));
                 }
 
                 function loadAvailableFptks(candidateId) {
@@ -137,6 +150,7 @@
                     var stage = $btn.data('stage') || '';
                     var status = $btn.data('status') || '';
                     var progress = $btn.data('progress');
+                    var simplified = $btn.data('simplified');
 
                     $('#reuse_on_fptk_candidate_id').val(candidateId);
                     $('#reuse_on_fptk_source_session_id').val(sessionId);
@@ -149,6 +163,8 @@
                         (progress !== undefined && progress !== '' ? ', ' + progress + '%' : '') +
                         (status ? ')' : '')
                     );
+                    $('#reuseOnFptkForm').data('source-status', status);
+                    $('#reuseOnFptkForm').data('source-simplified', simplified ? '1' : '0');
                     $('#reuse_on_fptk_mode_copy').prop('checked', true);
                     $('#reuse_on_fptk_hint').addClass('d-none').text('');
                     loadAvailableFptks(candidateId);

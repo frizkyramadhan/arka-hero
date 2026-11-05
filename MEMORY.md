@@ -1,5 +1,16 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-11-04
+**Last Updated**: 2026-11-05
+
+### [085] Reuse kandidat Hired (magang → karyawan) + Transition Stage (2026-11-05)
+
+**Need**: Kandidat hired/closed (magang→karyawan **atau** reguler→reguler beda site, mis. 017C closing → hire lagi di 022) tanpa input ulang; magang copy MCU+Hiring + Transition Stage untuk gap.
+
+**Behavior**:
+- `canBeReusedOnNewFptk` mengizinkan `hired` (tolak `forwarded` / blacklisted). Sumber **hired tidak di-forward** — status tetap hired.
+- Copy menyalin tahap valid di target (termasuk MCU + Hiring tanpa `employee_id`); remap land di last completed bila ada gap early stages; hint Transition Stage.
+- Apply/Reuse UI tersedia untuk global_status `hired`. Target FPTK harus `approved` + masih ada slot (`canReceiveApplications`).
+
+**Files**: `RecruitmentSession`, `RecruitmentCandidate`, `RecruitmentSessionService`, candidate/session blades, `RecruitmentReuseOnFptkTest`, user-manual §5.
 
 ### [084] Reuse kandidat antar FPTK (2026-11-04)
 
@@ -7,8 +18,8 @@
 
 **Behavior**:
 - `RecruitmentRequest::closeWith` (termasuk `fulfilled` / `expired`) membatalkan semua `activeSessions` lalu update `global_status` kandidat.
-- `RecruitmentSessionService::reuseOnFptk($candidate, $targetFptk, $sourceSession, copy|fresh)` membuat session baru dengan `source_session_id`; mode copy meng-clone tahap valid di target + recalc `overall_progress` via `calculateActualProgress()`; mode fresh mulai dari awal. Source `in_process` di-`cancel` dengan catatan "Continued on FPTK …".
-- UI: tombol **Reuse on FPTK** di detail kandidat; Session Information menampilkan Continued From / Continued on next FPTK; Progress Summary Final Status mengenali `cancelled`.
+- `RecruitmentSessionService::reuseOnFptk($candidate, $targetFptk, $sourceSession, copy|fresh)` membuat session baru dengan `source_session_id`; mode copy meng-clone tahap valid di target + recalc `overall_progress` via `calculateActualProgress()`; mode fresh mulai dari awal. Source non-hired di-`forward` (bukan cancel).
+- UI: tombol **Reuse on FPTK** di detail kandidat; Session Information menampilkan Continued From / Continued on next FPTK.
 
 **Files**: migration `source_session_id`, `RecruitmentSessionService`, `RecruitmentCandidateController::reuseOnFptk`, `candidates/show.blade.php`, `sessions/show-session.blade.php`, `tests/Feature/RecruitmentReuseOnFptkTest.php`.
 

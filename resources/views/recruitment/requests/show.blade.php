@@ -838,7 +838,8 @@
                                                                                 data-fptk-number="{{ $fptk->request_number ?? '' }}"
                                                                                 data-stage="{{ $session->current_stage }}"
                                                                                 data-status="{{ $session->status }}"
-                                                                                data-progress="{{ $session->overall_progress }}">
+                                                                                data-progress="{{ $session->overall_progress }}"
+                                                                                data-simplified="{{ $session->fptk && $session->fptk->usesSimplifiedRecruitmentFlow() ? '1' : '0' }}">
                                                                                 <i class="fas fa-share"></i>
                                                                             </button>
                                                                         @endif

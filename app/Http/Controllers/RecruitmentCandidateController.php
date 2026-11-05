@@ -507,8 +507,8 @@ class RecruitmentCandidateController extends Controller
             return $denied;
         }
 
-        // Check if candidate can apply
-        if ($candidate->global_status !== 'available') {
+        // Check if candidate can apply (available or previously hired)
+        if (! in_array($candidate->global_status, ['available', 'hired'], true)) {
             return redirect()->back()
                 ->with('toast_error', 'Candidate cannot submit application due to status: '.$candidate->global_status);
         }

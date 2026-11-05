@@ -190,22 +190,140 @@ class RecruitmentReuseOnFptkTest extends TestCase
         $this->assertGreaterThanOrEqual(14.0, (float) $newSession->overall_progress);
     }
 
-    public function test_hired_candidate_cannot_reuse(): void
+    public function test_blacklisted_candidate_cannot_reuse(): void
     {
         $this->actingAs(\App\Models\User::findOrFail(1));
 
-        $hired = RecruitmentCandidate::where('global_status', 'hired')->first();
+        $blacklisted = RecruitmentCandidate::where('global_status', 'blacklisted')->first();
         $target = RecruitmentRequest::where('status', 'approved')->first();
-        $source = $hired
-            ? RecruitmentSession::where('candidate_id', $hired->id)->where('status', '!=', 'hired')->first()
-                ?? RecruitmentSession::where('candidate_id', $hired->id)->first()
+        $source = $blacklisted
+            ? RecruitmentSession::where('candidate_id', $blacklisted->id)->first()
             : null;
 
-        if (! $hired || ! $target || ! $source) {
-            $this->markTestSkipped('No hired candidate scenario');
+        if (! $blacklisted || ! $target || ! $source) {
+            $this->markTestSkipped('No blacklisted candidate scenario');
         }
 
         $this->expectException(\Exception::class);
-        app(RecruitmentSessionService::class)->reuseOnFptk($hired, $target, $source, 'fresh');
+        app(RecruitmentSessionService::class)->reuseOnFptk($blacklisted, $target, $source, 'fresh');
+    }
+
+    public function test_hired_magang_copy_to_full_flow_keeps_source_hired(): void
+    {
+        $this->actingAs(\App\Models\User::findOrFail(1));
+        $scope = UserProject::assignmentScope();
+
+        $source = RecruitmentSession::with(['candidate', 'fptk', 'mcu', 'hiring'])
+            ->where('status', 'hired')
+            ->whereNotNull('fptk_id')
+            ->whereHas('fptk', fn ($q) => $q->whereIn('employment_type', ['magang', 'harian']))
+            ->whereHas('mcu')
+            ->whereHas('candidate', fn ($q) => $q->where('global_status', '!=', 'blacklisted'))
+            ->first();
+
+        if (! $source) {
+            $magangFptk = RecruitmentRequest::when($scope !== null, fn ($q) => $q->whereIn('project_id', $scope))
+                ->whereIn('employment_type', ['magang', 'harian'])
+                ->first();
+            $candidate = RecruitmentCandidate::where('global_status', '!=', 'blacklisted')->first();
+            if (! $magangFptk || ! $candidate) {
+                $this->markTestSkipped('Cannot seed hired magang reuse scenario');
+            }
+
+            $existing = RecruitmentSession::where('fptk_id', $magangFptk->id)
+                ->where('candidate_id', $candidate->id)
+                ->first();
+            if ($existing) {
+                $source = $existing;
+            } else {
+                $source = RecruitmentSession::create([
+                    'session_number' => RecruitmentSession::generateSessionNumber(),
+                    'fptk_id' => $magangFptk->id,
+                    'candidate_id' => $candidate->id,
+                    'applied_date' => now()->toDateString(),
+                    'source' => 'website',
+                    'current_stage' => 'hire',
+                    'stage_status' => 'completed',
+                    'stage_started_at' => now(),
+                    'overall_progress' => 100,
+                    'status' => 'hired',
+                    'final_decision_date' => now(),
+                ]);
+            }
+
+            $source->update([
+                'status' => 'hired',
+                'current_stage' => 'hire',
+                'overall_progress' => 100,
+                'final_decision_date' => $source->final_decision_date ?: now(),
+            ]);
+
+            if (! $source->mcu) {
+                \App\Models\RecruitmentMcu::create([
+                    'session_id' => $source->id,
+                    'result' => 'fit',
+                    'notes' => 'test mcu',
+                    'reviewed_by' => 1,
+                    'reviewed_at' => now(),
+                ]);
+            }
+
+            if (! $source->hiring) {
+                \App\Models\RecruitmentHiring::create([
+                    'session_id' => $source->id,
+                    'agreement_type' => 'magang',
+                    'letter_number' => 'TEST-MAGANG-1',
+                    'notes' => 'test hire',
+                    'reviewed_by' => 1,
+                    'reviewed_at' => now(),
+                    'employee_id' => null,
+                ]);
+            }
+
+            $source->load(['candidate', 'fptk', 'mcu', 'hiring']);
+        }
+
+        $candidate = $source->candidate;
+        $target = RecruitmentRequest::where('status', 'approved')
+            ->when($scope !== null, fn ($q) => $q->whereIn('project_id', $scope))
+            ->where('id', '!=', $source->fptk_id)
+            ->whereNotIn('employment_type', ['magang', 'harian'])
+            ->whereNotIn('id', function ($q) use ($candidate) {
+                $q->select('fptk_id')->from('recruitment_sessions')
+                    ->where('candidate_id', $candidate->id)
+                    ->whereNotNull('fptk_id');
+            })
+            ->first();
+
+        if (! $target) {
+            $this->markTestSkipped('No full-flow target FPTK for hired magang reuse');
+        }
+
+        $this->assertTrue($source->canBeReusedOnNewFptk());
+
+        /** @var RecruitmentSessionService $service */
+        $service = app(RecruitmentSessionService::class);
+        $result = $service->reuseOnFptk(
+            $candidate->fresh(),
+            $target,
+            $source->fresh(['fptk', 'mcu', 'hiring', 'documents']),
+            'copy'
+        );
+        $newSession = $result['session']->fresh(['mcu', 'hiring', 'cvReview', 'fptk']);
+
+        $source->refresh();
+        $this->assertSame('hired', $source->status);
+        $this->assertSame($source->id, $newSession->source_session_id);
+        $this->assertSame('in_process', $newSession->status);
+        $this->assertNotNull($newSession->mcu);
+        $this->assertSame('fit', $newSession->mcu->result);
+        $this->assertNotNull($newSession->hiring);
+        $this->assertNull($newSession->hiring->employee_id);
+        $this->assertNull($newSession->cvReview);
+        $this->assertContains($newSession->current_stage, ['mcu', 'hire']);
+        $this->assertStringContainsString('Transition Stage', (string) ($result['warning'] ?? ''));
+
+        $candidate->refresh();
+        $this->assertSame('in_process', $candidate->global_status);
     }
 }
