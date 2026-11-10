@@ -96,12 +96,18 @@
                                     </div>
                                 </div>
                             </div>
+                            @php
+                                $travelerPosting = \App\Support\LotOriginPosting::forAdministration(
+                                    $officialtravel->traveler,
+                                    $officialtravel->official_travel_origin,
+                                );
+                            @endphp
                             <div class="traveler-detail-item">
                                 <i class="fas fa-sitemap detail-icon"></i>
                                 <div class="detail-content">
                                     <div class="detail-label">Title</div>
                                     <div class="detail-value">
-                                        {{ $officialtravel->traveler->position->position_name ?? 'No Position' }}
+                                        {{ $travelerPosting['position_name'] ?? 'No Position' }}
                                     </div>
                                 </div>
                             </div>
@@ -110,8 +116,8 @@
                                 <div class="detail-content">
                                     <div class="detail-label">Business Unit</div>
                                     <div class="detail-value">
-                                        {{ $officialtravel->traveler->project->project_code ?? 'No Code' }} :
-                                        {{ $officialtravel->traveler->project->project_name ?? 'No Project' }}</div>
+                                        {{ $travelerPosting['project_code'] ?? 'No Code' }} :
+                                        {{ $travelerPosting['project_name'] ?? 'No Project' }}</div>
                                 </div>
                             </div>
                             <div class="traveler-detail-item">
@@ -119,7 +125,7 @@
                                 <div class="detail-content">
                                     <div class="detail-label">Division / Department</div>
                                     <div class="detail-value">
-                                        {{ $officialtravel->traveler->position->department->department_name ?? 'No Department' }}
+                                        {{ $travelerPosting['department_name'] ?? 'No Department' }}
                                     </div>
                                 </div>
                             </div>
@@ -136,23 +142,29 @@
                             <div class="card-body p-0">
                                 <div class="followers-list">
                                     @foreach ($officialtravel->details as $detail)
+                                        @php
+                                            $followerPosting = \App\Support\LotOriginPosting::forAdministration(
+                                                $detail->follower,
+                                                $officialtravel->official_travel_origin,
+                                            );
+                                        @endphp
                                         <div class="follower-item">
                                             <div class="follower-info">
                                                 <div class="follower-name">
                                                     {{ $detail->follower->employee->fullname ?? 'Unknown Employee' }}
                                                 </div>
                                                 <div class="follower-position">
-                                                    {{ $detail->follower->position->position_name ?? 'No Position' }}</div>
+                                                    {{ $followerPosting['position_name'] ?? 'No Position' }}</div>
                                                 <div class="follower-meta">
                                                     <span class="follower-nik"><i class="fas fa-id-card"></i>
                                                         {{ $detail->follower->nik }}</span>
                                                     <span class="follower-department"><i class="fas fa-sitemap"></i>
-                                                        {{ $detail->follower->position->department->department_name ?? 'No Department' }}</span>
+                                                        {{ $followerPosting['department_name'] ?? 'No Department' }}</span>
                                                 </div>
                                                 <div class="follower-project">
                                                     <i class="fas fa-project-diagram"></i>
-                                                    {{ $detail->follower->project->project_code ?? 'No Code' }} :
-                                                    {{ $detail->follower->project->project_name ?? 'No Project' }}
+                                                    {{ $followerPosting['project_code'] ?? 'No Code' }} :
+                                                    {{ $followerPosting['project_name'] ?? 'No Project' }}
                                                 </div>
                                             </div>
                                         </div>

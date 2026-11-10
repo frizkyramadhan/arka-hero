@@ -66,7 +66,7 @@
                                         <div class="info-value">{{ $officialtravel->traveler->employee->fullname ?? 'N/A' }}
                                         </div>
                                         <div class="info-meta">
-                                            {{ $officialtravel->traveler->position->position_name ?? 'N/A' }}</div>
+                                            {{ \App\Support\LotOriginPosting::forAdministration($officialtravel->traveler, $officialtravel->official_travel_origin)['position_name'] ?? 'N/A' }}</div>
                                     </div>
                                 </div>
 

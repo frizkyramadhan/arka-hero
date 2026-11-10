@@ -150,6 +150,12 @@
                 font-weight: bold;
             }
 
+            .approver-posting {
+                font-size: 8pt;
+                font-weight: normal;
+                color: #444;
+            }
+
             .status-approved {
                 color: #155724;
             }
@@ -462,13 +468,19 @@
                                     default => 'status-pending',
                                 };
                                 $approverName = $plan->approver->name ?? '—';
+                                $approverPosting = \App\Support\ApproverPosting::caption($plan);
                                 $planTs = $plan->decisionAt() ?? $plan->created_at;
                                 $planDate = $st !== 0 && $planTs ? $formatDateId($planTs) : '—';
                             @endphp
                             <tr>
                                 <td class="col-no">{{ $idx + 2 }}</td>
                                 <td class="col-role">{{ $rowLabel }}</td>
-                                <td class="col-name">{{ $approverName }}</td>
+                                <td class="col-name">
+                                    {{ $approverName }}
+                                    @if ($approverPosting !== '—')
+                                        <div class="approver-posting">{{ $approverPosting }}</div>
+                                    @endif
+                                </td>
                                 <td class="col-date">{{ $planDate }}</td>
                                 <td class="col-ttd {{ $statusClass }}">{{ $statusText }}</td>
                             </tr>

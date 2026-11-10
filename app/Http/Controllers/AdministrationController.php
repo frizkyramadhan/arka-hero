@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Administration;
+use App\Models\AdministrationAssignment;
 use App\Models\Employee;
+use App\Support\AdministrationAssignmentInput;
 use App\Support\UserProject;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class AdministrationController extends Controller
 {
@@ -175,6 +178,7 @@ class AdministrationController extends Controller
         $administration->is_active = $request->is_active;
         $administration->user_id = auth()->user()->id;
         $administration->save();
+        $this->syncAssignments($administration, $request);
 
         Administration::where('employee_id', $employee_id)->where('id', '!=', $administration->id)->update(['is_active' => 0]);
 
@@ -227,8 +231,48 @@ class AdministrationController extends Controller
         $administration->is_active = $request->is_active;
         $administration->user_id = auth()->user()->id;
         $administration->save();
+        $this->syncAssignments($administration, $request);
 
         return redirect('employees/'.$request->employee_id.'#administration')->with('toast_success', 'Administration Updated Successfully');
+    }
+
+    private function syncAssignments(Administration $administration, Request $request): void
+    {
+        try {
+            $rows = AdministrationAssignmentInput::rows(
+                $request->input('assignments', []),
+                (int) $administration->project_id
+            );
+        } catch (\InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'assignments' => $exception->getMessage(),
+            ]);
+        }
+
+        foreach ($rows as $row) {
+            if (! UserProject::canAccessProjectId($row['project_id'])) {
+                throw ValidationException::withMessages([
+                    'assignments' => 'The selected posting project is invalid.',
+                ]);
+            }
+        }
+
+        $keptIds = [];
+        foreach ($rows as $row) {
+            $assignment = AdministrationAssignment::updateOrCreate(
+                [
+                    'administration_id' => $administration->id,
+                    'project_id' => $row['project_id'],
+                ],
+                [
+                    'position_id' => $row['position_id'],
+                    'is_active' => $row['is_active'],
+                ]
+            );
+            $keptIds[] = $assignment->id;
+        }
+
+        $administration->assignments()->whereNotIn('id', $keptIds ?: [0])->delete();
     }
 
     public function terminate(Request $request, $id)

@@ -119,26 +119,41 @@
                                     </div>
                                 </div>
 
+                                @php
+                                    $myLotOrigin = old('official_travel_origin', $officialtravel->official_travel_origin);
+                                    $myLotPosting = $myAdministration && \App\Support\LotOriginPosting::hasActing($myAdministration)
+                                        ? \App\Support\LotOriginPosting::forAdministration($myAdministration, $myLotOrigin)
+                                        : null;
+                                    $myLotOption = [
+                                        'position' => $myAdministration->position->position_name ?? '-',
+                                        'project' => $myAdministration->project->project_name ?? '-',
+                                        'project_id' => $myAdministration->project_id,
+                                        'department' => optional(optional($myAdministration->position)->department)->department_name ?? '-',
+                                        'department_id' => optional($myAdministration->position)->department_id,
+                                        'acting' => $myAdministration ? \App\Support\LotOriginPosting::actingRows($myAdministration) : [],
+                                    ];
+                                @endphp
+                                <span id="lot-primary-posting" hidden @include('officialtravels.partials.employee-option-data', ['employee' => $myLotOption])></span>
                                 <div class="row mt-2">
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Title</label>
                                             <div class="main-traveler-position">
-                                                {{ $myAdministration->position->position_name ?? '-' }}</div>
+                                                {{ $myLotPosting['position_name'] ?? ($myAdministration->position->position_name ?? '-') }}</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Business Unit</label>
                                             <div class="main-traveler-project">
-                                                {{ $myAdministration->project->project_name ?? '-' }}</div>
+                                                {{ $myLotPosting['project_name'] ?? ($myAdministration->project->project_name ?? '-') }}</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Department</label>
                                             <div class="main-traveler-department">
-                                                {{ optional(optional($myAdministration->position)->department)->department_name ?? '-' }}
+                                                {{ $myLotPosting['department_name'] ?? (optional(optional($myAdministration->position)->department)->department_name ?? '-') }}
                                             </div>
                                         </div>
                                     </div>
@@ -253,9 +268,7 @@
                                                                 @foreach ($employees as $emp)
                                                                     @if ($emp['id'] != $myAdministration->id)
                                                                         <option value="{{ $emp['id'] }}"
-                                                                            data-position="{{ $emp['position'] }}"
-                                                                            data-project="{{ $emp['project'] }}"
-                                                                            data-department="{{ $emp['department'] }}"
+                                                                            @include('officialtravels.partials.employee-option-data', ['employee' => $emp])
                                                                             {{ $emp['id'] == $followerId ? 'selected' : '' }}>
                                                                             {{ $emp['nik'] }} - {{ $emp['fullname'] }}
                                                                         </option>
@@ -445,6 +458,7 @@
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
         $(function() {
+            @include('officialtravels.partials.lot-origin-posting-script')
             $('.select2-primary').select2({
                 theme: 'bootstrap4',
                 placeholder: 'Select an option'
@@ -463,9 +477,7 @@
                                 @foreach ($employees as $emp)
                                     @if ($emp['id'] != $myAdministration->id)
                                         <option value="{{ $emp['id'] }}"
-                                            data-position="{{ $emp['position'] }}"
-                                            data-project="{{ $emp['project'] }}"
-                                            data-department="{{ $emp['department'] }}">
+                                            @include('officialtravels.partials.employee-option-data', ['employee' => $emp])>
                                             {{ $emp['nik'] }} - {{ $emp['fullname'] }}
                                         </option>
                                     @endif
@@ -489,9 +501,11 @@
                 }).on('change', function() {
                     const $row = $(this).closest('tr');
                     const $option = $(this).find(':selected');
-                    $row.find('.employee-position').text($option.data('position') || '-');
-                    $row.find('.employee-project').text($option.data('project') || '-');
-                    $row.find('.employee-department').text($option.data('department') || '-');
+                    if (!applyLotOriginPosting($option, $row.find('.employee-position'), $row.find('.employee-project'), $row.find('.employee-department'))) {
+                        $row.find('.employee-position').text($option.attr('data-position') || '-');
+                        $row.find('.employee-project').text($option.attr('data-project') || '-');
+                        $row.find('.employee-department').text($option.attr('data-department') || '-');
+                    }
                 });
             });
 
@@ -501,15 +515,18 @@
                 });
             });
 
+            $('#official_travel_origin').on('change', refreshLotOriginPostings);
+            refreshLotOriginPostings();
+
             $('#followersTable .select2-follower').each(function() {
                 $(this).on('change', function() {
                     const $opt = $(this).find('option:selected');
-                    $(this).closest('tr').find('.employee-position').text($opt.data('position') ||
-                        '-');
-                    $(this).closest('tr').find('.employee-project').text($opt.data('project') ||
-                        '-');
-                    $(this).closest('tr').find('.employee-department').text($opt.data(
-                        'department') || '-');
+                    const $row = $(this).closest('tr');
+                    if (!applyLotOriginPosting($opt, $row.find('.employee-position'), $row.find('.employee-project'), $row.find('.employee-department'))) {
+                        $row.find('.employee-position').text($opt.attr('data-position') || '-');
+                        $row.find('.employee-project').text($opt.attr('data-project') || '-');
+                        $row.find('.employee-department').text($opt.attr('data-department') || '-');
+                    }
                 });
             });
 

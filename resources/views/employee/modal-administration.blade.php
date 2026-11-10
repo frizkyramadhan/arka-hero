@@ -15,6 +15,7 @@
             <form action="{{ url('administrations/' . $employee->id) }}" method="POST">
                 @csrf
                 <input type="hidden" name="employee_id" value="{{ old('employee_id', $employee->id) }}">
+                <input type="hidden" name="assignment_form" value="add">
                 <input type="hidden" name="is_active" value="1">
 
                 <div class="modal-body">
@@ -281,6 +282,10 @@
                                 </div>
                             </div>
                         </div>
+                        @include('employee.partials.administration-assignments', [
+                            'rows' => old('assignment_form') === 'add' ? old('assignments', []) : [],
+                            'formKey' => 'add',
+                        ])
                     </div>
                 </div>
                 <div class="modal-footer justify-content-between">
@@ -293,6 +298,9 @@
 </div>
 
 <!-- Edit Administration Modals -->
+@php
+    $administrations->loadMissing(['assignments.project', 'assignments.position']);
+@endphp
 @foreach ($administrations as $administration)
     <div class="modal fade text-left" id="modal-administration-{{ $administration->id }}">
         <div class="modal-dialog modal-xl">
@@ -308,6 +316,7 @@
                     @method('PATCH')
                     <input type="hidden" name="employee_id"
                         value="{{ old('employee_id', $administration->employee_id) }}">
+                    <input type="hidden" name="assignment_form" value="{{ $administration->id }}">
                     <input type="hidden" name="is_active"
                         value="{{ old('is_active', $administration->is_active) }}">
 
@@ -604,6 +613,12 @@
                                 </div>
                             </div>
 
+                            @include('employee.partials.administration-assignments', [
+                                'rows' => (string) old('assignment_form') === (string) $administration->id
+                                    ? old('assignments', [])
+                                    : $administration->assignments,
+                                'formKey' => $administration->id,
+                            ])
                         </div>
                     </div>
                     <div class="modal-footer justify-content-between">
@@ -645,6 +660,35 @@
                     }
                 });
             }
+
+            $(document).on('click', '.add-assignment', function() {
+                const $rows = $(this).closest('.assignment-block').find('.assignment-rows');
+                const $clone = $rows.find('.assignment-row').last().clone();
+                const index = Date.now();
+                $clone.find('[name]').each(function() {
+                    const name = $(this).attr('name').replace(/assignments\[\d+\]/, 'assignments[' + index + ']');
+                    $(this).attr('name', name);
+                });
+                $clone.find('[id]').each(function() {
+                    $(this).attr('id', $(this).attr('id').replace(/_\d+$/, '_' + index));
+                });
+                $clone.find('label[for]').each(function() {
+                    $(this).attr('for', $(this).attr('for').replace(/_\d+$/, '_' + index));
+                });
+                $clone.find('select').val('');
+                $clone.find(':checkbox').prop('checked', true);
+                $rows.append($clone);
+            });
+
+            $(document).on('click', '.remove-assignment', function() {
+                const $rows = $(this).closest('.assignment-rows');
+                if ($rows.find('.assignment-row').length === 1) {
+                    $rows.find('select').val('');
+                    $rows.find(':checkbox').prop('checked', true);
+                    return;
+                }
+                $(this).closest('.assignment-row').remove();
+            });
 
             // Handle position change for add modal
             $('#position_id_add').on('change', function() {

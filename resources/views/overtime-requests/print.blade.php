@@ -244,6 +244,12 @@
                 color: #222;
             }
 
+            .sign-person-posting {
+                font-size: 8pt;
+                color: #444;
+                margin-top: 2px;
+            }
+
             .sign-person-name {
                 display: inline-block;
                 min-width: 70%;
@@ -441,12 +447,14 @@
             for ($slot = 0; $slot < 2; $slot++) {
                 $plan = $sortedApprovalPlans->get($slot);
                 $name = '—';
+                $posting = '—';
                 $st = 0;
                 $statusText = 'Pending';
                 $statusClass = 'pending';
 
                 if ($plan) {
                     $name = $plan->approver->name ?? '—';
+                    $posting = \App\Support\ApproverPosting::caption($plan);
                     $st = (int) ($plan->status ?? 0);
                     $statusText = $approvalStatusLabels[$st] ?? 'Pending';
                     $statusClass = match ($st) {
@@ -463,6 +471,7 @@
                     'role' => $slotLabels[$slot],
                     'approval_label' => $slot === 0 ? 'Acknowledged By' : 'Approved By',
                     'name' => $name,
+                    'posting' => $posting,
                     'status_text' => $statusText,
                     'status_class' => $statusClass,
                 ];
@@ -568,6 +577,9 @@
                                     <div class="sign-line"></div>
                                     <div class="sign-cell-body">
                                         <div class="sign-person-name">{{ $slot['name'] }}</div>
+                                        @if (($slot['posting'] ?? '—') !== '—')
+                                            <div class="sign-person-posting">{{ $slot['posting'] }}</div>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach

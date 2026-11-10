@@ -140,10 +140,7 @@
                                                 <option value="">Select Main Traveler</option>
                                                 @foreach ($employees as $employee)
                                                     <option value="{{ $employee['id'] }}"
-                                                        data-position="{{ $employee['position'] }}"
-                                                        data-project="{{ $employee['project'] }}"
-                                                        data-department="{{ $employee['department'] }}"
-                                                        data-department-id="{{ $employee['department_id'] }}"
+                                                        @include('officialtravels.partials.employee-option-data', ['employee' => $employee])
                                                         {{ old('traveler_id', $officialtravel->traveler_id) == $employee['id'] ? 'selected' : '' }}>
                                                         {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                                     </option>
@@ -160,15 +157,20 @@
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Title</label>
+                                            @php
+                                                $travelerPosting = $officialtravel->traveler && \App\Support\LotOriginPosting::hasActing($officialtravel->traveler)
+                                                    ? \App\Support\LotOriginPosting::forAdministration($officialtravel->traveler, old('official_travel_origin', $officialtravel->official_travel_origin))
+                                                    : null;
+                                            @endphp
                                             <div class="main-traveler-position">
-                                                {{ $officialtravel->traveler->position->position_name ?? '-' }}</div>
+                                                {{ $travelerPosting['position_name'] ?? ($officialtravel->traveler->position->position_name ?? '-') }}</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="form-group">
                                             <label class="font-weight-bold">Business Unit</label>
                                             <div class="main-traveler-project">
-                                                {{ $officialtravel->project->project_name ?? '-' }}
+                                                {{ $travelerPosting['project_name'] ?? ($officialtravel->project->project_name ?? '-') }}
                                             </div>
                                         </div>
                                     </div>
@@ -176,7 +178,7 @@
                                         <div class="form-group">
                                             <label class="font-weight-bold">Department</label>
                                             <div class="main-traveler-department">
-                                                {{ $officialtravel->traveler->position->department->department_name ?? '-' }}
+                                                {{ $travelerPosting['department_name'] ?? ($officialtravel->traveler->position->department->department_name ?? '-') }}
                                             </div>
                                         </div>
                                     </div>
@@ -287,25 +289,22 @@
                                                             <option value="">Select Employee</option>
                                                             @foreach ($employees as $employee)
                                                                 <option value="{{ $employee['id'] }}"
-                                                                    data-position="{{ $employee['position'] }}"
-                                                                    data-project="{{ $employee['project'] }}"
-                                                                    data-department="{{ $employee['department'] }}"
-                                                                    data-department-id="{{ $employee['department_id'] }}"
+                                                                    @include('officialtravels.partials.employee-option-data', ['employee' => $employee])
                                                                     {{ $detail->follower_id == $employee['id'] ? 'selected' : '' }}>
                                                                     {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                                                 </option>
                                                             @endforeach
                                                         </select>
                                                     </td>
-                                                    <td><span
-                                                            class="employee-position">{{ $detail->follower->position->position_name ?? '-' }}</span>
-                                                    </td>
-                                                    <td><span
-                                                            class="employee-project">{{ $detail->follower->project->project_name ?? '-' }}</span>
-                                                    </td>
-                                                    <td><span
-                                                            class="employee-department">{{ $detail->follower->position->department->department_name ?? '-' }}</span>
-                                                    </td>
+                                                    @php
+                                                        $followerPosting = \App\Support\LotOriginPosting::forAdministration(
+                                                            $detail->follower,
+                                                            $officialtravel->official_travel_origin,
+                                                        );
+                                                    @endphp
+                                                    <td><span class="employee-position">{{ $followerPosting['position_name'] ?? '-' }}</span></td>
+                                                    <td><span class="employee-project">{{ $followerPosting['project_name'] ?? '-' }}</span></td>
+                                                    <td><span class="employee-department">{{ $followerPosting['department_name'] ?? '-' }}</span></td>
                                                     <td class="text-center">
                                                         <a href="javascript:void(0)" class="remove-follower"
                                                             title="Remove">
@@ -532,6 +531,7 @@
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
         $(function() {
+            @include('officialtravels.partials.lot-origin-posting-script')
             // Initialize Select2 Elements with custom themes (destination select handled on toggle)
             $('.select2-primary').select2({
                 theme: 'bootstrap4',
@@ -548,10 +548,11 @@
             }).on('change', function() {
                 const $option = $(this).find(':selected');
 
-                // Update main traveler details
-                $('.main-traveler-position').text($option.data('position') || '-');
-                $('.main-traveler-project').text($option.data('project') || '-');
-                $('.main-traveler-department').text($option.data('department') || '-');
+                if (!applyLotOriginPosting($option, $('.main-traveler-position'), $('.main-traveler-project'), $('.main-traveler-department'))) {
+                    $('.main-traveler-position').text($option.attr('data-position') || '-');
+                    $('.main-traveler-project').text($option.attr('data-project') || '-');
+                    $('.main-traveler-department').text($option.attr('data-department') || '-');
+                }
             });
 
             $('.select2-warning').select2({
@@ -587,10 +588,11 @@
                     const $row = $(this).closest('tr');
                     const $option = $(this).find(':selected');
 
-                    // Update employee details
-                    $row.find('.employee-position').text($option.data('position') || '-');
-                    $row.find('.employee-project').text($option.data('project') || '-');
-                    $row.find('.employee-department').text($option.data('department') || '-');
+                    if (!applyLotOriginPosting($option, $row.find('.employee-position'), $row.find('.employee-project'), $row.find('.employee-department'))) {
+                        $row.find('.employee-position').text($option.attr('data-position') || '-');
+                        $row.find('.employee-project').text($option.attr('data-project') || '-');
+                        $row.find('.employee-department').text($option.attr('data-department') || '-');
+                    }
                 });
             }
 
@@ -613,10 +615,7 @@
                                 <option value="">Select Employee</option>
                                 @foreach ($employees as $employee)
                                     <option value="{{ $employee['id'] }}"
-                                        data-position="{{ $employee['position'] }}"
-                                        data-project="{{ $employee['project'] }}"
-                                        data-department="{{ $employee['department'] }}"
-                                        data-department-id="{{ $employee['department_id'] }}">
+                                        @include('officialtravels.partials.employee-option-data', ['employee' => $employee])>
                                         {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                     </option>
                                 @endforeach
@@ -651,7 +650,8 @@
             function updateApprovalStatusCard() {
                 const projectId = $('#official_travel_origin').val();
                 const $selectedOption = $('#traveler_id option:selected');
-                const departmentId = $selectedOption.data('department-id') || null;
+                refreshLotOriginPostings();
+                const departmentId = lotOriginPosting($selectedOption, $('#official_travel_origin').val()).departmentId || null;
 
                 console.log('Updating approval status card with:', {
                     projectId,
