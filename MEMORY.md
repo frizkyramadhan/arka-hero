@@ -1,5 +1,17 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-11-05
+**Last Updated**: 2026-11-10
+
+### [086] Satu NIK, beberapa jabatan approver (2026-11-10)
+
+**Need**: Bpk. UM Eddy Nasri Jayapati (NIK 13282, satu administrasi) menyetujui APS sebagai Project Manager dan HO sebagai HCS Manager.
+
+**Behavior**:
+- Project dan jabatan utama tetap di `administrations`. `administration_assignments` hanya acting position di project lain. NIK aktif unik lewat kolom generated `active_nik`.
+- Saat approval plan menjadi approved/rejected, jabatan dan label project disimpan di `approver_position_name` / `approver_project_label`. Cetakan membaca simpanan itu; kalau kosong, dokumen di project utama memakai jabatan `administrations`, dokumen di project lain memakai acting position.
+- Label project memakai kata sebelum ` - ` pada nama project, jadi `000H` tampil sebagai HO.
+- Baris induk administrasi Eddy tidak dipindah, supaya cuti dan roster yang sudah menunjuk administrasi itu tetap di project semula.
+
+**Files**: `ApproverPosting`, `AdministrationAssignment`, migration `2026_11_10_105400_add_administration_assignments_and_approver_posting`, print cuti/LOT/lembur/room consumption. UI: modal Add/Edit Administration di tab Employment (`administration-assignments` partial, `AdministrationController::syncAssignments`). Employment History menampilkan badge `Acting:` hanya jika administrasi itu punya acting position. LOT: title, business unit, dan department traveler/follower mengikuti LOT origin lewat `LotOriginPosting` bila karyawan punya acting position. Form create/edit membaca acting itu dari `data-acting` pada option; JSON di-escape sekali lewat `{{ json_encode() }}`.
 
 ### [085] Reuse kandidat Hired (magang → karyawan) + Transition Stage (2026-11-05)
 

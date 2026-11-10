@@ -1,13 +1,17 @@
 @php
-    use App\Services\AdministrationYearsOfServiceCalculator;
+use App\Services\AdministrationYearsOfServiceCalculator;
 
-    $yearsOfServiceCalculator = new AdministrationYearsOfServiceCalculator();
-    $loadingOverlay = '<div class="overlay-wrapper">
-        <div class="overlay">
-            <i class="fas fa-3x fa-sync-alt fa-spin"></i>
-            <div class="text-bold pt-2">Loading...</div>
-        </div>
-    </div>';
+$yearsOfServiceCalculator = new AdministrationYearsOfServiceCalculator();
+$loadingOverlay = '<div class="overlay-wrapper">
+    <div class="overlay">
+        <i class="fas fa-3x fa-sync-alt fa-spin"></i>
+        <div class="text-bold pt-2">Loading...</div>
+    </div>
+</div>';
+@endphp
+
+@php
+$administrations->loadMissing(['assignments.position', 'assignments.project']);
 @endphp
 
 <div id="administration-pane" class="content" role="tabpanel" aria-labelledby="administration-pane-trigger">
@@ -19,15 +23,15 @@
                 <i class="fas fa-plus mr-1"></i> Add Employment
             </button>
             @if ($administrations->isNotEmpty())
-                <form action="{{ url('administrations/' . $employee->id) }}" method="post"
-                    onsubmit="return confirm('Are you sure want to delete all administration records?')"
-                    class="d-inline">
-                    @method('delete')
-                    @csrf
-                    <button class="btn btn-danger" title="Delete All Administration Records">
-                        <i class="fas fa-trash mr-1"></i> Delete All
-                    </button>
-                </form>
+            <form action="{{ url('administrations/' . $employee->id) }}" method="post"
+                onsubmit="return confirm('Are you sure want to delete all administration records?')"
+                class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-danger" title="Delete All Administration Records">
+                    <i class="fas fa-trash mr-1"></i> Delete All
+                </button>
+            </form>
             @endif
         </div>
     </div>
@@ -53,101 +57,118 @@
             </thead>
             <tbody>
                 @forelse ($administrations as $administration)
-                    <tr>
-                        <td class="text-center">
-                            @if ($administration->is_active == 1)
-                                <span class="badge-status active">Active</span>
-                            @else
+                <tr>
+                    <td class="text-center">
+                        @if ($administration->is_active == 1)
+                        <span class="badge-status active">Active</span>
+                        @else
+                        <form
+                            action="{{ url('administrations/changeStatus/' . $employee->id . '/' . $administration->id) }}"
+                            method="POST" class="d-inline">
+                            @csrf
+                            @method('PATCH')
+                            <button type="submit" class="badge-status inactive">Inactive</button>
+                        </form>
+                        @endif
+                    </td>
+                    <td class="text-center">{{ $administration->nik }}</td>
+                    <td>{{ $administration->poh }}</td>
+                    <td>{{ $administration->doh ? date('d M Y', strtotime($administration->doh)) : '-' }}
+                    </td>
+                    <td class="text-center">
+                        @php
+                        $yearsOfService = $yearsOfServiceCalculator->calculateYears(
+                        $administration,
+                        $administrations,
+                        );
+                        @endphp
+                        @if ($yearsOfService !== null)
+                        {{ $yearsOfService }} year{{ $yearsOfService != 1 ? 's' : '' }}
+                        @else
+                        -
+                        @endif
+                    </td>
+                    <td>{{ $administration->department_name }}</td>
+                    <td>
+                        {{ $administration->position_name }}
+                        @php
+                        $actingPositions = $administration->assignments->filter(
+                        fn ($acting) => (int) $acting->is_active === 1 && $acting->position && $acting->project,
+                        );
+                        @endphp
+                        @if ($actingPositions->isNotEmpty())
+                        <div class="mt-1 text-bold">
+                            @foreach ($actingPositions as $acting)
+                            Acting Position:
+                            <span class="badge badge-info d-inline-block mb-1">
+                                <strong>{{ $acting->position->position_name }} -
+                                    {{ \App\Support\ApproverPosting::projectLabel($acting->project->project_name, $acting->project->project_code) }}</strong></span>
+                            @endforeach
+                        </div>
+                        @endif
+                    </td>
+                    <td>{{ $administration->grade_name }}</td>
+                    <td>{{ $administration->level_name }}</td>
+                    <td>{{ $administration->project_code }}</td>
+                    <td>{{ $administration->class }}</td>
+                    <td>
+                        @if ($administration->is_active == 0 && $administration->termination_date)
+                        {{ date('d M Y', strtotime($administration->termination_date)) }}
+                        @else
+                        -
+                        @endif
+                    </td>
+                    <td>
+                        @if ($administration->is_active == 0 && $administration->termination_reason)
+                        {{ $administration->termination_reason }}
+                        @else
+                        -
+                        @endif
+                    </td>
+                    <td class="text-center" style="white-space: nowrap;">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-primary" data-toggle="modal"
+                                data-target="#modal-administration-{{ $administration->id }}"
+                                title="Edit Employment History">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button type="button"
+                                class="btn btn-primary btn-sm dropdown-toggle dropdown-toggle-split"
+                                data-toggle="dropdown" aria-expanded="false">
+                                <span class="sr-only">Toggle Dropdown</span>
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right">
+                                <a class="dropdown-item" href="#" data-toggle="modal"
+                                    data-target="#modal-termination-employment-{{ $administration->id }}"
+                                    title="Terminate Employment">
+                                    <i class="fas fa-user-times text-danger"></i> Terminate
+                                </a>
+                                <div class="dropdown-divider"></div>
                                 <form
-                                    action="{{ url('administrations/changeStatus/' . $employee->id . '/' . $administration->id) }}"
-                                    method="POST" class="d-inline">
+                                    action="{{ url('administrations/' . $employee->id . '/' . $administration->id) }}"
+                                    method="post"
+                                    onsubmit="return confirm('Are you sure want to delete this record?')"
+                                    class="d-inline">
+                                    @method('delete')
                                     @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="badge-status inactive">Inactive</button>
+                                    <button type="submit" class="dropdown-item" title="Delete Employment History">
+                                        <i class="fas fa-trash mr-2 text-danger"></i> Delete
+                                    </button>
                                 </form>
-                            @endif
-                        </td>
-                        <td class="text-center">{{ $administration->nik }}</td>
-                        <td>{{ $administration->poh }}</td>
-                        <td>{{ $administration->doh ? date('d M Y', strtotime($administration->doh)) : '-' }}
-                        </td>
-                        <td class="text-center">
-                            @php
-                                $yearsOfService = $yearsOfServiceCalculator->calculateYears(
-                                    $administration,
-                                    $administrations,
-                                );
-                            @endphp
-                            @if ($yearsOfService !== null)
-                                {{ $yearsOfService }} year{{ $yearsOfService != 1 ? 's' : '' }}
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td>{{ $administration->department_name }}</td>
-                        <td>{{ $administration->position_name }}</td>
-                        <td>{{ $administration->grade_name }}</td>
-                        <td>{{ $administration->level_name }}</td>
-                        <td>{{ $administration->project_code }}</td>
-                        <td>{{ $administration->class }}</td>
-                        <td>
-                            @if ($administration->is_active == 0 && $administration->termination_date)
-                                {{ date('d M Y', strtotime($administration->termination_date)) }}
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td>
-                            @if ($administration->is_active == 0 && $administration->termination_reason)
-                                {{ $administration->termination_reason }}
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td class="text-center" style="white-space: nowrap;">
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-primary" data-toggle="modal"
-                                    data-target="#modal-administration-{{ $administration->id }}"
-                                    title="Edit Employment History">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button type="button"
-                                    class="btn btn-primary btn-sm dropdown-toggle dropdown-toggle-split"
-                                    data-toggle="dropdown" aria-expanded="false">
-                                    <span class="sr-only">Toggle Dropdown</span>
-                                </button>
-                                <div class="dropdown-menu dropdown-menu-right">
-                                    <a class="dropdown-item" href="#" data-toggle="modal"
-                                        data-target="#modal-termination-employment-{{ $administration->id }}"
-                                        title="Terminate Employment">
-                                        <i class="fas fa-user-times text-danger"></i> Terminate
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <form
-                                        action="{{ url('administrations/' . $employee->id . '/' . $administration->id) }}"
-                                        method="post"
-                                        onsubmit="return confirm('Are you sure want to delete this record?')"
-                                        class="d-inline">
-                                        @method('delete')
-                                        @csrf
-                                        <button type="submit" class="dropdown-item" title="Delete Employment History">
-                                            <i class="fas fa-trash mr-2 text-danger"></i> Delete
-                                        </button>
-                                    </form>
-                                </div>
                             </div>
-                        </td>
-                    </tr>
+                        </div>
+                    </td>
+                </tr>
                 @empty
-                    <tr>
-                        <td colspan="15">
-                            <div class="empty-state">
-                                <i class="fas fa-exclamation-circle"></i>
-                                <h6>No Data Available</h6>
-                                <p>No administration records found for this employee</p>
-                            </div>
-                        </td>
-                    </tr>
+                <tr>
+                    <td colspan="15">
+                        <div class="empty-state">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <h6>No Data Available</h6>
+                            <p>No administration records found for this employee</p>
+                        </div>
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>
@@ -160,15 +181,15 @@
                 <i class="fas fa-plus mr-1"></i> Add Mutation
             </button>
             @if ($mutations->isNotEmpty())
-                <form action="{{ url('employee-mutations/' . $employee->id) }}" method="post"
-                    onsubmit="return confirm('Are you sure want to delete all mutation records?')"
-                    class="d-inline">
-                    @method('delete')
-                    @csrf
-                    <button class="btn btn-danger" title="Delete All Mutation Records">
-                        <i class="fas fa-trash mr-1"></i> Delete All
-                    </button>
-                </form>
+            <form action="{{ url('employee-mutations/' . $employee->id) }}" method="post"
+                onsubmit="return confirm('Are you sure want to delete all mutation records?')"
+                class="d-inline">
+                @method('delete')
+                @csrf
+                <button class="btn btn-danger" title="Delete All Mutation Records">
+                    <i class="fas fa-trash mr-1"></i> Delete All
+                </button>
+            </form>
             @endif
         </div>
     </div>
@@ -189,60 +210,60 @@
             </thead>
             <tbody>
                 @php
-                    $latestActiveMutationId = $mutations
-                        ->first(function ($mutation) {
-                            return ($mutation->status ?? 'active') === 'active';
-                        })?->id;
+                $latestActiveMutationId = $mutations
+                ->first(function ($mutation) {
+                return ($mutation->status ?? 'active') === 'active';
+                })?->id;
                 @endphp
                 @forelse ($mutations as $mutation)
-                    <tr>
-                        <td class="text-center">
-                            @if (($mutation->status ?? 'active') === 'active')
-                                <span class="badge-status active">Active</span>
-                            @else
-                                <span class="badge-status inactive">Inactive</span>
-                            @endif
-                        </td>
-                        <td>
-                            {{ $mutation->mutated_at ? $mutation->mutated_at->format('d M Y') : '-' }}
-                            @if ($latestActiveMutationId && $mutation->id === $latestActiveMutationId)
-                                <span class="badge badge-info ml-1">Latest</span>
-                            @endif
-                        </td>
-                        <td>
-                            {{ $mutation->project->project_code ?? '-' }}
-                            @if (!empty($mutation->project->project_name))
-                                - {{ $mutation->project->project_name }}
-                            @endif
-                        </td>
-                        <td>{{ $mutation->remarks ?: '-' }}</td>
-                        <td class="text-center" style="white-space: nowrap;">
-                            <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
-                                data-target="#modal-mutation-{{ $mutation->id }}" title="Edit Mutation">
-                                <i class="fas fa-edit"></i>
+                <tr>
+                    <td class="text-center">
+                        @if (($mutation->status ?? 'active') === 'active')
+                        <span class="badge-status active">Active</span>
+                        @else
+                        <span class="badge-status inactive">Inactive</span>
+                        @endif
+                    </td>
+                    <td>
+                        {{ $mutation->mutated_at ? $mutation->mutated_at->format('d M Y') : '-' }}
+                        @if ($latestActiveMutationId && $mutation->id === $latestActiveMutationId)
+                        <span class="badge badge-info ml-1">Latest</span>
+                        @endif
+                    </td>
+                    <td>
+                        {{ $mutation->project->project_code ?? '-' }}
+                        @if (!empty($mutation->project->project_name))
+                        - {{ $mutation->project->project_name }}
+                        @endif
+                    </td>
+                    <td>{{ $mutation->remarks ?: '-' }}</td>
+                    <td class="text-center" style="white-space: nowrap;">
+                        <button type="button" class="btn btn-primary btn-sm" data-toggle="modal"
+                            data-target="#modal-mutation-{{ $mutation->id }}" title="Edit Mutation">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form action="{{ url('employee-mutations/' . $employee->id . '/' . $mutation->id) }}"
+                            method="post"
+                            onsubmit="return confirm('Are you sure want to delete this mutation?')"
+                            class="d-inline">
+                            @method('delete')
+                            @csrf
+                            <button type="submit" class="btn btn-danger btn-sm" title="Delete Mutation">
+                                <i class="fas fa-trash"></i>
                             </button>
-                            <form action="{{ url('employee-mutations/' . $employee->id . '/' . $mutation->id) }}"
-                                method="post"
-                                onsubmit="return confirm('Are you sure want to delete this mutation?')"
-                                class="d-inline">
-                                @method('delete')
-                                @csrf
-                                <button type="submit" class="btn btn-danger btn-sm" title="Delete Mutation">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
+                        </form>
+                    </td>
+                </tr>
                 @empty
-                    <tr>
-                        <td colspan="5">
-                            <div class="empty-state">
-                                <i class="fas fa-exchange-alt"></i>
-                                <h6>No Mutations</h6>
-                                <p>No mutation records. Annual leave uses Date of Hire.</p>
-                            </div>
-                        </td>
-                    </tr>
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state">
+                            <i class="fas fa-exchange-alt"></i>
+                            <h6>No Mutations</h6>
+                            <p>No mutation records. Annual leave uses Date of Hire.</p>
+                        </div>
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>

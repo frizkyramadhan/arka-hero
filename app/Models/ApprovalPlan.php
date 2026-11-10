@@ -20,6 +20,8 @@ class ApprovalPlan extends Model
         'is_open',
         'is_read',
         'approval_order',
+        'approver_position_name',
+        'approver_project_label',
         'acted_at',
     ];
 
@@ -38,9 +40,16 @@ class ApprovalPlan extends Model
             }
         });
 
-        static::updating(function (ApprovalPlan $plan) {
-            if ($plan->isDirty('status') && in_array((int) $plan->status, [1, 2], true)) {
+        static::saving(function (ApprovalPlan $plan) {
+            $deciding = in_array((int) $plan->status, [1, 2], true)
+                && ($plan->isDirty('status') || ! $plan->exists);
+            if ($deciding) {
                 $plan->acted_at = now();
+                if (! filled($plan->approver_position_name) && ! filled($plan->approver_project_label)) {
+                    $posting = \App\Support\ApproverPosting::live($plan);
+                    $plan->approver_position_name = $posting['position'];
+                    $plan->approver_project_label = $posting['project_label'];
+                }
             }
         });
     }

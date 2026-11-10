@@ -54,6 +54,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Satu NIK beberapa jabatan approver; tanda tangan APS = Project Manager, HO = HCS Manager [ApproverPosting, administration_assignments] (completed: 2026-11-10)`
 -   `[done] P1: Reuse kandidat Hired (magang→karyawan): copy MCU+Hiring, gap diisi Transition Stage; sumber hired tetap hired [canBeReusedOnNewFptk, copyProcessFromSession, RecruitmentReuseOnFptkTest] (completed: 2026-11-05)`
 -   `[done] P1: Reuse kandidat antar FPTK (copy proses atau fresh) + auto-cancel sibling saat FPTK fulfilled/expired; Progress Summary dihitung ulang [RecruitmentSessionService::reuseOnFptk, source_session_id, candidates/show] (completed: 2026-11-04)`
 

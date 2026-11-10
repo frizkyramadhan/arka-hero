@@ -1,0 +1,6 @@
+data-position="{{ $employee['position'] }}"
+data-project="{{ $employee['project'] }}"
+data-project-id="{{ $employee['project_id'] }}"
+data-department="{{ $employee['department'] }}"
+data-department-id="{{ $employee['department_id'] }}"
+data-acting="{{ json_encode($employee['acting'] ?? []) }}"

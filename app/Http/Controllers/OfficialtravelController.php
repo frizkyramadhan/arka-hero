@@ -336,17 +336,7 @@ class OfficialtravelController extends Controller
 
         // Load employees with their relationships
         $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
-            return [
-                'id' => $employee->id,
-                'nik' => $employee->nik,
-                'fullname' => $employee->employee->fullname ?? 'Unknown',
-                'position' => $employee->position->position_name ?? '-',
-                'project' => $employee->project->project_name ?? '-',
-                'department' => $employee->position->department->department_name ?? '-',
-                'position_id' => $employee->position_id,
-                'project_id' => $employee->project_id,
-                'department_id' => $employee->position->department_id ?? null,
-            ];
+            return $this->officialTravelEmployeeOption($employee);
         });
 
         return view('officialtravels.create', compact(
@@ -722,20 +712,7 @@ class OfficialtravelController extends Controller
 
         // Load employees with their relationships
         $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
-            $position = $employee->position;
-            $department = $position ? ($position->department ?? null) : null;
-
-            return [
-                'id' => $employee->id,
-                'nik' => $employee->nik,
-                'fullname' => $employee->employee->fullname ?? 'Unknown',
-                'position' => $position ? ($position->position_name ?? '-') : '-',
-                'project' => $employee->project->project_name ?? '-',
-                'department' => $department ? ($department->department_name ?? '-') : '-',
-                'position_id' => $employee->position_id,
-                'project_id' => $employee->project_id,
-                'department_id' => $position ? ($position->department_id ?? ($department ? $department->id : null)) : null,
-            ];
+            return $this->officialTravelEmployeeOption($employee);
         });
 
         // Get selected followers
@@ -1526,9 +1503,31 @@ class OfficialtravelController extends Controller
             'employee',
             'position.department',
             'project',
+            'assignments' => function ($query) {
+                $query->where('is_active', 1)->with(['position.department', 'project']);
+            },
         ])
             ->where('is_active', 1)
             ->orderBy('nik', 'asc');
+    }
+
+    protected function officialTravelEmployeeOption($employee): array
+    {
+        $position = $employee->position;
+        $department = $position?->department;
+
+        return [
+            'id' => $employee->id,
+            'nik' => $employee->nik,
+            'fullname' => $employee->employee->fullname ?? 'Unknown',
+            'position' => $position?->position_name ?? '-',
+            'project' => $employee->project->project_name ?? '-',
+            'department' => $department?->department_name ?? '-',
+            'position_id' => $employee->position_id,
+            'project_id' => $employee->project_id,
+            'department_id' => $position?->department_id ?? null,
+            'acting' => \App\Support\LotOriginPosting::actingRows($employee),
+        ];
     }
 
     /**
@@ -1990,20 +1989,17 @@ class OfficialtravelController extends Controller
         $transportations = Transportation::where('transportation_status', 1)->get();
 
         $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
-            return [
-                'id' => $employee->id,
-                'nik' => $employee->nik,
-                'fullname' => $employee->employee->fullname ?? 'Unknown',
-                'position' => $employee->position->position_name ?? '-',
-                'project' => $employee->project->project_name ?? '-',
-                'department' => $employee->position->department->department_name ?? '-',
-                'position_id' => $employee->position_id,
-                'project_id' => $employee->project_id,
-                'department_id' => $employee->position->department_id ?? null,
-            ];
+            return $this->officialTravelEmployeeOption($employee);
         });
 
-        $myAdministration = Administration::with(['employee', 'position.department', 'project'])->find($administrationId);
+        $myAdministration = Administration::with([
+            'employee',
+            'position.department',
+            'project',
+            'assignments' => function ($query) {
+                $query->where('is_active', 1)->with(['position.department', 'project']);
+            },
+        ])->find($administrationId);
 
         $existingFlightRequest = $officialtravel->flightRequests()->with('details')->first();
 
@@ -2200,20 +2196,17 @@ class OfficialtravelController extends Controller
         $transportations = Transportation::where('transportation_status', 1)->get();
 
         $employees = $this->administrationsForOfficialTravelSelectQuery()->get()->map(function ($employee) {
-            return [
-                'id' => $employee->id,
-                'nik' => $employee->nik,
-                'fullname' => $employee->employee->fullname ?? 'Unknown',
-                'position' => $employee->position->position_name ?? '-',
-                'project' => $employee->project->project_name ?? '-',
-                'department' => $employee->position->department->department_name ?? '-',
-                'position_id' => $employee->position_id,
-                'project_id' => $employee->project_id,
-                'department_id' => $employee->position->department_id ?? null,
-            ];
+            return $this->officialTravelEmployeeOption($employee);
         });
 
-        $myAdministration = Administration::with(['employee', 'position.department', 'project'])->find($administrationId);
+        $myAdministration = Administration::with([
+            'employee',
+            'position.department',
+            'project',
+            'assignments' => function ($query) {
+                $query->where('is_active', 1)->with(['position.department', 'project']);
+            },
+        ])->find($administrationId);
 
         // Preview REQ: berikutnya dari max semua REQ pengajuan user (bukan hanya id terakhir)
         $previewTravelNumber = 'REQ'.sprintf('%05d', $this->maxSubmittedByUserReqSequence() + 1);

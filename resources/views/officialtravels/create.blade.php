@@ -130,10 +130,7 @@
                                                 <option value="">Select Main Traveler</option>
                                                 @foreach ($employees as $employee)
                                                     <option value="{{ $employee['id'] }}"
-                                                        data-position="{{ $employee['position'] }}"
-                                                        data-project="{{ $employee['project'] }}"
-                                                        data-department="{{ $employee['department'] }}"
-                                                        data-department-id="{{ $employee['department_id'] }}"
+                                                        @include('officialtravels.partials.employee-option-data', ['employee' => $employee])
                                                         {{ old('traveler_id') == $employee['id'] ? 'selected' : '' }}>
                                                         {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                                                     </option>
@@ -309,10 +306,7 @@
                                                                     <option value="">Select Employee</option>
                                                                     @foreach ($employees as $employee)
                                                                         <option value="{{ $employee['id'] }}"
-                                                                            data-position="{{ $employee['position'] }}"
-                                                                            data-project="{{ $employee['project'] }}"
-                                                                            data-department="{{ $employee['department'] }}"
-                                                                            data-department-id="{{ $employee['department_id'] }}"
+                                                                            @include('officialtravels.partials.employee-option-data', ['employee' => $employee])
                                                                             {{ $employee['id'] == $followerId ? 'selected' : '' }}>
                                                                             {{ $employee['nik'] }} -
                                                                             {{ $employee['fullname'] }}
@@ -621,6 +615,7 @@
     <script src="{{ asset('assets/plugins/select2/js/select2.full.min.js') }}"></script>
     <script>
         $(function() {
+            @include('officialtravels.partials.lot-origin-posting-script')
             // Initialize Select2 Elements with custom themes (destination select handled on toggle)
             $('.select2-primary').select2({
                 theme: 'bootstrap4',
@@ -637,10 +632,11 @@
             }).on('change', function() {
                 const $option = $(this).find(':selected');
 
-                // Update main traveler details
-                $('.main-traveler-position').text($option.data('position') || '-');
-                $('.main-traveler-project').text($option.data('project') || '-');
-                $('.main-traveler-department').text($option.data('department') || '-');
+                if (!applyLotOriginPosting($option, $('.main-traveler-position'), $('.main-traveler-project'), $('.main-traveler-department'))) {
+                    $('.main-traveler-position').text($option.attr('data-position') || '-');
+                    $('.main-traveler-project').text($option.attr('data-project') || '-');
+                    $('.main-traveler-department').text($option.attr('data-department') || '-');
+                }
             });
 
             $('.select2-warning').select2({
@@ -696,10 +692,7 @@
                         <option value="">Select Employee</option>
                         @foreach ($employees as $employee)
                             <option value="{{ $employee['id'] }}"
-                                data-position="{{ $employee['position'] }}"
-                                data-project="{{ $employee['project'] }}"
-                                data-department="{{ $employee['department'] }}"
-                                data-department-id="{{ $employee['department_id'] }}">
+                                @include('officialtravels.partials.employee-option-data', ['employee' => $employee])>
                                 {{ $employee['nik'] }} - {{ $employee['fullname'] }}
                             </option>
                         @endforeach
@@ -734,9 +727,11 @@
                     const $option = $(this).find(':selected');
 
                     // Update employee details
-                    $row.find('.employee-position').text($option.data('position') || '-');
-                    $row.find('.employee-project').text($option.data('project') || '-');
-                    $row.find('.employee-department').text($option.data('department') || '-');
+                    if (!applyLotOriginPosting($option, $row.find('.employee-position'), $row.find('.employee-project'), $row.find('.employee-department'))) {
+                        $row.find('.employee-position').text($option.attr('data-position') || '-');
+                        $row.find('.employee-project').text($option.attr('data-project') || '-');
+                        $row.find('.employee-department').text($option.attr('data-department') || '-');
+                    }
                 });
             }
 
@@ -810,6 +805,7 @@
 
             // Approval Preview Functions
             function loadApprovalPreview() {
+                refreshLotOriginPostings();
                 const projectId = $('#official_travel_origin').val();
                 const travelerId = $('#traveler_id').val();
 
@@ -823,9 +819,8 @@
                     return;
                 }
 
-                // Get department_id from selected traveler
                 const selectedOption = $('#traveler_id option:selected');
-                const departmentId = selectedOption.data('department-id');
+                const departmentId = lotOriginPosting(selectedOption, projectId).departmentId;
 
                 if (!departmentId) {
                     $('#approvalPreview').html(`

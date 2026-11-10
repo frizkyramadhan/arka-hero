@@ -244,22 +244,28 @@
                     {{ $officialtravel->traveler->nik ?? 'N/A' }}</div>
             </div>
 
+            @php
+                $travelerPosting = \App\Support\LotOriginPosting::forAdministration(
+                    $officialtravel->traveler,
+                    $officialtravel->official_travel_origin,
+                );
+            @endphp
             <div class="info-row">
                 <div class="label">Title</div>
                 <div class="colon">:</div>
-                <div class="value">{{ $officialtravel->traveler->position->position_name ?? 'N/A' }}</div>
+                <div class="value">{{ $travelerPosting['position_name'] ?? 'N/A' }}</div>
             </div>
 
             <div class="info-row">
                 <div class="label">Business Unit</div>
                 <div class="colon">:</div>
-                <div class="value">{{ $officialtravel->traveler->project->project_name ?? 'N/A' }}</div>
+                <div class="value">{{ $travelerPosting['project_name'] ?? 'N/A' }}</div>
             </div>
 
             <div class="info-row">
                 <div class="label">Division / Department</div>
                 <div class="colon">:</div>
-                <div class="value">{{ $officialtravel->traveler->position->department->department_name ?? 'N/A' }}
+                <div class="value">{{ $travelerPosting['department_name'] ?? 'N/A' }}
                 </div>
             </div>
 
@@ -475,13 +481,19 @@
                 <tbody>
                     @if ($officialtravel->details->count() > 0)
                         @foreach ($officialtravel->details as $key => $detail)
+                            @php
+                                $followerPosting = \App\Support\LotOriginPosting::forAdministration(
+                                    $detail->follower,
+                                    $officialtravel->official_travel_origin,
+                                );
+                            @endphp
                             <tr>
                                 <td class="text-center">{{ $key + 1 }}</td>
                                 <td>{{ $detail->follower->employee->fullname ?? 'N/A' }} /
                                     {{ $detail->follower->nik ?? 'N/A' }}</td>
-                                <td>{{ $detail->follower->position->position_name ?? 'N/A' }}</td>
-                                <td>{{ $detail->follower->project->project_name ?? 'N/A' }}</td>
-                                <td>{{ $detail->follower->position->department->department_name ?? 'N/A' }}</td>
+                                <td>{{ $followerPosting['position_name'] ?? 'N/A' }}</td>
+                                <td>{{ $followerPosting['project_name'] ?? 'N/A' }}</td>
+                                <td>{{ $followerPosting['department_name'] ?? 'N/A' }}</td>
                             </tr>
                         @endforeach
                     @else
@@ -563,7 +575,7 @@
                                         default => 'pending',
                                     };
                                     $lotPlanTs = $plan->decisionAt() ?? $plan->created_at;
-                                    $lotApproverPosition = $plan->approver?->administration?->position?->position_name;
+                                    $lotApproverPosition = \App\Support\ApproverPosting::caption($plan);
                                 @endphp
                                 <div class="approver-block">
                                     <br>
@@ -604,7 +616,7 @@
                                         default => 'pending',
                                     };
                                     $lotPlanTs = $plan->decisionAt() ?? $plan->created_at;
-                                    $lotApproverPosition = $plan->approver?->administration?->position?->position_name;
+                                    $lotApproverPosition = \App\Support\ApproverPosting::caption($plan);
                                 @endphp
                                 <div class="approver-block">
                                     <br>

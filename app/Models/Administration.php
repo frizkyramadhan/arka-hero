@@ -35,6 +35,11 @@ class Administration extends Model
         return $this->belongsTo(Position::class);
     }
 
+    public function assignments()
+    {
+        return $this->hasMany(AdministrationAssignment::class);
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

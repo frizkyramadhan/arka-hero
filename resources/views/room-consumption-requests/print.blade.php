@@ -411,7 +411,7 @@
                                             default => 'pending',
                                         };
                                         $planTs = $plan->decisionAt() ?? $plan->created_at;
-                                        $position = $plan->approver?->administration?->position?->position_name;
+                                        $position = \App\Support\ApproverPosting::caption($plan);
                                     @endphp
                                     <div class="signature-approval-status-row">
                                         <span class="approval-status {{ $statusClass }}">{{ $statusText }}</span>
