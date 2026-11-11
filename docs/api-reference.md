@@ -128,7 +128,7 @@ Semua berikut adalah **`Route::apiResource`** — `POST`/`PUT`/`PATCH`/`DELETE` 
 
 Base path: **`/api/employees`**
 
-Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data administrasi karyawan: `nik`, **`employee`** = `{ "fullname" }` bila relasi dimuat, `position`, `project`, dll.), dibungkus `{ "status": "success", "data": [ ... ] }` kecuali `/list` dan `/genders`.
+Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data administrasi karyawan: `nik`, **`employee`** = `{ "fullname" }` bila relasi dimuat, `position`, `project`, dll.), dibungkus `{ "status": "success", "data": [ ... ] }` kecuali `/list`, `/genders`, dan `/lookup`. `/lookup` mengembalikan `employees.id`, nama, dan NIK aktif — bukan id administrasi.
 
 ### 5.1 `GET /api/employees`
 
@@ -175,7 +175,17 @@ Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data ad
 - **`{id}`:** **`employee_id`** (bukan primary key `administrations`).
 - **404:** Tidak ada administrasi, atau tidak ada administrasi aktif.
 
-**Urutan route:** Daftarkan route statis (`list`, `active`, `genders`, `by-nik/...`) sebelum `/{id}` — sudah benar di `routes/api.php`.
+### 5.8 `GET /api/employees/lookup`
+
+- **Nama route:** `api.employees.lookup`
+- **Fungsi:** Pencarian orang untuk ikatan eksternal (ARAIM). Bukan `AdministrationResource`.
+- **Query:** `q` (nama `fullname` atau NIK aktif, minimal 2 karakter) atau `id` (UUID `employees.id`).
+- **Yang dicocokkan:** administrasi `is_active = 1` dengan `active_nik` terisi. NIK lama yang sudah tidak aktif tidak ikut.
+- **Respons:** `{ "status": "success", "data": [ { "id", "name", "nik" } ] }`. `id` adalah `employees.id`. `nik` adalah `active_nik`. Maksimal 20 orang.
+- **404:** `id` terisi tetapi bukan UUID karyawan yang punya NIK aktif (termasuk bila yang dikirim id administrasi).
+- **Auth:** sama dengan endpoint `/api` lain: header `X-API-Key` bila `API_REQUIRE_KEY=true`.
+
+**Urutan route:** Daftarkan route statis (`list`, `active`, `genders`, `lookup`, `by-nik/...`) sebelum `/{id}` — sudah benar di `routes/api.php`.
 
 ---
 
@@ -642,6 +652,7 @@ Untuk integrasi **eksternal** server-to-server, gunakan endpoint di **§1–§10
 
 | Tanggal    | Perubahan                                                                                                                                                                                                                                                             |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-11-11 | **§5.8** `GET /api/employees/lookup`: `employees.id`, nama, dan NIK aktif untuk ikatan eksternal. Bukan id administrasi dan bukan NIK historis.                                                                                                                      |
 | 2026-04-10 | Dokumen awal berdasarkan `routes/api.php` dan controller `Api\V1`                                                                                                                                                                                                     |
 | 2026-04-10 | Bagian **Workforce** (`/api/workforce/...`) — profil, aktivitas, cuti/LOT/lembur                                                                                                                                                                                      |
 | 2026-04-10 | **§10.5** Tutorial Postman untuk Workforce                                                                                                                                                                                                                            |
@@ -759,6 +770,7 @@ Daftar ringkas mengikuti **`routes/api.php`** (semua path berawalan **`/api`**).
 | `GET`  | `/employees/list`         |
 | `GET`  | `/employees/active`       |
 | `GET`  | `/employees/genders`      |
+| `GET`  | `/employees/lookup`       |
 | `POST` | `/employees/search`       |
 | `GET`  | `/employees/by-nik/{nik}` |
 | `GET`  | `/employees/{id}`         |

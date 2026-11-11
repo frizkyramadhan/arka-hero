@@ -1,5 +1,13 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-11-10
+**Last Updated**: 2026-11-11
+
+### [087] Lookup karyawan untuk ikatan ARAIM (2026-11-11)
+
+**Need**: ARAIM menyimpan `employees.id`, bukan id administrasi dan bukan NIK. NIK Hero bisa berganti.
+
+**Behavior**: `GET /api/employees/lookup?q=` mencocokkan `fullname` atau `active_nik` pada administrasi aktif. `?id=` hanya UUID `employees.id`. Respons `{ id, name, nik }` memakai `employees.id` dan NIK aktif. NIK yang sudah tidak aktif tidak ketemu. Id administrasi mengembalikan 404. Auth sama dengan `/api` lain (`X-API-Key`).
+
+**Files**: `EmployeeApiController::lookup`, `routes/api.php` (`api.employees.lookup`), `tests/Feature/EmployeeLookupTest.php`.
 
 ### [086] Satu NIK, beberapa jabatan approver (2026-11-10)
 

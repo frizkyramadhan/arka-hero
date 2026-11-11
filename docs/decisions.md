@@ -1,5 +1,5 @@
 **Purpose**: Record technical decisions and rationale for future reference
-**Last Updated**: 2026-09-08
+**Last Updated**: 2026-11-11
 
 # Technical Decision Records - ARKA HERO HRMS
 
@@ -29,6 +29,18 @@ Decision: [Title] - [YYYY-MM-DD]
 ---
 
 ## Recent Decisions
+
+### Decision: External employee link uses a person lookup - 2026-11-11
+
+**Context**: ARAIM must store Arka Hero `employees.id`. `POST /api/employees/search` and `GET /api/employees/by-nik/{nik}` return administration rows. `AdministrationResource` exposes the administration id and the employee name, not `employees.id`. Those routes also match a NIK that is no longer active.
+
+**Decision**: `GET /api/employees/lookup` returns `employees.id`, `name`, and `active_nik` for people with an active administration. Search is by name or that current NIK. An administration id is not a result id.
+
+**Rationale**: The stable person key is `employees.id`. NIK changes, especially for contract employees, must not be the link.
+
+**Implementation**: `EmployeeApiController::lookup`, route `api.employees.lookup`, before `/api/employees/{id}`.
+
+**Review Date**: 2026-12-11
 
 ### Decision: Cancelled FOA does not hold the letter - 2026-10-21
 

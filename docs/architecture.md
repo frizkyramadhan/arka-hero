@@ -1,5 +1,5 @@
 Purpose: Technical reference for understanding system design and development patterns
-**Last Updated**: 2026-08-31
+**Last Updated**: 2026-11-11
 
 ## Architecture Documentation Guidelines
 
@@ -735,7 +735,8 @@ erDiagram
 - `GET /api/employees` - List employees with pagination
 - `GET /api/employees/list` - Get employees for dropdowns
 - `GET /api/employees/active` - Active employees only
-- `POST /api/employees/search` - Search employees
+- `POST /api/employees/search` - Search administrations (administration id, any NIK)
+- `GET /api/employees/lookup` - Search a person by name or active NIK. Returns `employees.id`, `name`, and `active_nik` for an external link. Does not return an administration id.
 - `GET/POST/PUT/DELETE /api/v1/employees/{id}` - Full CRUD with auth
 - `GET/POST/DELETE /api/v1/employees/{id}/licenses` - Employee licenses
 - `GET/POST/DELETE /api/v1/employees/{id}/insurances` - Employee insurances

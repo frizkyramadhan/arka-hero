@@ -8,6 +8,7 @@ use App\Models\Administration;
 use App\Models\Employee;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class EmployeeApiController extends Controller
 {
@@ -320,5 +321,83 @@ class EmployeeApiController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * People an external system can link to.
+     * `id` is employees.id. `nik` is the active NIK only. Administration ids are not returned.
+     */
+    public function lookup(Request $request)
+    {
+        $id = trim((string) $request->query('id', ''));
+        $q = trim((string) $request->query('q', ''));
+
+        if ($id === '' && $q === '') {
+            return response()->json([
+                'status' => 'success',
+                'data' => [],
+            ], 200);
+        }
+
+        $query = Administration::query()
+            ->where('is_active', 1)
+            ->whereNotNull('active_nik')
+            ->where('active_nik', '!=', '')
+            ->whereHas('employee');
+
+        if ($id !== '') {
+            if (! Str::isUuid($id)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Employee not found',
+                    'data' => [],
+                ], 404);
+            }
+            $query->where('employee_id', $id);
+        } else {
+            $term = str_replace(['%', '_'], '', $q);
+            if (strlen($term) < 2) {
+                return response()->json([
+                    'status' => 'success',
+                    'data' => [],
+                ], 200);
+            }
+            $query->where(function (Builder $person) use ($term) {
+                $person->where('active_nik', 'like', '%'.$term.'%')
+                    ->orWhereHas('employee', function (Builder $employee) use ($term) {
+                        $employee->where('fullname', 'like', '%'.$term.'%');
+                    });
+            });
+        }
+
+        $rows = $query->with('employee:id,fullname')
+            ->orderByDesc('id')
+            ->limit(20)
+            ->get();
+
+        $data = $rows->map(function ($administration) {
+            if (! $administration->employee) {
+                return null;
+            }
+
+            return [
+                'id' => $administration->employee->id,
+                'name' => $administration->employee->fullname,
+                'nik' => (string) $administration->active_nik,
+            ];
+        })->filter()->unique('id')->values();
+
+        if ($id !== '' && $data->isEmpty()) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Employee not found',
+                'data' => [],
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $data,
+        ], 200);
     }
 }
