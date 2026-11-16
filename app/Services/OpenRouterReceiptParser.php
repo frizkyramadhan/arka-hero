@@ -242,8 +242,26 @@ PROMPT;
                 'message' => $e->getMessage(),
             ]);
 
-            return ['success' => false, 'message' => $e->getMessage()];
+            return ['success' => false, 'message' => $this->exceptionMessage($e)];
         }
+    }
+
+    protected function exceptionMessage(\Throwable $e): string
+    {
+        $msg = strtolower($e->getMessage());
+
+        if (str_contains($msg, 'connection timed out')
+            || str_contains($msg, 'failed to connect')
+            || str_contains($msg, 'connection refused')
+            || str_contains($msg, 'could not resolve host')) {
+            return 'Server AI tidak dapat dihubungi. Coba lagi beberapa saat, atau isi data nota secara manual.';
+        }
+
+        if (str_contains($msg, 'operation timed out') || str_contains($msg, 'curl error 28')) {
+            return 'Server AI terlalu lama merespons. Coba lagi, atau isi data nota secara manual.';
+        }
+
+        return 'Terjadi gangguan saat memproses nota dengan AI. Coba lagi, atau isi data nota secara manual.';
     }
 
     /**

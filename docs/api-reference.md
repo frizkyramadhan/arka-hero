@@ -164,18 +164,26 @@ Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data ad
 | `project`    | `project_code` atau `project_name` |
 | `name`       | `fullname` employee                |
 
-### 5.6 `GET /api/employees/by-nik/{nik}`
+### 5.6 `POST /api/employees/status`
+
+- **Nama route:** `api.employees.status-by-nik`
+- **Body (JSON):** `{ "nik": "..." }` — NIK pada tabel **administrations** (exact match).
+- **Fungsi:** Cek status aktif karyawan.
+- **200:** `{ "status": true }` jika ada administrasi dengan `is_active = 1`; `{ "status": false }` jika NIK ada tapi tidak ada yang aktif.
+- **404:** `{ "status": "not found" }` jika `nik` kosong/tidak dikirim, atau NIK tidak ada di `administrations`.
+
+### 5.7 `GET /api/employees/by-nik/{nik}`
 
 - **Nama route:** `api.employees.show-by-nik`
 - **Path `{nik}`:** NIK pada tabel **administrations** (exact match).
 - **404:** Tidak ada administrasi, atau tidak ada yang aktif (sama logika dengan `show`).
 
-### 5.7 `GET /api/employees/{id}`
+### 5.8 `GET /api/employees/{id}`
 
 - **`{id}`:** **`employee_id`** (bukan primary key `administrations`).
 - **404:** Tidak ada administrasi, atau tidak ada administrasi aktif.
 
-**Urutan route:** Daftarkan route statis (`list`, `active`, `genders`, `by-nik/...`) sebelum `/{id}` — sudah benar di `routes/api.php`.
+**Urutan route:** Daftarkan route statis (`list`, `active`, `genders`, `status`, `by-nik/...`) sebelum `/{id}` — sudah benar di `routes/api.php`.
 
 ---
 
@@ -760,6 +768,7 @@ Daftar ringkas mengikuti **`routes/api.php`** (semua path berawalan **`/api`**).
 | `GET`  | `/employees/active`       |
 | `GET`  | `/employees/genders`      |
 | `POST` | `/employees/search`       |
+| `POST` | `/employees/status`       |
 | `GET`  | `/employees/by-nik/{nik}` |
 | `GET`  | `/employees/{id}`         |
 

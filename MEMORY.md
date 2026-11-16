@@ -1,5 +1,13 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-11-10
+**Last Updated**: 2026-11-16
+
+### [087] API status karyawan by NIK (2026-11-16)
+
+**Need**: External consumer cek status karyawan by NIK tanpa payload penuh.
+
+**Behavior**: `POST /api/employees/status` body `{ "nik": "..." }` → `{ "status": true|false|"not found" }` (404 untuk not found).
+
+**Files**: `EmployeeApiController::statusByNik`, `routes/api.php`, `docs/api-reference.md`.
 
 ### [086] Satu NIK, beberapa jabatan approver (2026-11-10)
 
