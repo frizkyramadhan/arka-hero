@@ -125,4 +125,28 @@ class ReceiptAiDriverConfigTest extends TestCase
             return ($data['stream'] ?? null) === false;
         });
     }
+
+    public function test_connection_timeout_returns_friendly_message(): void
+    {
+        config([
+            'receipt_ai.driver' => '9router',
+            'receipt_ai.9router.base_url' => 'http://9router.test/v1',
+            'receipt_ai.9router.api_key' => 'nr-key',
+            'receipt_ai.9router.model' => 'gemini/gemini-3.5-flash-lite',
+            'receipt_ai.9router.timeout' => 30,
+        ]);
+
+        Http::fake(function () {
+            throw new \Illuminate\Http\Client\ConnectionException(
+                'cURL error 28: Connection timed out after 10002 milliseconds for http://9router.test/v1/chat/completions'
+            );
+        });
+
+        $tinyPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+        $result = app(OpenRouterReceiptParser::class)->parseDataUrl('data:image/png;base64,'.base64_encode($tinyPng));
+
+        $this->assertFalse($result['success']);
+        $this->assertStringStartsWith('Server AI tidak dapat dihubungi', $result['message']);
+        $this->assertStringNotContainsString('cURL', $result['message']);
+    }
 }

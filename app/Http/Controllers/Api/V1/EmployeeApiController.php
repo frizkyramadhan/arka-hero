@@ -239,6 +239,29 @@ class EmployeeApiController extends Controller
     }
 
     /**
+     * Active status for an employee identified by administration NIK.
+     * Returns only: true, false, or "not found".
+     *
+     * Body: { "nik": "..." }
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function statusByNik(Request $request)
+    {
+        $nik = $request->input('nik');
+        if ($nik === null || $nik === '') {
+            return response()->json(['status' => 'not found'], 404);
+        }
+
+        $flags = Administration::where('nik', $nik)->pluck('is_active');
+        if ($flags->isEmpty()) {
+            return response()->json(['status' => 'not found'], 404);
+        }
+
+        return response()->json(['status' => $flags->contains(1)]);
+    }
+
+    /**
      * Search for administrations based on various criteria.
      *
      * @return \Illuminate\Http\JsonResponse
