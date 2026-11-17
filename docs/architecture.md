@@ -1,5 +1,5 @@
 Purpose: Technical reference for understanding system design and development patterns
-**Last Updated**: 2026-08-31
+**Last Updated**: 2026-11-16
 
 ## Architecture Documentation Guidelines
 
@@ -1340,7 +1340,8 @@ resources/views/
 ### External Systems
 
 - **Email System**: PHPMailer for sending emails (registration invitations, notifications)
-- **No External APIs**: Currently self-contained system
+- **ARAIM (inventories)**: Hero reads current inventories live via `AraimInventoriesClient` → `GET {ARAIM_API_URL}/hero/employees/{uuid}/inventories` with header `X-API-Key: {ARAIM_API_KEY}` (must match ARAIM `API_KEY`; Bearer not accepted). `ARAIM_API_URL` includes `/api` (e.g. `http://localhost/araim.v2/api`). No local inventory copy. ARAIM binds people using Hero UUID from `GET /api/employees/lookup`. Config: `config/araim.php`.
+- **ArkFleet / IT WO / receipt AI / Telegram**: See vehicle and fuel modules (`ArkFleetClient`, `ItWoZoomClient`, OpenRouter/9router, Telegram fuel bot).
 
 ### Internal Integrations
 

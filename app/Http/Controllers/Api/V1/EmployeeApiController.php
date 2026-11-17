@@ -239,6 +239,76 @@ class EmployeeApiController extends Controller
     }
 
     /**
+     * Lightweight person lookup for external binding (e.g. ARAIM).
+     * Returns stable employee UUID, fullname, and active NIK.
+     *
+     * Query: q (required) — matches fullname (LIKE) or active/admin NIK.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function lookup(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if ($q === '') {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Query parameter q is required',
+                'data' => [],
+            ], 422);
+        }
+
+        try {
+            $limit = min(50, max(1, (int) $request->query('limit', 20)));
+
+            $employees = Employee::query()
+                ->select('employees.id', 'employees.fullname')
+                ->where(function (Builder $outer) use ($q) {
+                    $outer->where('employees.fullname', 'LIKE', '%'.$q.'%')
+                        ->orWhereHas('administrations', function (Builder $admin) use ($q) {
+                            $admin->where('is_active', 1)
+                                ->where(function (Builder $nik) use ($q) {
+                                    $nik->where('nik', 'LIKE', '%'.$q.'%')
+                                        ->orWhere('active_nik', 'LIKE', '%'.$q.'%');
+                                });
+                        });
+                })
+                ->whereHas('administrations', function (Builder $admin) {
+                    $admin->where('is_active', 1);
+                })
+                ->with(['administrations' => function ($rel) {
+                    $rel->where('is_active', 1)
+                        ->orderByDesc('id')
+                        ->select('id', 'employee_id', 'nik', 'active_nik', 'is_active');
+                }])
+                ->orderBy('employees.fullname')
+                ->limit($limit)
+                ->get();
+
+            $data = $employees->map(function (Employee $employee) {
+                $active = $employee->administrations->first();
+
+                return [
+                    'id' => $employee->id,
+                    'fullname' => $employee->fullname,
+                    'active_nik' => $active
+                        ? (string) ($active->active_nik ?: $active->nik)
+                        : null,
+                ];
+            })->values();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $data,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Active status for an employee identified by administration NIK.
      * Returns only: true, false, or "not found".
      *

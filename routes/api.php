@@ -88,6 +88,7 @@ Route::prefix('employees')->group(function () {
     Route::get('/genders', [EmployeeApiController::class, 'genders'])->name('api.employees.genders');
     Route::post('/search', [EmployeeApiController::class, 'search']);
     Route::post('/status', [EmployeeApiController::class, 'statusByNik'])->name('api.employees.status-by-nik');
+    Route::get('/lookup', [EmployeeApiController::class, 'lookup'])->name('api.employees.lookup');
     Route::get('/by-nik/{nik}', [EmployeeApiController::class, 'showByNik'])->name('api.employees.show-by-nik');
     Route::get('/{id}', [EmployeeApiController::class, 'show']);
 });

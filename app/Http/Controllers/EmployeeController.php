@@ -30,23 +30,26 @@ use App\Models\Operableunit;
 use App\Models\Position;
 use App\Models\Religion;
 use App\Models\Taxidentification;
+use App\Services\AraimInventoriesClient;
 use App\Support\EmployeeSupportingDocumentStorage;
 use App\Support\UserProject;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
 
 class EmployeeController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('role_or_permission:employees.show')->only('index', 'show', 'getDepartment');
+        $this->middleware('role_or_permission:employees.show')->only('index', 'show', 'getDepartment', 'inventoriesData');
         $this->middleware('role_or_permission:employees.create')->only('create');
         $this->middleware('role_or_permission:employees.edit')->only('edit', 'deleteKtpDocument', 'deleteKkDocument');
         $this->middleware('role_or_permission:employees.delete')->only('destroy');
@@ -95,19 +98,19 @@ class EmployeeController extends Controller
 
         // Individual column filters — each is an independent AND condition
         if (! empty($request->get('nik'))) {
-            $query->where('nik', 'LIKE', '%'.$request->get('nik').'%');
+            $query->where('nik', 'LIKE', '%' . $request->get('nik') . '%');
         }
         if (! empty($request->get('fullname'))) {
-            $query->where('fullname', 'LIKE', '%'.$request->get('fullname').'%');
+            $query->where('fullname', 'LIKE', '%' . $request->get('fullname') . '%');
         }
         if (! empty($request->get('poh'))) {
-            $query->where('poh', 'LIKE', '%'.$request->get('poh').'%');
+            $query->where('poh', 'LIKE', '%' . $request->get('poh') . '%');
         }
         if (! empty($request->get('department_name'))) {
-            $query->where('department_name', 'LIKE', '%'.$request->get('department_name').'%');
+            $query->where('department_name', 'LIKE', '%' . $request->get('department_name') . '%');
         }
         if (! empty($request->get('position_name'))) {
-            $query->where('position_name', 'LIKE', '%'.$request->get('position_name').'%');
+            $query->where('position_name', 'LIKE', '%' . $request->get('position_name') . '%');
         }
         if (! empty($request->get('grade_id'))) {
             $query->where('administrations.grade_id', $request->get('grade_id'));
@@ -116,10 +119,10 @@ class EmployeeController extends Controller
             $query->where('administrations.level_id', $request->get('level_id'));
         }
         if (! empty($request->get('project_code'))) {
-            $query->where('project_code', 'LIKE', '%'.$request->get('project_code').'%');
+            $query->where('project_code', 'LIKE', '%' . $request->get('project_code') . '%');
         }
         if (! empty($request->get('class'))) {
-            $query->where('class', 'LIKE', '%'.$request->get('class').'%');
+            $query->where('class', 'LIKE', '%' . $request->get('class') . '%');
         }
 
         // Status filter — active (default), inactive, or all
@@ -350,7 +353,7 @@ class EmployeeController extends Controller
         if ($checkInsurance == true) {
             foreach ($data['health_insurance_type'] as $insurance => $value) {
                 $docPath = null;
-                $insFile = $request->file('insurance_supporting_document.'.$insurance);
+                $insFile = $request->file('insurance_supporting_document.' . $insurance);
                 if ($insFile && $insFile->isValid()) {
                     $docPath = EmployeeSupportingDocumentStorage::storeForEmployee(
                         $insFile,
@@ -390,7 +393,7 @@ class EmployeeController extends Controller
         if ($checkEducation == true) {
             foreach ($data['education_name'] as $education => $value) {
                 $diplomaPath = null;
-                $eduFile = $request->file('education_supporting_document.'.$education);
+                $eduFile = $request->file('education_supporting_document.' . $education);
                 if ($eduFile && $eduFile->isValid()) {
                     $diplomaPath = EmployeeSupportingDocumentStorage::storeForEmployee(
                         $eduFile,
@@ -456,7 +459,7 @@ class EmployeeController extends Controller
         if ($checkLicense == true) {
             foreach ($data['driver_license_type'] as $license => $value) {
                 $licDocPath = null;
-                $licFile = $request->file('license_supporting_document.'.$license);
+                $licFile = $request->file('license_supporting_document.' . $license);
                 if ($licFile && $licFile->isValid()) {
                     $licDocPath = EmployeeSupportingDocumentStorage::storeForEmployee(
                         $licFile,
@@ -545,14 +548,14 @@ class EmployeeController extends Controller
         }
 
         if ($request->hasfile('filename')) {
-            $directories = Storage::directories('public/images/'.$employee->id);
+            $directories = Storage::directories('public/images/' . $employee->id);
             if (count($directories) == 0) {
-                $path = public_path().'/images/'.$employee->id;
+                $path = public_path() . '/images/' . $employee->id;
                 File::makeDirectory($path, $mode = 0777, true, true);
             }
             foreach ($request->file('filename') as $image) {
                 $name = $image->getClientOriginalName();
-                $image->move(public_path().'/images/'.$employee->id, $name);
+                $image->move(public_path() . '/images/' . $employee->id, $name);
 
                 $image = new Image;
                 $image->employee_id = $employee->id;
@@ -607,6 +610,8 @@ class EmployeeController extends Controller
             ->orderByDesc('id')
             ->get();
 
+        $araimConfigured = app(AraimInventoriesClient::class)->isConfigured();
+
         // for select option
         $religions = Religion::orderBy('id', 'asc')->get();
         $getBanks = Bank::orderBy('bank_name', 'asc')->get();
@@ -615,7 +620,158 @@ class EmployeeController extends Controller
         $grades = Grade::where('is_active', 1)->orderBy('name', 'asc')->get();
         $levels = Level::where('is_active', 1)->orderBy('name', 'asc')->get();
 
-        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'grades', 'levels', 'profile', 'lastAdministration', 'mutations'));
+        return view('employee.detail', compact('title', 'subtitle', 'employee', 'banks', 'bank', 'tax', 'insurances', 'families', 'educations', 'courses', 'jobs', 'units', 'licenses', 'emergencies', 'additional', 'administrations', 'images', 'religions', 'getBanks', 'positions', 'projects', 'grades', 'levels', 'profile', 'lastAdministration', 'mutations', 'araimConfigured'));
+    }
+
+    /**
+     * Server-side DataTable of ARAIM inventories for one employee (live, no local copy).
+     */
+    public function inventoriesData(Employee $employee)
+    {
+        if (! UserProject::canViewEmployee($employee)) {
+            return UserProject::redirectAccessDenied();
+        }
+
+        $result = app(AraimInventoriesClient::class)
+            ->inventoriesForEmployee((string) $employee->id);
+
+        if (in_array($result['status'], ['unconfigured', 'error'], true)) {
+            return response()->json([
+                'draw' => (int) request('draw'),
+                'recordsTotal' => 0,
+                'recordsFiltered' => 0,
+                'data' => [],
+                'araim_status' => $result['status'],
+                'araim_message' => $result['message'] ?? null,
+            ]);
+        }
+
+        $rows = collect($result['items'])->values()->map(function (array $item, int $index) {
+            $projectLabel = null;
+            if (! empty($item['project_code']) && ! empty($item['project_name'])) {
+                $projectLabel = $item['project_code'] . ' — ' . $item['project_name'];
+            } else {
+                $projectLabel = $item['project_code'] ?? $item['project_name'] ?? null;
+            }
+
+            return (object) array_merge($item, [
+                'row_key' => ($item['inventory_no'] ?? 'row') . '-' . $index,
+                'project_label' => $projectLabel,
+            ]);
+        });
+
+        return DataTables::of($rows)
+            ->addIndexColumn()
+            ->editColumn('inventory_no', fn($row) => e($row->inventory_no ?: '—'))
+            ->editColumn('asset_name', fn($row) => e($row->asset_name ?: '—'))
+            ->editColumn('serial_no', fn($row) => e($row->serial_no ?: '—'))
+            ->editColumn('quantity', fn($row) => e($row->quantity === null || $row->quantity === '' ? '—' : $row->quantity))
+            ->addColumn('inventory_status_badge', fn($row) => $this->inventoryStatusBadge($row->inventory_status ?? null))
+            ->addColumn('project_label_display', fn($row) => e($row->project_label ?: '—'))
+            ->addColumn('date_formatted', function ($row) {
+                if (empty($row->date)) {
+                    return '—';
+                }
+                try {
+                    return e(Carbon::parse($row->date)->format('d M Y'));
+                } catch (\Throwable $e) {
+                    return '—';
+                }
+            })
+            ->addColumn('detail_btn', function ($row) {
+                return '<button type="button" class="btn btn-sm btn-link p-0 text-secondary inventory-detail-toggle" title="Detail & history">'
+                    . '<i class="fas fa-info-circle"></i></button>';
+            })
+            ->addColumn('detail_html', fn($row) => $this->inventoryDetailHtml((array) $row))
+            ->rawColumns([
+                'inventory_no',
+                'asset_name',
+                'serial_no',
+                'quantity',
+                'inventory_status_badge',
+                'project_label_display',
+                'date_formatted',
+                'detail_btn',
+                'detail_html',
+            ])
+            ->with([
+                'araim_status' => $result['status'],
+            ])
+            ->make(true);
+    }
+
+    private function inventoryStatusBadge(?string $status): string
+    {
+        if ($status === null || $status === '') {
+            return '—';
+        }
+
+        $class = match (strtolower($status)) {
+            'good' => 'badge badge-success',
+            'broken' => 'badge badge-danger',
+            'lost' => 'badge badge-dark',
+            'available' => 'badge badge-primary',
+            'mutated' => 'badge badge-secondary',
+            default => 'badge badge-light',
+        };
+
+        return '<span class="' . $class . '">' . e($status) . '</span>';
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private function inventoryDetailHtml(array $item): string
+    {
+        $dash = function ($value) {
+            if ($value === null || $value === '') {
+                return '—';
+            }
+
+            return e((string) $value);
+        };
+
+        $history = is_array($item['history'] ?? null) ? $item['history'] : [];
+        $historyRows = '';
+        if ($history === []) {
+            $historyRows = '<tr><td colspan="6" class="text-muted">No holder history.</td></tr>';
+        } else {
+            foreach ($history as $row) {
+                $date = '—';
+                if (! empty($row['date'])) {
+                    try {
+                        $date = e(Carbon::parse($row['date'])->format('d M Y'));
+                    } catch (\Throwable $e) {
+                        $date = '—';
+                    }
+                }
+                $historyRows .= '<tr>'
+                    . '<td>' . $dash($row['holder_name'] ?? null) . '</td>'
+                    . '<td>' . $dash($row['nik'] ?? null) . '</td>'
+                    . '<td>' . $this->inventoryStatusBadge($row['inventory_status'] ?? null) . '</td>'
+                    . '<td>' . $this->inventoryStatusBadge($row['transfer_status'] ?? null) . '</td>'
+                    . '<td>' . $dash($row['quantity'] ?? null) . '</td>'
+                    . '<td>' . $date . '</td>'
+                    . '</tr>';
+            }
+        }
+
+        return '<div class="inventory-detail-panel">'
+            . '<div class="inventory-detail-fields">'
+            . '<div><small class="text-muted d-block">Brand</small><strong>' . $dash($item['brand_name'] ?? null) . '</strong></div>'
+            . '<div><small class="text-muted d-block">Model</small><strong>' . $dash($item['model_asset'] ?? null) . '</strong></div>'
+            . '<div><small class="text-muted d-block">Part No</small><strong>' . $dash($item['part_no'] ?? null) . '</strong></div>'
+            . '<div><small class="text-muted d-block">Department</small><strong>' . $dash($item['department_name'] ?? null) . '</strong></div>'
+            . '<div><small class="text-muted d-block">Location</small><strong>' . $dash($item['location_name'] ?? null) . '</strong></div>'
+            . '<div><small class="text-muted d-block">Transfer Status</small><strong>' . $this->inventoryStatusBadge($item['transfer_status'] ?? null) . '</strong></div>'
+            . '</div>'
+            . '<div class="inventory-detail-block mb-3"><small class="text-muted d-block">Remarks</small><strong>' . $dash($item['remarks'] ?? null) . '</strong></div>'
+            . '<div class="inventory-detail-block mb-2"><strong>Holder history</strong></div>'
+            . '<div class="inventory-detail-block">'
+            . '<table class="table table-sm table-bordered mb-0 bg-white">'
+            . '<thead><tr><th>Holder</th><th>ARAIM NIK</th><th>Item status</th><th>Transfer</th><th>Qty</th><th>Date</th></tr></thead>'
+            . '<tbody>' . $historyRows . '</tbody></table></div>'
+            . '</div>';
     }
 
     public function edit($id)
@@ -654,7 +810,7 @@ class EmployeeController extends Controller
     {
         $this->validate($request, [
             'fullname' => 'required',
-            'identity_card' => 'required|unique:employees,identity_card,'.$id,
+            'identity_card' => 'required|unique:employees,identity_card,' . $id,
             'emp_pob' => 'required',
             'emp_dob' => 'required',
             'ktp_document' => EmployeeSupportingDocumentStorage::MIME_RULE,
@@ -709,7 +865,7 @@ class EmployeeController extends Controller
 
         $employee->save();
 
-        return redirect('employees/'.$id)->with('toast_success', 'Employee edited successfully');
+        return redirect('employees/' . $id)->with('toast_success', 'Employee edited successfully');
     }
 
     public function downloadKtpDocument(Employee $employee)
@@ -741,7 +897,7 @@ class EmployeeController extends Controller
         EmployeeSupportingDocumentStorage::deleteIfExists($employee->ktp_document_path);
         $employee->forceFill(['ktp_document_path' => null])->save();
 
-        return redirect('employees/'.$employee->id.'#personal')->with('toast_success', 'Dokumen KTP berhasil dihapus.');
+        return redirect('employees/' . $employee->id . '#personal')->with('toast_success', 'Dokumen KTP berhasil dihapus.');
     }
 
     public function deleteKkDocument(Employee $employee)
@@ -753,7 +909,7 @@ class EmployeeController extends Controller
         EmployeeSupportingDocumentStorage::deleteIfExists($employee->kk_document_path);
         $employee->forceFill(['kk_document_path' => null])->save();
 
-        return redirect('employees/'.$employee->id.'#personal')->with('toast_success', 'Dokumen KK berhasil dihapus.');
+        return redirect('employees/' . $employee->id . '#personal')->with('toast_success', 'Dokumen KK berhasil dihapus.');
     }
 
     public function destroy($employee_id)
@@ -772,7 +928,7 @@ class EmployeeController extends Controller
             Education::where('employee_id', $employee_id)->pluck('diploma_document_path')->all(),
         );
         $imageFiles = Image::where('employee_id', $employee_id)->pluck('filename')
-            ->map(fn ($filename) => public_path('images/'.$employee_id.'/'.$filename));
+            ->map(fn($filename) => public_path('images/' . $employee_id . '/' . $filename));
 
         try {
             DB::transaction(function () use ($employee_id) {
@@ -862,14 +1018,14 @@ class EmployeeController extends Controller
         ]);
 
         if ($request->hasfile('filename')) {
-            $directories = Storage::directories('public/images/'.$employee->id);
+            $directories = Storage::directories('public/images/' . $employee->id);
             if (count($directories) == 0) {
-                $path = public_path().'/images/'.$employee->id;
+                $path = public_path() . '/images/' . $employee->id;
                 File::makeDirectory($path, $mode = 0777, true, true);
             }
             foreach ($request->file('filename') as $image) {
                 $name = $image->getClientOriginalName();
-                $image->move(public_path().'/images/'.$employee->id, $name);
+                $image->move(public_path() . '/images/' . $employee->id, $name);
 
                 $image = new Image;
                 $image->employee_id = $employee->id;
@@ -880,7 +1036,7 @@ class EmployeeController extends Controller
             }
         }
 
-        return redirect('employees/'.$id.'#image')->with('toast_success', 'Images uploaded successfully');
+        return redirect('employees/' . $id . '#image')->with('toast_success', 'Images uploaded successfully');
     }
 
     public function deleteImage($employee_id, $id)
@@ -889,30 +1045,30 @@ class EmployeeController extends Controller
         if ($images->count() == 1) { // jika image sisa 1, hapus juga foldernya
             $image = Image::find($id);
             // delete image
-            $img = public_path('images/'.$image->employee_id.'/'.$image->filename);
+            $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
             if (file_exists($img)) {
                 unlink($img);
                 Image::where('id', $image->id)->delete();
-                File::deleteDirectory(public_path('images/'.$image->employee_id));
+                File::deleteDirectory(public_path('images/' . $image->employee_id));
             }
         } else {
             $image = Image::find($id);
             // delete image
-            $img = public_path('images/'.$image->employee_id.'/'.$image->filename);
+            $img = public_path('images/' . $image->employee_id . '/' . $image->filename);
             if (file_exists($img)) {
                 unlink($img);
                 Image::where('id', $image->id)->delete();
             }
         }
 
-        return redirect('employees/'.$image->employee_id.'#image')->with('toast_success', 'Image successfully deleted!');
+        return redirect('employees/' . $image->employee_id . '#image')->with('toast_success', 'Image successfully deleted!');
     }
 
     public function deleteImages($employee_id)
     {
         $images = Image::where('employee_id', $employee_id)->get();
         // delete folder
-        $path = public_path('images/'.$employee_id);
+        $path = public_path('images/' . $employee_id);
         if (file_exists($path)) {
             Image::where('employee_id', $employee_id)->delete();
             File::deleteDirectory($path);
@@ -926,7 +1082,7 @@ class EmployeeController extends Controller
         //         Image::where('id', $image->id)->delete();
         //     }
         // }
-        return redirect('employees/'.$employee_id.'#image')->with('toast_success', 'All images successfully deleted!');
+        return redirect('employees/' . $employee_id . '#image')->with('toast_success', 'All images successfully deleted!');
     }
 
     public function setProfile($employee_id, $id)
@@ -936,7 +1092,7 @@ class EmployeeController extends Controller
         $image->save();
         Image::where('employee_id', $employee_id)->where('id', '!=', $id)->update(['is_profile' => 0]);
 
-        return redirect('employees/'.$employee_id.'#image')->with('toast_success', 'Profile Picture Set Successfully');
+        return redirect('employees/' . $employee_id . '#image')->with('toast_success', 'Profile Picture Set Successfully');
     }
 
     public function getDepartment()
@@ -961,7 +1117,7 @@ class EmployeeController extends Controller
                 'department_name' => $department->department_name,
             ]);
         } catch (\Exception $e) {
-            Log::error('Error in getDepartment: '.$e->getMessage());
+            Log::error('Error in getDepartment: ' . $e->getMessage());
 
             return response()->json(['error' => 'Internal server error'], 500);
         }
@@ -1041,67 +1197,67 @@ class EmployeeController extends Controller
                 if (! empty($request->get('fullname'))) {
                     $instance->where(function ($w) use ($request) {
                         $fullname = $request->get('fullname');
-                        $w->orWhere('fullname', 'LIKE', '%'.$fullname.'%');
+                        $w->orWhere('fullname', 'LIKE', '%' . $fullname . '%');
                     });
                 }
                 if (! empty($request->get('emp_pob'))) {
                     $instance->where(function ($w) use ($request) {
                         $emp_pob = $request->get('emp_pob');
-                        $w->orWhere('emp_pob', 'LIKE', '%'.$emp_pob.'%');
+                        $w->orWhere('emp_pob', 'LIKE', '%' . $emp_pob . '%');
                     });
                 }
                 if (! empty($request->get('religion_name'))) {
                     $instance->where(function ($w) use ($request) {
                         $religion_name = $request->get('religion_name');
-                        $w->orWhere('religion_name', 'LIKE', '%'.$religion_name.'%');
+                        $w->orWhere('religion_name', 'LIKE', '%' . $religion_name . '%');
                     });
                 }
                 if (! empty($request->get('gender'))) {
                     $instance->where(function ($w) use ($request) {
                         $gender = $request->get('gender');
-                        $w->orWhere('gender', 'LIKE', '%'.$gender.'%');
+                        $w->orWhere('gender', 'LIKE', '%' . $gender . '%');
                     });
                 }
                 if (! empty($request->get('marital'))) {
                     $instance->where(function ($w) use ($request) {
                         $marital = $request->get('marital');
-                        $w->orWhere('marital', 'LIKE', '%'.$marital.'%');
+                        $w->orWhere('marital', 'LIKE', '%' . $marital . '%');
                     });
                 }
                 if (! empty($request->get('address'))) {
                     $instance->where(function ($w) use ($request) {
                         $address = $request->get('address');
-                        $w->orWhere('address', 'LIKE', '%'.$address.'%');
+                        $w->orWhere('address', 'LIKE', '%' . $address . '%');
                     });
                 }
                 if (! empty($request->get('village'))) {
                     $instance->where(function ($w) use ($request) {
                         $village = $request->get('village');
-                        $w->orWhere('village', 'LIKE', '%'.$village.'%');
+                        $w->orWhere('village', 'LIKE', '%' . $village . '%');
                     });
                 }
                 if (! empty($request->get('ward'))) {
                     $instance->where(function ($w) use ($request) {
                         $ward = $request->get('ward');
-                        $w->orWhere('ward', 'LIKE', '%'.$ward.'%');
+                        $w->orWhere('ward', 'LIKE', '%' . $ward . '%');
                     });
                 }
                 if (! empty($request->get('district'))) {
                     $instance->where(function ($w) use ($request) {
                         $district = $request->get('district');
-                        $w->orWhere('district', 'LIKE', '%'.$district.'%');
+                        $w->orWhere('district', 'LIKE', '%' . $district . '%');
                     });
                 }
                 if (! empty($request->get('city'))) {
                     $instance->where(function ($w) use ($request) {
                         $city = $request->get('city');
-                        $w->orWhere('city', 'LIKE', '%'.$city.'%');
+                        $w->orWhere('city', 'LIKE', '%' . $city . '%');
                     });
                 }
                 if (! empty($request->get('phone'))) {
                     $instance->where(function ($w) use ($request) {
                         $phone = $request->get('phone');
-                        $w->orWhere('phone', 'LIKE', '%'.$phone.'%');
+                        $w->orWhere('phone', 'LIKE', '%' . $phone . '%');
                     });
                 }
             })
@@ -1125,7 +1281,7 @@ class EmployeeController extends Controller
             ]);
 
             return (new MultipleSheetExport($ids))
-                ->download('export-'.date('Y-m-d').'.xlsx');
+                ->download('export-' . date('Y-m-d') . '.xlsx');
         } catch (\Throwable $e) {
             Log::error('Employee export failed', [
                 'error'   => $e->getMessage(),
@@ -1225,7 +1381,7 @@ class EmployeeController extends Controller
                     'row' => '-',
                     'attribute' => 'System Error',
                     'value' => null,
-                    'errors' => 'An error occurred during import: '.$e->getMessage(),
+                    'errors' => 'An error occurred during import: ' . $e->getMessage(),
                 ],
             ]);
 

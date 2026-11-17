@@ -651,6 +651,8 @@ Route::group(['middleware' => ['auth']], function () {
     // Employee Bond Management
     Route::get('employee-bonds/data', [EmployeeBondController::class, 'getBonds'])->name('employee-bonds.data');
     Route::get('employee-bonds/expiring', [EmployeeBondController::class, 'checkExpiringBonds'])->name('employee-bonds.expiring');
+    Route::get('employees/{employee}/inventories/data', [EmployeeController::class, 'inventoriesData'])
+        ->name('employees.inventories.data');
     Route::get('employees/{employee}/bonds', [EmployeeBondController::class, 'getEmployeeBonds'])->name('employees.bonds');
     Route::get('employee-bonds/{employeeBond}/download', [EmployeeBondController::class, 'downloadDocument'])->name('employee-bonds.download');
     Route::patch('employee-bonds/{employeeBond}/complete', [EmployeeBondController::class, 'markAsCompleted'])->name('employee-bonds.complete');

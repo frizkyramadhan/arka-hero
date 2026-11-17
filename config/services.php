@@ -42,7 +42,9 @@ return [
     */
 
     'api' => [
-        'key' => env('API_KEY'),
+        // HERO_API_KEY stays distinct from ARAIM's API key. Both apps share one
+        // Apache process on Windows; each HTTP request reloads its own .env.
+        'key' => env('HERO_API_KEY', env('API_KEY')),
         'require_key' => env('API_REQUIRE_KEY', true),
     ],
 
