@@ -146,6 +146,8 @@ Route::group(['middleware' => ['auth']], function () {
 
     // Profile routes
     Route::get('profile/my-profile', [ProfileController::class, 'myProfile'])->name('profile.my-profile');
+    Route::get('profile/my-profile/inventories/data', [ProfileController::class, 'inventoriesData'])
+        ->name('profile.inventories.data');
     Route::get('profile/change-password', [ProfileController::class, 'showChangePasswordForm'])->name('profile.change-password');
     Route::put('profile/change-password', [ProfileController::class, 'updatePassword'])->name('profile.change-password.update');
 

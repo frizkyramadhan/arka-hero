@@ -1,5 +1,7 @@
 @php
     $araimConfigured = $araimConfigured ?? false;
+    $inventoriesAjaxUrl = $inventoriesAjaxUrl
+        ?? route('employees.inventories.data', $employee);
 @endphp
 
 <div id="inventories-pane" class="content" role="tabpanel" aria-labelledby="inventories-pane-trigger">
@@ -16,7 +18,7 @@
         <div class="alert alert-warning d-none" id="inventories-error"></div>
         <div class="table-responsive">
             <table id="employee-inventories-table" class="table table-modern table-bordered table-striped w-100"
-                data-ajax-url="{{ route('employees.inventories.data', $employee) }}">
+                data-ajax-url="{{ $inventoriesAjaxUrl }}">
                 <thead>
                     <tr>
                         <th style="width: 2.5rem;"></th>

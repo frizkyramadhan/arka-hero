@@ -1,5 +1,5 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-11-16
+**Last Updated**: 2026-11-17
 
 ### [088] Inventories karyawan via ARAIM (2026-11-16)
 
@@ -10,10 +10,11 @@
 - `GET /api/employees/lookup?q=` → `{ id, fullname, active_nik }` untuk autocomplete ikatan ARAIM.
 - `AraimInventoriesClient` baca `GET {ARAIM_API_URL}/hero/employees/{uuid}/inventories`. `ARAIM_API_URL` sudah include `/api`. Auth: `X-API-Key` = `ARAIM_API_KEY`; bukan Sanctum/Bearer. URL/key kosong = pane unconfigured.
 - Tab **Inventories** di `employee/detail`: Yajra DataTable serverside `GET employees/{id}/inventories/data` (fetch ARAIM live → `DataTables::of(collect)`), lazy-init saat pane dibuka; child row detail + riwayat.
+- Tab yang sama di **My Profile** (`profile/my-profile`): ajax `GET profile/my-profile/inventories/data` (auth `personal.profile.view-own`, hanya employee milik user) → reuse `EmployeeController::inventoriesDataResponse`.
 
-**Windows Apache gotcha (401)**: mpm_winnt + mod_php = satu proses untuk Hero dan ARAIM. Dotenv Hero `putenv(API_KEY/DB_*)` menimpa env proses; request loopback ke ARAIM lalu membaca `API_KEY` milik Hero → 401. Perbaikan di ARAIM: `services.api.key` prefer `ARAIM_API_KEY`, plus `AppServiceProvider::reclaimOwnEnvironment()` reload `.env` sendiri.
+**Windows Apache gotcha (401)**: mpm_winnt + mod_php = satu proses untuk Hero dan ARAIM. Dotenv Hero `putenv(API_KEY/DB_*)` menimpa env proses; request loopback ke ARAIM lalu membaca `API_KEY` milik Hero → 401. Perbaikan di ARAIM: `services.api.key` prefer `ARAIM_API_KEY`, plus `AppServiceProvider::reclaimOwnEnvironment()` reload `.env` sendiri. Hero juga: `App\Bootstrap\LoadEnvironmentVariables` + `HERO_API_KEY` fallback.
 
-**Files**: `EmployeeApiController::lookup`, `config/araim.php`, `AraimInventoriesClient`, `inventories-pane.blade.php`; ARAIM `config/services.php`, `AppServiceProvider`.
+**Files**: `EmployeeApiController::lookup`, `config/araim.php`, `AraimInventoriesClient`, `inventories-pane.blade.php`, `ProfileController::inventoriesData`, `profile/my-profile.blade.php`; ARAIM `config/services.php`, `AppServiceProvider`.
 
 ### [087] API status karyawan by NIK (2026-11-16)
 

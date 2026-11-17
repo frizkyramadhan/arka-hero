@@ -21,6 +21,7 @@ use App\Models\Project;
 use App\Models\Taxidentification;
 use App\Models\User;
 use App\Services\AdministrationYearsOfServiceCalculator;
+use App\Services\AraimInventoriesClient;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -1130,6 +1131,8 @@ class ProfileController extends Controller
             ->where('is_profile', '=', '1')
             ->first();
 
+        $araimConfigured = app(AraimInventoriesClient::class)->isConfigured();
+
         $title = 'My Profile';
         $subtitle = 'My Profile';
 
@@ -1153,8 +1156,26 @@ class ProfileController extends Controller
             'activeAdministration',
             'administrations',
             'serviceStartDoh',
-            'profile'
+            'profile',
+            'araimConfigured'
         ));
+    }
+
+    /**
+     * Live ARAIM inventories DataTable for the authenticated employee's own profile.
+     */
+    public function inventoriesData()
+    {
+        $this->authorize('personal.profile.view-own');
+
+        $user = Auth::user();
+        if (! $user->employee_id) {
+            abort(404, 'Employee profile not found.');
+        }
+
+        $employee = Employee::where('id', $user->employee_id)->firstOrFail();
+
+        return app(EmployeeController::class)->inventoriesDataResponse($employee);
     }
 
     /**
