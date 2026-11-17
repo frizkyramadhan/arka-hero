@@ -1,5 +1,5 @@
 **Purpose**: Record technical decisions and rationale for future reference
-**Last Updated**: 2026-09-08
+**Last Updated**: 2026-11-16
 
 # Technical Decision Records - ARKA HERO HRMS
 
@@ -29,6 +29,22 @@ Decision: [Title] - [YYYY-MM-DD]
 ---
 
 ## Recent Decisions
+
+### Decision: Inventories — ikat UUID Hero, Hero read-only - 2026-11-16
+
+**Context**: ARAIM punya CRUD inventories; Hero perlu menampilkan barang yang sedang dipegang orang di detail karyawan. NIK karyawan kontrak bisa berganti; menyimpan NIK sebagai ikatan akan putus. Istilah kode/UI: **inventories** (bukan perbekalan/holdings).
+
+**Options Considered**:
+
+1. **Salin inventories ke DB Hero** — sync berat, risiko stale.
+2. **Ikat lewat NIK** — putus saat NIK administrasi berubah.
+3. **Ikat `employees.hero_employee_id` (UUID Hero); Hero baca API ARAIM live** — tidak ada salinan; NIK berubah tidak memutus ikatan.
+
+**Decision**: Opsi 3. CRUD tetap di ARAIM. Hero hanya lookup orang (id + nama + NIK aktif) untuk form ikatan ARAIM, dan tampilan inventories di detail karyawan via `GET {ARAIM_API_URL}/hero/employees/{heroEmployeeId}/inventories` dengan `X-API-Key` (`ARAIM_API_KEY` = ARAIM `API_KEY`). Bukan Sanctum/Bearer. Tidak ada form verifikasi/opname di kedua sisi untuk scope ini.
+
+**Implementation**: Rencana langkah Hero di `docs/analisa-pengecekan-aset-karyawan.md` (§ Langkah kerja di Arka Hero).
+
+**Review Date**: Setelah inventories UI live di production.
 
 ### Decision: Cancelled FOA does not hold the letter - 2026-10-21
 

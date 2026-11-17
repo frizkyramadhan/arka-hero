@@ -172,18 +172,26 @@ Semua respons sukses utama memakai koleksi **`AdministrationResource`** (data ad
 - **200:** `{ "status": true }` jika ada administrasi dengan `is_active = 1`; `{ "status": false }` jika NIK ada tapi tidak ada yang aktif.
 - **404:** `{ "status": "not found" }` jika `nik` kosong/tidak dikirim, atau NIK tidak ada di `administrations`.
 
-### 5.7 `GET /api/employees/by-nik/{nik}`
+### 5.7 `GET /api/employees/lookup`
+
+- **Nama route:** `api.employees.lookup`
+- **Query:** `q` (wajib) — cocok ke `fullname` atau NIK administrasi aktif (`nik` / `active_nik`); `limit` opsional (default 20, max 50).
+- **Fungsi:** Lookup ringan untuk ikatan eksternal (ARAIM). Hanya karyawan dengan administrasi aktif.
+- **200:** `{ "status": "success", "data": [ { "id", "fullname", "active_nik" } ] }` — `id` = UUID `employees.id`.
+- **422:** `q` kosong.
+
+### 5.8 `GET /api/employees/by-nik/{nik}`
 
 - **Nama route:** `api.employees.show-by-nik`
 - **Path `{nik}`:** NIK pada tabel **administrations** (exact match).
 - **404:** Tidak ada administrasi, atau tidak ada yang aktif (sama logika dengan `show`).
 
-### 5.8 `GET /api/employees/{id}`
+### 5.9 `GET /api/employees/{id}`
 
 - **`{id}`:** **`employee_id`** (bukan primary key `administrations`).
 - **404:** Tidak ada administrasi, atau tidak ada administrasi aktif.
 
-**Urutan route:** Daftarkan route statis (`list`, `active`, `genders`, `status`, `by-nik/...`) sebelum `/{id}` — sudah benar di `routes/api.php`.
+**Urutan route:** Daftarkan route statis (`list`, `active`, `genders`, `status`, `lookup`, `by-nik/...`) sebelum `/{id}` — sudah benar di `routes/api.php`.
 
 ---
 
@@ -769,6 +777,7 @@ Daftar ringkas mengikuti **`routes/api.php`** (semua path berawalan **`/api`**).
 | `GET`  | `/employees/genders`      |
 | `POST` | `/employees/search`       |
 | `POST` | `/employees/status`       |
+| `GET`  | `/employees/lookup`       |
 | `GET`  | `/employees/by-nik/{nik}` |
 | `GET`  | `/employees/{id}`         |
 
