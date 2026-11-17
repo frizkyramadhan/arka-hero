@@ -44,7 +44,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Up Next (This Week)
 
--   `[testing] P1: Inventories di detail karyawan — baca live dari ARAIM [lookup + AraimInventoriesClient + inventories-pane; set ARAIM_API_URL/TOKEN; Postman sync blocked — API key MCP invalid] (started: 2026-11-16)`
+-   `[testing] P1: Inventories di detail karyawan + My Profile — baca live dari ARAIM [lookup + AraimInventoriesClient + inventories-pane + profile.inventories.data; set ARAIM_API_URL/KEY; Postman sync blocked — API key MCP invalid] (started: 2026-11-16)`
 -   `[ ] P1: Sync all API routes to Postman collection "ARKA HERO - API" [routes/api.php, Postman MCP]`
 -   `[✓] P2: Review leave_calculations table usage and purpose [COMPLETED - See docs/LEAVE_CALCULATIONS_ANALYSIS.md]`
 -   `[ ] P2: Add automated tests for critical workflows [tests/Feature/, recruitment sessions, leave requests]`

@@ -143,6 +143,14 @@
                                     <span class="bs-stepper-label">Images</span>
                                 </button>
                             </div>
+                            <div class="step{{ empty($araimConfigured) ? ' step-empty' : '' }}"
+                                data-target="#inventories-pane">
+                                <button type="button" class="step-trigger" role="tab"
+                                    aria-controls="inventories-pane" id="inventories-pane-trigger">
+                                    <span class="bs-stepper-circle"><i class="fas fa-boxes"></i></span>
+                                    <span class="bs-stepper-label">Inventories</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="bs-stepper-content p-3">
@@ -847,6 +855,10 @@
                                     </div>
                                 @endif
                             </div>
+
+                            @include('employee.components.inventories-pane', [
+                                'inventoriesAjaxUrl' => route('profile.inventories.data'),
+                            ])
                         </div>
                     </div>
                 </div>
@@ -864,7 +876,32 @@
 @section('styles')
     <link rel="stylesheet" href="{{ asset('assets/plugins/ekko-lightbox/ekko-lightbox.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/plugins/bs-stepper/css/bs-stepper.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css') }}">
     <style>
+        .inventory-detail-panel {
+            padding: 1rem 1.25rem;
+        }
+
+        .inventory-detail-fields {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .inventory-detail-block {
+            margin-left: 0;
+            margin-right: 0;
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        @media (max-width: 767.98px) {
+            .inventory-detail-fields {
+                grid-template-columns: 1fr;
+            }
+        }
+
         /* Critical CSS - Load First */
         section.content {
             opacity: 0;
@@ -1264,6 +1301,8 @@
 
             // Global variables
             let stepper;
+            let inventoriesTable = null;
+            let inventoriesTableLoaded = false;
             const stepMap = {
                 '#personal': 1,
                 '#administration': 2,
@@ -1278,7 +1317,8 @@
                 '#emergency': 11,
                 '#unit': 12,
                 '#additional': 13,
-                '#image': 14
+                '#image': 14,
+                '#inventories': 15
             };
 
             // Main initialization when DOM is ready
@@ -1423,6 +1463,9 @@
                                     'important');
                                 targetPaneElement.style.setProperty('display', 'block', 'important');
                             }
+                            if (targetPane === '#inventories-pane') {
+                                initInventoriesDataTable();
+                            }
                         }
                     });
                 });
@@ -1461,6 +1504,115 @@
              */
             function initBackToTop() {
                 document.getElementById('back-to-top').style.display = 'none';
+            }
+
+            function initInventoriesDataTable() {
+                const table = document.getElementById('employee-inventories-table');
+                if (!table || inventoriesTableLoaded || typeof $ === 'undefined' || !$.fn.DataTable) {
+                    return;
+                }
+                inventoriesTableLoaded = true;
+
+                inventoriesTable = $('#employee-inventories-table').DataTable({
+                    processing: true,
+                    serverSide: true,
+                    scrollX: true,
+                    autoWidth: false,
+                    pageLength: 10,
+                    lengthMenu: [
+                        [10, 25, 50, 100, -1],
+                        ['10', '25', '50', '100', 'All']
+                    ],
+                    order: [
+                        [1, 'desc']
+                    ],
+                    ajax: {
+                        url: table.dataset.ajaxUrl,
+                        type: 'GET',
+                        dataSrc: function(json) {
+                            const errorBox = document.getElementById('inventories-error');
+                            if (errorBox) {
+                                if (json.araim_status === 'error') {
+                                    errorBox.classList.remove('d-none');
+                                    errorBox.innerHTML = 'Failed to read inventories from ARAIM.' +
+                                        (json.araim_message ? '<br><small>' + $('<div>').text(json
+                                            .araim_message).html() + '</small>' : '');
+                                } else {
+                                    errorBox.classList.add('d-none');
+                                    errorBox.innerHTML = '';
+                                }
+                            }
+                            return json.data || [];
+                        },
+                        error: function(xhr) {
+                            const errorBox = document.getElementById('inventories-error');
+                            if (errorBox) {
+                                errorBox.classList.remove('d-none');
+                                errorBox.textContent = 'Failed to load inventories (HTTP ' + xhr.status +
+                                    ').';
+                            }
+                        }
+                    },
+                    columns: [{
+                        data: 'detail_btn',
+                        orderable: false,
+                        searchable: false,
+                        className: 'text-center details-control'
+                    }, {
+                        data: 'inventory_no',
+                        name: 'inventory_no'
+                    }, {
+                        data: 'asset_name',
+                        name: 'asset_name'
+                    }, {
+                        data: 'serial_no',
+                        name: 'serial_no'
+                    }, {
+                        data: 'quantity',
+                        name: 'quantity',
+                        className: 'text-center'
+                    }, {
+                        data: 'inventory_status_badge',
+                        name: 'inventory_status',
+                        orderable: false,
+                        searchable: false
+                    }, {
+                        data: 'project_label_display',
+                        name: 'project_label',
+                        orderable: false
+                    }, {
+                        data: 'date_formatted',
+                        name: 'date',
+                        orderable: false,
+                        searchable: false
+                    }, {
+                        data: 'detail_html',
+                        name: 'detail_html',
+                        visible: false,
+                        orderable: false,
+                        searchable: false
+                    }],
+                    language: {
+                        emptyTable: 'No active inventories',
+                        zeroRecords: 'No matching records',
+                        processing: 'Loading inventories…'
+                    }
+                });
+
+                $('#employee-inventories-table tbody').on('click', 'button.inventory-detail-toggle', function() {
+                    const tr = $(this).closest('tr');
+                    const row = inventoriesTable.row(tr);
+                    if (row.child.isShown()) {
+                        row.child.hide();
+                        tr.removeClass('shown');
+                        $(this).find('i').removeClass('fa-times-circle').addClass('fa-info-circle');
+                    } else {
+                        row.child('<div class="bg-light border rounded">' + row.data()
+                            .detail_html + '</div>').show();
+                        tr.addClass('shown');
+                        $(this).find('i').removeClass('fa-info-circle').addClass('fa-times-circle');
+                    }
+                });
             }
 
             /**
@@ -1517,6 +1669,9 @@
                                 paneElement.style.setProperty('visibility', 'visible', 'important');
                                 paneElement.style.setProperty('display', 'block', 'important');
                             }
+                            if (targetPane === '#inventories-pane') {
+                                initInventoriesDataTable();
+                            }
                         }
                     }
                     scrollToTop();
@@ -1570,6 +1725,9 @@
                                 paneElement.style.setProperty('opacity', '1', 'important');
                                 paneElement.style.setProperty('visibility', 'visible', 'important');
                                 paneElement.style.setProperty('display', 'block', 'important');
+                            }
+                            if (targetPane === '#inventories-pane') {
+                                initInventoriesDataTable();
                             }
                         }
                     }

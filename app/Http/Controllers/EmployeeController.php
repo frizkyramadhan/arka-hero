@@ -632,6 +632,14 @@ class EmployeeController extends Controller
             return UserProject::redirectAccessDenied();
         }
 
+        return $this->inventoriesDataResponse($employee);
+    }
+
+    /**
+     * Build inventories DataTable JSON (caller must already authorize access).
+     */
+    public function inventoriesDataResponse(Employee $employee)
+    {
         $result = app(AraimInventoriesClient::class)
             ->inventoriesForEmployee((string) $employee->id);
 
