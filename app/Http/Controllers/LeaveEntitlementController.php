@@ -1212,6 +1212,16 @@ class LeaveEntitlementController extends Controller
     }
 
     /**
+     * Same rules as Generate Entitlements. Creates the current period only when it is missing.
+     *
+     * @return array{generated: int, skipped: int}
+     */
+    public function generateEntitlementsForEmployee(Employee $employee, int $year): array
+    {
+        return $this->generateEmployeeEntitlements($employee, $year);
+    }
+
+    /**
      * Generate entitlements for individual employee
      * Returns array with 'generated' and 'skipped' counts
      */

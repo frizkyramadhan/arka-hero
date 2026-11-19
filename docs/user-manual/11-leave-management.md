@@ -79,7 +79,7 @@ Di halaman ini proses yang akan dilakukan adalah mengisi hak/saldo cuti dengan *
 
 Untuk **setup awal**, urutan yang disarankan: **Load Employees** → **Generate Entitlements** (untuk men-generate data entitlement ter-update) → **Export** → edit berkas Excel → **Import** kembali.
 
-Setelah operasi rutin, biasanya cukup menjalankan **Generate Entitlements** **secara berkala** misal di saat akhir bulan; **Export**/**Import** dipakai jika perlu rekonsiliasi, audit, atau koreksi massal — tidak sebagai aktivitas mingguan wajib.
+Setelah operasi rutin, sistem mengisi saldo periode baru **setiap hari pukul 00:30** untuk semua karyawan aktif, dengan aturan yang sama seperti tombol ini. Periode yang sudah ada tidak diubah. Tombol **Generate Entitlements** tetap dipakai bila saldo satu project perlu diisi saat itu juga. **Export**/**Import** dipakai jika perlu rekonsiliasi, audit, atau koreksi massal — tidak sebagai aktivitas mingguan wajib.
 
 1. **Login** ke ARKA HERO → sidebar **HERO SECTION** → **Leave Management** → **Entitlements**. Judul halaman: **Leave Entitlement Management**.
 

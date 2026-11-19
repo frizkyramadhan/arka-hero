@@ -55,6 +55,7 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: Scheduler harian isi saldo cuti yang belum ada [leave:auto-generate-entitlements, 00:30] (completed: 2026-11-19)`
 -   `[done] P2: API status karyawan by NIK → true/false/not found [POST /api/employees/status, EmployeeApiController::statusByNik] (completed: 2026-11-16)`
 -   `[done] P1: Satu NIK beberapa jabatan approver; tanda tangan APS = Project Manager, HO = HCS Manager [ApproverPosting, administration_assignments] (completed: 2026-11-10)`
 -   `[done] P1: Reuse kandidat Hired (magang→karyawan): copy MCU+Hiring, gap diisi Transition Stage; sumber hired tetap hired [canBeReusedOnNewFptk, copyProcessFromSession, RecruitmentReuseOnFptkTest] (completed: 2026-11-05)`

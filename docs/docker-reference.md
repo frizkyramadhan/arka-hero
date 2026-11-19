@@ -82,6 +82,8 @@ Stack PHP-FPM tidak menjalankan worker terus-menerus. Gunakan driver **`database
 * * * * * docker exec -w /var/www/app82/arka-hero stack-php82-1 php artisan queue:work database --stop-when-empty --max-time=50 --tries=3 >> /dev/null 2>&1
 ```
 
+Perintah cuti di jadwal itu: `leave:auto-convert` 00:10, `leave:auto-approve` 00:15, `leave:auto-generate-entitlements` 00:30 (isi saldo periode berjalan yang belum ada).
+
 Setelah deploy: `migrate --force`, pastikan `.env` production punya `QUEUE_CONNECTION=database` dan `DOCUMENT_NOTIFICATIONS_BASE_URL=http://192.168.32.146:8080`. Tidak perlu Redis/Horizon.
 
 Local Laragon: set `QUEUE_CONNECTION=database` lalu jalankan `php artisan queue:work` saat menguji kirim email.

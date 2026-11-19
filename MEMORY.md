@@ -1,5 +1,13 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-11-17
+**Last Updated**: 2026-11-19
+
+### [089] Generate entitlement harian (2026-11-19)
+
+**Need**: Periode cuti baru tidak terbuat sendiri di ulang tahun masa kerja. HR harus klik Generate Entitlements.
+
+**Behavior**: `leave:auto-generate-entitlements` tiap hari 00:30 Asia/Makassar, `withoutOverlapping`. Memakai `LeaveEntitlementController::generateEntitlementsForEmployee` untuk setiap karyawan dengan administration aktif, tahun berjalan. Periode yang sudah ada dilewati. Satu karyawan yang gagal dicatat di log dan tidak menggagalkan yang lain.
+
+**Files**: `AutoGenerateLeaveEntitlements`, `app/Console/Kernel.php`.
 
 ### [088] Inventories karyawan via ARAIM (2026-11-16)
 
