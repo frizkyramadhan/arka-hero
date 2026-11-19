@@ -30,6 +30,9 @@ class Kernel extends ConsoleKernel
         // Approve otomatis cuti yang pending lebih dari 3 hari, dijalankan setiap hari pukul 00:15
         $schedule->command('leave:auto-approve')->dailyAt('00:15');
 
+        // Isi saldo cuti periode berjalan yang belum ada. 00:30 supaya ulang tahun masa kerja hari itu sudah lewat tengah malam.
+        $schedule->command('leave:auto-generate-entitlements')->dailyAt('00:30')->withoutOverlapping();
+
         // Tandai otomatis letter number yang reserved menjadi used setelah 3 hari, dijalankan setiap hari pukul 00:20
         $schedule->command('letter-numbers:auto-mark-used')->dailyAt('00:20');
 
