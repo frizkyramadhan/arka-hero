@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\OfferAcceptanceRateExport;
 use App\Models\Department;
 use App\Models\Position;
 use App\Models\Project;
@@ -1545,7 +1546,7 @@ class RecruitmentReportController extends Controller
             'fptk.department',
             'fptk.position',
             'fptk.project',
-            'offering',
+            'offering.letterNumber',
         ]);
         UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
         $query->whereHas('offering');
@@ -1573,54 +1574,10 @@ class RecruitmentReportController extends Controller
         $sessions = $query->get();
         $rows = $this->buildOfferAcceptanceData($sessions);
 
-        return Excel::download(new class($rows) implements FromCollection, WithHeadings, WithMapping
-        {
-            private $rows;
-
-            public function __construct($rows)
-            {
-                $this->rows = $rows;
-            }
-
-            public function collection()
-            {
-                return collect($this->rows);
-            }
-
-            public function headings(): array
-            {
-                return [
-                    'Request No',
-                    'Department',
-                    'Position',
-                    'Project',
-                    'Candidate Name',
-                    'Offering Date',
-                    'Response Date',
-                    'Response Time (Days)',
-                    'Response',
-                    'Offering Letter No',
-                    'Notes',
-                ];
-            }
-
-            public function map($row): array
-            {
-                return [
-                    $row['request_no'],
-                    $row['department'],
-                    $row['position'],
-                    $row['project'],
-                    $row['candidate_name'],
-                    $row['offering_date'],
-                    $row['response_date'],
-                    $row['response_time'],
-                    $row['response'],
-                    $row['offering_letter_no'],
-                    $row['notes'],
-                ];
-            }
-        }, 'offer_acceptance_rate_'.date('Y-m-d').'.xlsx');
+        return Excel::download(
+            new OfferAcceptanceRateExport($rows),
+            'offer_acceptance_rate_'.date('Y-m-d').'.xlsx'
+        );
     }
 
     private function buildTimeToHireData($sessions)
@@ -1722,15 +1679,7 @@ class RecruitmentReportController extends Controller
                 continue;
             }
 
-            // Calculate response time
-            $responseTime = '-';
-            if ($offering->response_date && $offering->offering_date) {
-                $responseTime = $offering->response_date->diffInDays($offering->offering_date);
-            } elseif ($offering->offering_date) {
-                $responseTime = now()->diffInDays($offering->offering_date);
-            }
-
-            $rows[] = [
+            $rows[] = array_merge([
                 'session_id' => $session->id,
                 'request_id' => $fptk->id,
                 'request_no' => $fptk->request_number,
@@ -1739,18 +1688,27 @@ class RecruitmentReportController extends Controller
                 'project' => $fptk->project ? $fptk->project->project_name : '-',
                 'candidate_name' => $candidate->fullname,
                 'candidate_number' => $candidate->candidate_number,
-                'offering_date' => $offering->offering_date ? $offering->offering_date->format('d/m/Y') : '-',
-                'offering_date_sort' => $offering->offering_date ? $offering->offering_date->format('Y-m-d') : '1900-01-01',
-                'response_date' => $offering->response_date ? $offering->response_date->format('d/m/Y') : '-',
-                'response_date_sort' => $offering->response_date ? $offering->response_date->format('Y-m-d') : '1900-01-01',
-                'response_time' => $responseTime,
+            ], $this->offerAcceptanceTimingFields($offering), [
                 'response' => ucfirst($offering->result ?? 'pending'),
                 'offering_letter_no' => $offering->offering_letter_number ?? '-',
                 'notes' => $offering->notes ?? '-',
-            ];
+            ]);
         }
 
         return $rows;
+    }
+
+    private function offerAcceptanceTimingFields(RecruitmentOffering $offering): array
+    {
+        $timing = $offering->acceptanceTiming();
+
+        return [
+            'offering_date' => $timing['offering_date'] ? $timing['offering_date']->format('d/m/Y') : '-',
+            'offering_date_sort' => $timing['offering_date'] ? $timing['offering_date']->format('Y-m-d') : '1900-01-01',
+            'response_date' => $timing['response_date'] ? $timing['response_date']->format('d/m/Y') : '-',
+            'response_date_sort' => $timing['response_date'] ? $timing['response_date']->format('Y-m-d') : '1900-01-01',
+            'response_time' => $timing['response_days'] === null ? '-' : $timing['response_days'],
+        ];
     }
 
     public function interviewAssessmentAnalytics(Request $request)
@@ -2945,7 +2903,7 @@ class RecruitmentReportController extends Controller
             'fptk.department',
             'fptk.position',
             'fptk.project',
-            'offering',
+            'offering.letterNumber',
         ]);
         UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
         $query->whereHas('offering');
@@ -3045,14 +3003,7 @@ class RecruitmentReportController extends Controller
                 continue;
             }
 
-            $responseTime = '-';
-            if ($offering->response_date && $offering->offering_date) {
-                $responseTime = $offering->response_date->diffInDays($offering->offering_date);
-            } elseif ($offering->offering_date) {
-                $responseTime = now()->diffInDays($offering->offering_date);
-            }
-
-            $data[] = [
+            $data[] = array_merge([
                 'session_id' => $session->id,
                 'request_id' => $fptk->id,
                 'request_no' => $fptk->request_number,
@@ -3060,13 +3011,11 @@ class RecruitmentReportController extends Controller
                 'position' => $fptk->position ? $fptk->position->position_name : '-',
                 'project' => $fptk->project ? $fptk->project->project_name : '-',
                 'candidate_name' => $candidate->fullname,
-                'offering_date' => $offering->offering_date ? $offering->offering_date->format('d/m/Y') : '-',
-                'response_date' => $offering->response_date ? $offering->response_date->format('d/m/Y') : '-',
-                'response_time' => $responseTime,
+            ], $this->offerAcceptanceTimingFields($offering), [
                 'response' => ucfirst($offering->result ?? 'pending'),
                 'offering_letter_no' => $offering->offering_letter_number ?? '-',
                 'notes' => $offering->notes ?? '-',
-            ];
+            ]);
         }
 
         return response()->json([

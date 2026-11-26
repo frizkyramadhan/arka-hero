@@ -1,5 +1,15 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-11-19
+**Last Updated**: 2026-11-24
+
+### [090] Offer Acceptance Rate Excel: hari tampil (2026-11-24)
+
+**Need**: Export Excel Offer Acceptance Rate tidak menampilkan tanggal dan satuan `Day(s)` pada Offering Date, Response Date, dan Response Time.
+
+**Cause**: Laporan membaca `offering_date` / `response_date`, padahal kolom itu tidak ada. Excel juga mengartikan `d/m/Y` dan `Day(s)` tanpa kutip sebagai kode format tanggal, jadi hari dan satuannya hilang.
+
+**Behavior**: Offering Date = Letter Date OL di Letter Administration (`letter_numbers.letter_date`, relasi `recruitment_offering`). Response Date = `recruitment_offerings.reviewed_at`. Response Time = selisih hari kalender, ditulis teks `N Day(s)`. Tiga kolom itu dipaksa tipe teks.
+
+**Files**: `RecruitmentOffering::acceptanceTiming`, `OfferAcceptanceRateExport`, `RecruitmentReportController`.
 
 ### [089] Generate entitlement harian (2026-11-19)
 
