@@ -101,9 +101,7 @@ class RecruitmentOffering extends Model
      */
     public function acceptanceTiming(): array
     {
-        $letter = $this->relationLoaded('letterNumber')
-            ? $this->getRelation('letterNumber')
-            : $this->letterNumber()->first();
+        $letter = $this->offeringLetter();
 
         $offeringAt = $letter && $letter->letter_date
             ? $letter->letter_date->copy()->startOfDay()
@@ -131,5 +129,48 @@ class RecruitmentOffering extends Model
         }
 
         return ((int) $days).' Day(s)';
+    }
+
+    /**
+     * The OL stays linked to the session that first used it. A reused candidate
+     * keeps that letter number on the new session, so follow source_session_id.
+     */
+    private function offeringLetter()
+    {
+        if ($this->relationLoaded('letterNumber') && $this->getRelation('letterNumber')) {
+            return $this->getRelation('letterNumber');
+        }
+
+        $session = $this->relationLoaded('session') ? $this->getRelation('session') : null;
+        if (! $session && $this->session_id && ! $this->relationLoaded('session')) {
+            $session = $this->session()->with('sourceSession.offeringLetterRecord')->first();
+        }
+
+        $ids = [];
+        $guard = 0;
+        while ($session && $guard < 6) {
+            $ids[] = $session->id;
+            if ($session->relationLoaded('offeringLetterRecord') && $session->getRelation('offeringLetterRecord')) {
+                return $session->getRelation('offeringLetterRecord');
+            }
+            if (! $session->source_session_id) {
+                break;
+            }
+            $session = $session->relationLoaded('sourceSession')
+                ? $session->getRelation('sourceSession')
+                : $session->sourceSession()->with('offeringLetterRecord')->first();
+            $guard++;
+        }
+
+        $ids = array_values(array_unique(array_filter($ids)));
+        if ($ids === []) {
+            return null;
+        }
+
+        return LetterNumber::query()
+            ->where('related_document_type', 'recruitment_offering')
+            ->whereIn('related_document_id', $ids)
+            ->orderByDesc('id')
+            ->first();
     }
 }

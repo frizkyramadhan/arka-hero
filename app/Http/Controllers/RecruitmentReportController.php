@@ -1547,6 +1547,7 @@ class RecruitmentReportController extends Controller
             'fptk.position',
             'fptk.project',
             'offering.letterNumber',
+            'sourceSession.offeringLetterRecord',
         ]);
         UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
         $query->whereHas('offering');
@@ -1678,6 +1679,8 @@ class RecruitmentReportController extends Controller
             if (! $fptk || ! $candidate) {
                 continue;
             }
+
+            $offering->setRelation('session', $session);
 
             $rows[] = array_merge([
                 'session_id' => $session->id,
@@ -2904,6 +2907,7 @@ class RecruitmentReportController extends Controller
             'fptk.position',
             'fptk.project',
             'offering.letterNumber',
+            'sourceSession.offeringLetterRecord',
         ]);
         UserProject::scopeRecruitmentSessionsToAssignedProjects($query);
         $query->whereHas('offering');
@@ -3002,6 +3006,8 @@ class RecruitmentReportController extends Controller
             if (! $fptk || ! $candidate) {
                 continue;
             }
+
+            $offering->setRelation('session', $session);
 
             $data[] = array_merge([
                 'session_id' => $session->id,

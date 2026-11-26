@@ -7,7 +7,7 @@
 
 **Cause**: Laporan membaca `offering_date` / `response_date`, padahal kolom itu tidak ada. Excel juga mengartikan `d/m/Y` dan `Day(s)` tanpa kutip sebagai kode format tanggal, jadi hari dan satuannya hilang.
 
-**Behavior**: Offering Date = Letter Date OL di Letter Administration (`letter_numbers.letter_date`, relasi `recruitment_offering`). Response Date = `recruitment_offerings.reviewed_at`. Response Time = selisih hari kalender, ditulis teks `N Day(s)`. Tiga kolom itu dipaksa tipe teks.
+**Behavior**: Offering Date = Letter Date OL di Letter Administration (`letter_numbers.letter_date`, relasi `recruitment_offering`). Kalau kandidat di-reuse ke FPTK baru, surat tetap tertaut ke sesi sumber (`source_session_id`); laporan mengikuti rantai itu. Response Date = `recruitment_offerings.reviewed_at`. Response Time = selisih hari kalender, ditulis teks `N Day(s)`. Tiga kolom itu dipaksa tipe teks.
 
 **Files**: `RecruitmentOffering::acceptanceTiming`, `OfferAcceptanceRateExport`, `RecruitmentReportController`.
 

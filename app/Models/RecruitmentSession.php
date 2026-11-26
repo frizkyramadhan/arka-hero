@@ -188,6 +188,13 @@ class RecruitmentSession extends Model
         return $this->belongsTo(self::class, 'source_session_id');
     }
 
+    public function offeringLetterRecord()
+    {
+        return $this->hasOne(LetterNumber::class, 'related_document_id', 'id')
+            ->where('related_document_type', 'recruitment_offering')
+            ->latest('id');
+    }
+
     public function continuedSessions()
     {
         return $this->hasMany(self::class, 'source_session_id');

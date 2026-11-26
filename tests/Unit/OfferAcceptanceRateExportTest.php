@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Exports\OfferAcceptanceRateExport;
 use App\Models\LetterNumber;
 use App\Models\RecruitmentOffering;
+use App\Models\RecruitmentSession;
 use Maatwebsite\Excel\Excel as ExcelFormat;
 use Maatwebsite\Excel\Facades\Excel;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -38,6 +39,26 @@ class OfferAcceptanceRateExportTest extends TestCase
         $this->assertNull($missing['offering_date']);
         $this->assertSame('2026-05-04', $missing['response_date']->toDateString());
         $this->assertNull($missing['response_days']);
+
+        $sourceLetter = new LetterNumber;
+        $sourceLetter->letter_date = '2026-10-18';
+        $source = new RecruitmentSession;
+        $source->id = 'source-session';
+        $source->setRelation('offeringLetterRecord', $sourceLetter);
+        $current = new RecruitmentSession;
+        $current->id = 'current-session';
+        $current->source_session_id = 'source-session';
+        $current->setRelation('sourceSession', $source);
+        $current->setRelation('offeringLetterRecord', null);
+        $reused = new RecruitmentOffering;
+        $reused->setRelation('letterNumber', null);
+        $reused->setRelation('session', $current);
+        $reused->reviewed_at = '2026-10-17 14:40:00';
+        $reusedTiming = $reused->acceptanceTiming();
+
+        $this->assertSame('2026-10-18', $reusedTiming['offering_date']->toDateString());
+        $this->assertSame('2026-10-17', $reusedTiming['response_date']->toDateString());
+        $this->assertSame(1, $reusedTiming['response_days']);
         $this->assertSame('3 Day(s)', RecruitmentOffering::responseTimeLabel(3));
         $this->assertSame('0 Day(s)', RecruitmentOffering::responseTimeLabel(0));
         $this->assertSame('-', RecruitmentOffering::responseTimeLabel(null));
