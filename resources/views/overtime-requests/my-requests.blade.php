@@ -67,6 +67,7 @@
                                                             <option value="approved">Approved</option>
                                                             <option value="rejected">Rejected</option>
                                                             <option value="finished">Finished</option>
+                                                            <option value="cancelled">Cancelled</option>
                                                         </select>
                                                     </div>
                                                 </div>

@@ -37,14 +37,13 @@ class OvertimeRequestController extends Controller
         $this->middleware('permission:overtime-requests.show')->only(['index', 'data']);
         $this->middleware('permission:overtime-requests.create')->only(['create', 'store']);
         $this->middleware('permission:overtime-requests.edit')->only(['edit', 'update', 'submitForApproval']);
-        $this->middleware('permission:overtime-requests.delete')->only(['destroy']);
+        $this->middleware('permission:overtime-requests.delete')->only(['destroy', 'cancel']);
         $this->middleware('permission:overtime-requests.finish')->only(['markFinished']);
         $this->middleware('permission:overtime-requests.show|personal.overtime.view-own')->only(['print']);
 
         $this->middleware('permission:personal.overtime.view-own')->only(['myRequests', 'myRequestsData', 'myRequestShow']);
         $this->middleware('permission:personal.overtime.create-own')->only(['myRequestsCreate', 'myRequestsStore']);
         $this->middleware('permission:personal.overtime.edit-own')->only(['myRequestsEdit', 'myRequestsUpdate', 'myRequestsSubmitForApproval']);
-        $this->middleware('permission:personal.overtime.cancel-own')->only(['myRequestsDestroy']);
     }
 
     /**
@@ -93,6 +92,11 @@ class OvertimeRequestController extends Controller
                     $html .= '<form method="POST" action="' . route('overtime.requests.submit-for-approval', $row) . '" class="d-inline mr-1" onsubmit="return confirm(\'Submit this request for approval?\');">'
                         . csrf_field()
                         . '<button type="submit" class="btn btn-sm btn-success" title="Submit for approval"><i class="fas fa-paper-plane"></i></button></form>';
+                }
+                if ($row->canBeCancelledBy(Auth::user())) {
+                    $html .= '<form method="POST" action="' . route('overtime.requests.cancel', $row) . '" class="d-inline mr-1" onsubmit="return confirm(\'Cancel this overtime request? Open approval steps will be closed.\');">'
+                        . csrf_field()
+                        . '<button type="submit" class="btn btn-sm btn-dark" title="Cancel"><i class="fas fa-ban"></i></button></form>';
                 }
                 if ($row->canBeDeletedBy(Auth::user())) {
                     $html .= '<form method="POST" action="' . route('overtime.requests.destroy', $row) . '" class="d-inline" onsubmit="return confirm(\'Delete this request?\');">'
@@ -243,10 +247,11 @@ class OvertimeRequestController extends Controller
             return $r;
         }
 
-        $submit = ($data['submit_action'] ?? 'draft') === 'submit';
-        $status = $submit
-            ? OvertimeRequest::STATUS_PENDING
-            : OvertimeRequest::STATUS_DRAFT;
+        $keepApproved = $overtimeRequest->status === OvertimeRequest::STATUS_APPROVED;
+        $submit = ! $keepApproved && ($data['submit_action'] ?? 'draft') === 'submit';
+        $status = $keepApproved
+            ? OvertimeRequest::STATUS_APPROVED
+            : ($submit ? OvertimeRequest::STATUS_PENDING : OvertimeRequest::STATUS_DRAFT);
 
         $manualApprovers = $this->normalizeManualApprovers($request->input('manual_approvers'));
 
@@ -351,6 +356,7 @@ class OvertimeRequestController extends Controller
             'project',
             'requestedBy',
             'finishedBy',
+            'cancelledBy',
             'details.administration.employee',
             'details.administration.position',
             'approvalPlans.approver',
@@ -391,21 +397,16 @@ class OvertimeRequestController extends Controller
             ->addColumn('remarks_html', fn($row) => $this->overtimeRemarksCellHtml($row->remarks))
             ->addColumn('actions', function ($row) {
                 $html = '<a href="' . route('overtime.my-requests.show', $row) . '" class="btn btn-sm btn-info"><i class="fas fa-eye"></i></a>';
-                if ($row->canBeEditedBy(Auth::user())) {
+                if ($row->canBeEditedBy(Auth::user(), true)) {
                     $html .= ' <a href="' . route('overtime.my-requests.edit', $row) . '" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>';
                 }
                 if (
                     $row->canSubmitForApproval()
-                    && $row->canBeEditedBy(Auth::user())
+                    && $row->canBeEditedBy(Auth::user(), true)
                 ) {
                     $html .= ' <form method="POST" action="' . route('overtime.my-requests.submit-for-approval', $row) . '" class="d-inline" onsubmit="return confirm(\'Submit this request for approval?\');">'
                         . csrf_field()
                         . '<button type="submit" class="btn btn-sm btn-success" title="Submit for approval"><i class="fas fa-paper-plane"></i></button></form>';
-                }
-                if ($row->canBeDeletedBy(Auth::user())) {
-                    $html .= ' <form method="POST" action="' . route('overtime.my-requests.destroy', $row) . '" class="d-inline" onsubmit="return confirm(\'Delete this request?\');">'
-                        . csrf_field() . method_field('DELETE')
-                        . '<button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button></form>';
                 }
 
                 return $html;
@@ -519,7 +520,7 @@ class OvertimeRequestController extends Controller
             abort(403);
         }
 
-        if (! $overtimeRequest->canBeEditedBy(Auth::user())) {
+        if (! $overtimeRequest->canBeEditedBy(Auth::user(), true)) {
             abort(403);
         }
 
@@ -559,7 +560,7 @@ class OvertimeRequestController extends Controller
             abort(403);
         }
 
-        if (! $overtimeRequest->canBeEditedBy(Auth::user())) {
+        if (! $overtimeRequest->canBeEditedBy(Auth::user(), true)) {
             abort(403);
         }
 
@@ -628,34 +629,9 @@ class OvertimeRequestController extends Controller
         }
     }
 
-    public function myRequestsDestroy(OvertimeRequest $overtimeRequest)
+    public function cancel(OvertimeRequest $overtimeRequest)
     {
-        if ((int) $overtimeRequest->requested_by !== (int) Auth::id()) {
-            abort(403);
-        }
-
-        if (! $overtimeRequest->canBeDeletedBy(Auth::user())) {
-            abort(403);
-        }
-
-        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
-            return $r;
-        }
-
-        DB::beginTransaction();
-        try {
-            $overtimeRequest->details()->delete();
-            $overtimeRequest->delete();
-            DB::commit();
-
-            return redirect()
-                ->route('overtime.my-requests')
-                ->with('toast_success', 'Overtime request deleted.');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            return back()->with('toast_error', 'Delete failed: ' . $e->getMessage());
-        }
+        return $this->performCancel($overtimeRequest);
     }
 
     /**
@@ -726,6 +702,7 @@ class OvertimeRequestController extends Controller
             'project',
             'requestedBy',
             'finishedBy',
+            'cancelledBy',
             'details.administration.employee',
             'details.administration.position',
             'approvalPlans',
@@ -811,7 +788,7 @@ class OvertimeRequestController extends Controller
      */
     public function submitForApproval(OvertimeRequest $overtimeRequest)
     {
-        return $this->processSubmitForApproval($overtimeRequest);
+        return $this->processSubmitForApproval($overtimeRequest, false);
     }
 
     /**
@@ -819,13 +796,13 @@ class OvertimeRequestController extends Controller
      */
     public function myRequestsSubmitForApproval(OvertimeRequest $overtimeRequest)
     {
-        return $this->processSubmitForApproval($overtimeRequest);
+        return $this->processSubmitForApproval($overtimeRequest, true);
     }
 
-    private function processSubmitForApproval(OvertimeRequest $overtimeRequest)
+    private function processSubmitForApproval(OvertimeRequest $overtimeRequest, bool $personal)
     {
         $user = Auth::user();
-        if (! $overtimeRequest->canBeEditedBy($user)) {
+        if (! $user instanceof User || ! $overtimeRequest->canBeEditedBy($user, $personal)) {
             abort(403);
         }
 
@@ -1010,7 +987,7 @@ class OvertimeRequestController extends Controller
             'project_id' => 'required|exists:projects,id',
             'overtime_date' => 'required|date',
             'remarks' => 'nullable|string|max:2000',
-            'submit_action' => 'nullable|in:draft,submit',
+            'submit_action' => 'nullable|in:draft,submit,save',
             'details' => 'required|array|min:1',
             'details.*.administration_id' => [
                 'required',
@@ -1190,16 +1167,45 @@ class OvertimeRequestController extends Controller
 
     private function statusBadgeHtml(string $status): string
     {
-        $map = [
-            OvertimeRequest::STATUS_DRAFT => 'secondary',
-            OvertimeRequest::STATUS_PENDING => 'warning',
-            OvertimeRequest::STATUS_APPROVED => 'success',
-            OvertimeRequest::STATUS_REJECTED => 'danger',
-            OvertimeRequest::STATUS_FINISHED => 'info',
-        ];
-        $c = $map[$status] ?? 'secondary';
+        $c = OvertimeRequest::statusBadgeClassFor($status);
 
         return '<span class="badge badge-' . $c . '">' . strtoupper(e($status)) . '</span>';
+    }
+
+    private function performCancel(OvertimeRequest $overtimeRequest): RedirectResponse
+    {
+        $user = Auth::user();
+        if (! $user instanceof User || ! $overtimeRequest->canBeCancelledBy($user)) {
+            abort(403);
+        }
+
+        if ($r = UserProject::guardProjectInAssignmentScope((int) $overtimeRequest->project_id)) {
+            return $r;
+        }
+
+        $cancelled = false;
+        DB::transaction(function () use ($overtimeRequest, $user, &$cancelled) {
+            $locked = OvertimeRequest::query()->whereKey($overtimeRequest->getKey())->lockForUpdate()->first();
+            if (! $locked || ! $locked->canBeCancelledBy($user)) {
+                return;
+            }
+
+            $locked->update([
+                'status' => OvertimeRequest::STATUS_CANCELLED,
+                'cancelled_at' => now(),
+                'cancelled_by' => $user->id,
+            ]);
+            app(ApprovalPlanController::class)->closeOpenApprovalPlans('overtime_request', $locked->id);
+            $cancelled = true;
+        });
+
+        if (! $cancelled) {
+            return back()->with('toast_error', 'This request cannot be cancelled.');
+        }
+
+        return redirect()
+            ->route('overtime.requests.show', $overtimeRequest)
+            ->with('toast_success', 'Overtime request cancelled.');
     }
 
     /**

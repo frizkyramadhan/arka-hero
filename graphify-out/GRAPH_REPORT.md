@@ -1,16 +1,16 @@
-# Graph Report - arka-hero  (2026-11-16)
+# Graph Report - arka-hero  (2026-11-27)
 
 ## Corpus Check
-- 2201 files · ~5,013,728 words
+- 2216 files · ~5,095,338 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 21741 nodes · 44322 edges · 2321 communities (646 shown, 303 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 2285 edges (avg confidence: 0.85)
+- 21862 nodes · 44534 edges · 2331 communities (661 shown, 296 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 2288 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `6eb3a8bb`
+- Built from commit: `8cc98426`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,19 +19,19 @@
 - pdfmake.min.js
 - Maatwebsite\Excel\Concerns\Importable
 - main.js
-- call
+- RecruitmentReportController
 - ManPowerPlanDetail
 - UserProject
 - RecruitmentHiring
 - Officialtravel
 - SupplyOrder
 - FlightRequest
-- LetterSubject
+- LeaveDirectorApproval
 - LetterNumber
 - Chart.bundle.js
 - main.min.js
 - Illuminate\Database\Seeder
-- Controller
+- ba
 - .emit
 - .push
 - CalendarApi
@@ -54,7 +54,7 @@
 - esm/popper.min.js
 - K
 - HitDragging
-- Project
+- EmployeeMutation
 - CalendarDataManager
 - .createRef
 - Chart.min.js
@@ -62,7 +62,7 @@
 - popper/popper.js
 - z
 - OvertimeRequest
-- VehicleAssignment
+- FuelRecord
 - moment.min.js
 - BrotliDecompress
 - popper/popper.min.js
@@ -88,7 +88,7 @@
 - Vehicle
 - vim.js
 - summernote-lite.min.js
-- Department
+- User
 - summernote-bs5.min.js
 - summernote.min.js
 - SimpleScrollGrid
@@ -96,26 +96,26 @@
 - Chart.bundle.min.js
 - Illuminate\Http\Request
 - uPlot.iife.js
-- updateCursor
-- LeaveEntitlement
-- RecruitmentReportController
+- uPlot
+- ManPowerPlan
+- .createPdfKitDocument
 - merge.js
-- elt
+- r
 - filterizr.min.js
 - jszip.js
 - memoize
 - c
 - popper/popper-utils.js
-- RoomConsumptionRequest
+- end
 - esm/popper-utils.js
 - umd/popper-utils.js
-- CourseImport
-- ManPowerPlan
+- Maatwebsite\Excel\Concerns\WithEvents
+- RoomConsumptionRequest
 - haxe.js
 - jquery-ui.js
-- innerDeepEqual
-- Illuminate\Database\Schema\Blueprint
-- User
+- call
+- Illuminate\Support\Facades\Schema
+- Project
 - OpenRouterReceiptParser
 - cmp
 - isValid
@@ -132,10 +132,11 @@
 - Recruitment Management
 - dropzone.js
 - dropzone-amd-module.js
+- innerDeepEqual
 - bootstrap-colorpicker.js
-- deflate
+- Zlib
 - select2.js
-- FuelBotSubmission
+- Controller
 - Feature Backlog - ARKA HERO HRMS
 - jquery.js
 - locales.min.js
@@ -146,22 +147,22 @@
 - PointerDragging
 - bootstrap-colorpicker.min.js
 - tern.js
-- indexOf
+- innerDeepEqual
 - Room & Consumption Management
 - createDuration
 - jquery.slim.min.js
 - OverlayScrollbarsInstance
 - emit
-- EventServiceProvider.php
-- write
+- DocumentAuditLogger
+- FuelClaim
 - inputmask.js
 - jquery.slim.js
 - .push
-- byteLength
+- .copy
 - from
 - Results
-- Fl
-- ba
+- uPlot.iife.min.js
+- elt
 - EmployeeBond
 - inputmask.min.js
 - .get
@@ -180,7 +181,7 @@
 - 3.3 Detail Roster & Cycle Management
 - My Dashboard & My Features
 - emacs.js
-- Maatwebsite\Excel\Concerns\SkipsErrors
+- SupplyItemImport
 - localeData
 - hasOwnProp
 - pace.js
@@ -192,9 +193,9 @@
 - employee/detail.blade.php
 - jquery.min.js
 - setupScrollbarEvents
-- LeaveEntitlementController
+- Employee
 - docUsePattern
-- LeaveType
+- TelegramClient
 - Employee Management
 - 4. Leave Data (Leave Types, National Holidays)
 - Letter Administration
@@ -210,7 +211,7 @@
 - ItWoZoomClient
 - 4. Leave Data (Leave Types, National Holidays)
 - Letter Administration
-- BaseDocumentController
+- Illuminate\Console\Command
 - clike.js
 - resolve
 - _createForOfIteratorHelperLoose
@@ -219,7 +220,7 @@
 - getLine
 - DebugController
 - zoom_parser_helper.php
-- LetterNumberController
+- Xe
 - jszip.min.js
 - locales.js
 - umd/popper.min.js
@@ -233,7 +234,7 @@
 - Recruitment Management
 - 3. Untuk HR — Requests
 - createLocalOrUTC
-- Xe
+- Fl
 - erlang.js
 - RecruitmentNotificationService
 - .trigger
@@ -245,7 +246,7 @@
 - .trigger
 - EducationImport
 - Recent Decisions
-- LeaveRequestController
+- Langkah kerja di Arka Hero
 - jquery-ui.min.js
 - .apply
 - sweetalert2.all.min.js
@@ -253,13 +254,13 @@
 - Exception
 - sweetalert.all.js
 - RoomConsumptionRequestController
-- TestCase
+- OpenRouterReceiptNumberParseTest
 - **Files**: `DocumentApprovalNotification`, `DocumentNotificationService`, `DocumentNotificationSend`, `RemindPendingApprovalsCommand`, `LogDocumentNotificationSent`/`Failed`, `DebugEmailNotificationController`, `ActivityLogController`, `config/document_notifications.php`, `emails/documents/approval.blade.php`, `emails/documents/approval-text.blade.php`, `public/images/logo_2.jpg`, migrations `jobs` + `document_notification_sends`, `docs/docker-reference.md`
 - getLocale
 - lint.js
 - search.js
 - SegHierarchy
-- VehicleAssignmentStop
+- AdministrationImport
 - .get
 - RecruitmentWorkflowService
 - devDependencies
@@ -269,7 +270,7 @@
 - Official Travel Management (LOT)
 - getContextBefore
 - jquery.flot.composeImages.js
-- innerDeepEqual
+- TerminationImport
 - RecruitmentPermissions
 - Room & Consumption Request (RCR) — Design
 - Official Travel Management (LOT)
@@ -283,7 +284,7 @@
 - BaseSelection
 - roundDec
 - roundDec
-- LetterCategory
+- t
 - MEMORY.md
 - FastClick
 - jquery.flot.touchNavigate.js
@@ -306,22 +307,22 @@
 - init
 - initTouchNavigation
 - Editor
-- getPos
+- closestIdx
 - closestIdx
 - ifNull
-- BankExport
+- EmailController
 - configFromArray
 - dropzone-amd-module.min.js
 - dropzone.min.js
 - domManip
 - Deflate
-- InsuranceImport
+- TestCase
 - .extend
 - .on
 - initSeries
 - initSeries
 - initSeries
-- VehicleAssignmentController
+- VehicleAssignment
 - require
 - ARKA HERO - HR Management System Architecture
 - ARKA HERO - General Affair (GA) Modules Analysis
@@ -336,10 +337,10 @@
 - isEditable
 - isEditable
 - splitNode
-- uPlot
-- ApproverPosting
-- gi
-- EmergencycallImport
+- drawAxesGrid
+- Maatwebsite\Excel\Concerns\WithHeadings
+- CourseImport
+- write
 - EmployeeDisciplinaryImport
 - jquery.bootstrap-duallistbox.min.js
 - runmode-standalone.js
@@ -365,7 +366,7 @@
 - flip
 - Bar
 - searchcursor.js
-- Illuminate\Database\Eloquent\Relations\BelongsTo
+- AppServiceProvider.php
 - sublime.js
 - css.js
 - powershell.js
@@ -395,18 +396,18 @@
 - http.js
 - rst.js
 - sass.js
-- DBCSCodec
+- LeaveEntitlementExport
 - matcherFromTokens
 - domManip
 - l
 - matcherFromTokens
 - ArrayReader
-- commit
+- addClass
 - assign
 - addClass
 - assign
 - assign
-- JobExperienceImport
+- BankExport
 - Module 3: Property Management System (PMS)
 - Current System Analysis
 - Register dan Login
@@ -426,7 +427,7 @@
 - 2026_11_10_105400_add_administration_assignments_and_approver_posting.php
 - Illuminate\Database\Migrations\Migration
 - InternalDecoderCesu8
-- checkIntBI
+- FuelBotSubmission
 - composer.json
 - scripts
 - 14. Ringkasan endpoint
@@ -449,7 +450,7 @@
 - FixedColumns
 - isArray
 - isEditable
-- AppServiceProvider.php
+- InsuranceImport
 - Database Schema
 - Module 4: Ticket Reservations Module
 - Module 1: Office Supplies Module
@@ -464,6 +465,7 @@
 - vhdl.js
 - f
 - jquery.flot.categories.js
+- HealthInsuranceExport
 - sparkline.js
 - replace
 - replace
@@ -472,21 +474,23 @@
 - contains
 - contains
 - contains
-- EmployeeMutation
+- OvertimeRequestController
 - Handler.php
 - README.md
 - leave-requests/create.blade.php
 - leave-requests/edit.blade.php
 - leave-requests/my-create.blade.php
 - markdown-pdf-export-test.js
-- Utf16Encoder
-- wa
+- PersonalExport
+- OperableunitImport
+- VehicleDocument
 - LicenseImport
 - RecruitmentMcu
-- PHPUnit\Framework\TestCase
-- Maatwebsite\Excel\Concerns\WithHeadings
-- R
-- PositionExport
+- format_date_with_weekday
+- AdditionaldataImport
+- RecruitmentDocument
+- EventEmitter
+- JobExperienceImport
 - EmployeeDisciplinary
 - require-dev
 - Security Implementation
@@ -509,10 +513,10 @@
 - last
 - last
 - last
-- commit
+- addClass
 - leave-requests/my-edit.blade.php
 - psr-4
-- 10.5 Tutorial Postman (Workforce)
+- 10. Workforce — profil & aktivitas karyawan
 - DebugEmailNotificationController
 - 5. Employees
 - Architecture Documentation Guidelines
@@ -554,7 +558,7 @@
 - locales/de.js
 - locales/de-at.js
 - refreshScrollbarsAutoHide
-- CubicBezierAtTime
+- OvertimeReportController
 - detectEncoding
 - slowToString
 - ArkFleetClient
@@ -567,8 +571,9 @@
 - vehicle-assignments/my-show.blade.php
 - vehicle-assignments/show.blade.php
 - screenshot-leave-manual.mjs
-- Kernel
-- CubicBezierAtTime
+- RoomConsumptionReportController
+- Illuminate\Database\Schema\Blueprint
+- export-2025-09-24_ac51a828.md
 - config
 - Annual leave anniversary follows latest employee mutation, not a new administration row
 - 6. Official travels
@@ -603,14 +608,16 @@
 - DataWorker
 - br.js
 - locale/lt.js
-- LicenseExport
+- AdditionaldataExport
 - deflate_fast
 - deflateInit2
 - LookupList
 - BaseAdapter
 - InfiniteScroll
+- RecruitmentTesTeori
 - my-travels-show.blade.php
 - AuthServiceProvider
+- RecruitmentOnboarding
 - Leave Period is a date fence only for annual and long-service leave
 - Supplies is one stock-card module plus a replenishment order
 - Supply stock is scoped by Project; need location is free text
@@ -728,29 +735,36 @@
 - autoload-dev
 - keywords
 - UserFactory
-- TelegramClient
 - ifNull
-- AdditionaldataExport
-- EmergencycallExport
-- JobExperienceExport
+- wa
+- al
+- ifNull
+- EventServiceProvider.php
+- RecruitmentCvReview
+- EducationExport
+- LicenseExport
+- UserProjectTest.php
+- DBCSCodec
+- checkIntBI
 - TaxExport
-- LeaveEntitlementExport
-- Illuminate\Support\Facades\Schema
-- updateCursor
+- getGlyph
+- TerminationExport
+- off
+- PositionExport
+- HealthInsuranceImport
+- me
+- Kernel
+- ATK_STOCK_2026_aaf5f4b0.md
+- CONSUMABLE_STOCK_HO_2026_4a269922.md
+- 10.5 Tutorial Postman (Workforce)
+- Maatwebsite\Excel\Concerns\WithMapping
+- LoadEnvironmentVariables.php
 - 2025_03_19_005509_create_permission_tables.php
-- RecruitmentLetterNumberService
-- OperableunitImport
-- Animation
-- AdditionaldataImport
-- Animation
+- RecruitmentPsikotes
 - BankImport
-- PersonalImport
+- Bank
 - TaxImport
-- LeaveDirectorApproval
-- TerminationImport
-- RosterExport
-- AdministrationAssignmentInput
-- LetterAdministrationImport
+- AraimInventoriesClient
 - PositionImport
 - ARKA HERO
 - Riwayat versi (Versioning)
@@ -785,6 +799,7 @@
 - eifelerRegelAppliesToNumber
 - format
 - mutation
+- Utf16Encoder
 - RoleController
 - PrependBOMWrapper
 - Utf32AutoEncoder
@@ -950,31 +965,24 @@
 - stock-outs/print.blade.php
 - vehicles/show.blade.php
 - employee.partials.administration-assignments
+- my-profile.blade.php
 - sessions/show.blade.php
-- HealthInsuranceExport
-- CourseExport
-- FamilyExport
-- LookupList
-- EmailController
-- .valToPos
-- TerminationExport
-- ManagesLetterNumberForm
-- RecruitmentPsikotes
-- PersonalExport
-- ComposerAutoloaderInit2399b49ce68e44614d9ae9465010509c
+- EmergencycallExport
+- FuelReceiptDuplicateChecker
 - parseStyleSheet
-- ComposerStaticInit2399b49ce68e44614d9ae9465010509c
+- saslprep
+- InternalEncoder
 
 ## God Nodes (most connected - your core abstractions)
-1. `UserProject` - 401 edges
-2. `Employee` - 229 edges
-3. `RecruitmentSession` - 171 edges
+1. `UserProject` - 402 edges
+2. `Employee` - 236 edges
+3. `RecruitmentSession` - 174 edges
 4. `LeaveRequest` - 154 edges
 5. `Administration` - 146 edges
 6. `RecruitmentRequest` - 146 edges
-7. `User` - 137 edges
+7. `User` - 139 edges
 8. `Officialtravel` - 133 edges
-9. `LetterNumber` - 127 edges
+9. `LetterNumber` - 130 edges
 10. `Controller` - 120 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -984,75 +992,75 @@
   database/migrations/2025_03_19_005509_create_permission_tables.php → public/PHPMailer/vendor/phpmailer/phpmailer/src/Exception.php
 - `up()` --calls--> `LetterNumber`  [EXTRACTED]
   database/migrations/2026_09_21_145000_backfill_vehicle_assignment_form_numbers.php → app/Models/LetterNumber.php
-- `se()` --indirect_call--> `Me()`  [INFERRED]
-  public/assets/plugins/chart.js/Chart.min.js → public/assets/plugins/chart.js/Chart.bundle.min.js
+- `AdministrationYearsOfServiceCalculatorTest` --references--> `AdministrationYearsOfServiceCalculator`  [EXTRACTED]
+  tests/Unit/AdministrationYearsOfServiceCalculatorTest.php → app/Services/AdministrationYearsOfServiceCalculator.php
 - `E()` --indirect_call--> `Pi()`  [INFERRED]
   public/assets/plugins/fullcalendar/main.min.js → public/assets/plugins/chart.js/Chart.min.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (2321 total, 303 thin omitted)
+## Communities (2331 total, 296 thin omitted)
 
 ### Community 0 - "pdfmake.js"
 Cohesion: 0.01
-Nodes (214): RFC-2152, RFC-3454, RFC-3501, AATLayoutEngine(), AATLookupTable(), AATMorxProcessor(), AATStateMachine(), adjustLength() (+206 more)
+Nodes (232): RFC-2152, RFC-3454, RFC-3501, AATLayoutEngine(), AATLookupTable(), AATMorxProcessor(), AATStateMachine(), adjustLength() (+224 more)
 
 ### Community 1 - "pdfmake.min.js"
 Cohesion: 0.01
-Nodes (41): arrayClone(), checkIEEE754(), checkWidth(), Data(), decodeTriplet(), _defineProperty(), drawDecoration(), getBottomPosition() (+33 more)
+Nodes (38): arrayClone(), checkIEEE754(), checkWidth(), Data(), decodeTriplet(), _defineProperty(), drawDecoration(), getBottomPosition() (+30 more)
 
 ### Community 2 - "Maatwebsite\Excel\Concerns\Importable"
-Cohesion: 0.19
-Nodes (16): DepartmentImport, EmployeeImport, HealthInsuranceImport, ProjectImport, Maatwebsite\Excel\Concerns\Importable, Maatwebsite\Excel\Concerns\SkipsFailures, Maatwebsite\Excel\Concerns\SkipsOnFailure, Maatwebsite\Excel\Concerns\ToModel (+8 more)
+Cohesion: 0.22
+Nodes (16): DepartmentImport, EmployeeImport, ProjectImport, Maatwebsite\Excel\Concerns\Importable, Maatwebsite\Excel\Concerns\SkipsErrors, Maatwebsite\Excel\Concerns\SkipsFailures, Maatwebsite\Excel\Concerns\SkipsOnError, Maatwebsite\Excel\Concerns\SkipsOnFailure (+8 more)
 
 ### Community 3 - "main.js"
 Cohesion: 0.01
 Nodes (224): a$1(), addEvent(), addSources(), arrayToHash(), b$1(), buildAbsoluteTopHash(), buildEventRefiners(), buildEventSourceMeta() (+216 more)
 
-### Community 4 - "call"
-Cohesion: 0.04
-Nodes (60): AFMFont(), afterTransform(), assign(), AsyncIterator(), enqueue(), callInvokeWithMethodAndArg(), invoke(), cache() (+52 more)
-
 ### Community 6 - "UserProject"
 Cohesion: 0.02
-Nodes (34): AdditionaldataController, AdministrationController, BulkLeaveRequestController, CourseController, EducationController, EmployeebankController, EmployeeController, EmrgcallController (+26 more)
+Nodes (38): AdditionaldataController, BulkLeaveRequestController, CourseController, EducationController, EmployeebankController, EmployeeController, EmrgcallController, FamilieController (+30 more)
 
 ### Community 8 - "Officialtravel"
 Cohesion: 0.03
-Nodes (14): AccommodationController, Builder, OfficialtravelController, RedirectResponse, TransportationController, Accommodation, Officialtravel_detail, Officialtravel (+6 more)
+Nodes (16): AccommodationController, Builder, OfficialtravelController, RedirectResponse, TransportationController, Accommodation, Officialtravel, Collection (+8 more)
 
 ### Community 9 - "SupplyOrder"
 Cohesion: 0.07
 Nodes (3): SupplyOrderController, self, SupplyOrder
 
 ### Community 10 - "FlightRequest"
-Cohesion: 0.03
-Nodes (7): FlightReportController, FlightRequestController, FlightRequestIssuanceController, FlightRequest, self, FlightRequestIssuance, self
+Cohesion: 0.02
+Nodes (14): CloseExpiredRecruitmentRequests, ApprovalPlanController, ApprovalRequestController, BusinessPartnerController, FlightReportController, FlightRequestController, FlightRequestIssuanceController, ApprovalPlan (+6 more)
 
-### Community 11 - "LetterSubject"
-Cohesion: 0.07
-Nodes (3): LetterSubjectController, LetterSubjectController, LetterSubject
+### Community 11 - "LeaveDirectorApproval"
+Cohesion: 0.06
+Nodes (10): AdministrationAssignmentInput, ApproverPosting, LeaveDirectorApproval, LotOriginPosting, PHPUnit\Framework\TestCase, AdministrationAssignmentInputTest, AdministrationYearsOfServiceCalculatorTest, ApproverPostingTest (+2 more)
+
+### Community 12 - "LetterNumber"
+Cohesion: 0.02
+Nodes (10): LetterNumberController, LetterSubjectController, BaseDocumentController, ManagesLetterNumberForm, LetterCategoryController, LetterNumberController, LetterSubjectController, LetterCategory (+2 more)
 
 ### Community 13 - "Chart.bundle.js"
 Cohesion: 0.02
 Nodes (69): buildGraph(), buildLayoutBoxes(), calculateSpacing(), clipArc(), computeBoundary(), computeCircularBoundary(), computeFitCategoryTraits(), computeLinearBoundary() (+61 more)
 
 ### Community 14 - "main.min.js"
-Cohesion: 0.02
-Nodes (174): e(), t(), d(), A(), Ai(), Al(), An(), Ao() (+166 more)
+Cohesion: 0.03
+Nodes (108): A(), Aa(), Ai(), Al(), An(), Ao(), at(), au() (+100 more)
 
 ### Community 15 - "Illuminate\Database\Seeder"
 Cohesion: 0.04
-Nodes (31): App\Models\RosterTemplate, ActivityLogPermissionSeeder, BankSeeder, DatabaseSeeder, DepartmentSeeder, DisciplinaryPermissionSeeder, FlightPermissionSeeder, FuelBotPermissionSeeder (+23 more)
+Nodes (33): App\Models\RosterTemplate, ActivityLogPermissionSeeder, BankSeeder, DatabaseSeeder, DepartmentSeeder, DisciplinaryPermissionSeeder, FlightPermissionSeeder, FoaLetterCategorySeeder (+25 more)
 
-### Community 16 - "Controller"
-Cohesion: 0.04
-Nodes (29): ClaimStatus, DepartmentController, EmployeeWorkforceApiController, Carbon, ItWoZoomCallbackController, LetterNumberApiController, OfficialtravelApiController, PositionController (+21 more)
+### Community 16 - "ba"
+Cohesion: 0.14
+Nodes (30): n(), ba(), c(), d(), E(), e(), s(), Ee() (+22 more)
 
 ### Community 17 - ".emit"
 Cohesion: 0.03
-Nodes (91): addChunk(), addErrorHandlerIfEventEmitter(), _addListener(), afterWrite(), arrayClone(), async(), BufferList(), callFinal() (+83 more)
+Nodes (91): addChunk(), addErrorHandlerIfEventEmitter(), afterTransform(), afterWrite(), async(), base64End(), BufferList(), callFinal() (+83 more)
 
 ### Community 18 - ".push"
 Cohesion: 0.04
@@ -1067,12 +1075,12 @@ Cohesion: 0.02
 Nodes (84): AirPopover(), AirPopover_classCallCheck(), AirPopover_createClass(), AirPopover_defineProperties(), AutoLink(), AutoLink_classCallCheck(), AutoLink_createClass(), AutoLink_defineProperties() (+76 more)
 
 ### Community 21 - "RecruitmentRequest"
-Cohesion: 0.02
-Nodes (9): RecruitmentCandidateController, RecruitmentRequestController, RecruitmentCandidate, self, RecruitmentRequest, Illuminate\Foundation\Testing\DatabaseTransactions, Illuminate\Support\Facades\URL, FptkCloseReopenTest (+1 more)
+Cohesion: 0.03
+Nodes (8): LevelController, RecruitmentRequestController, Level, self, RecruitmentRequest, RecruitmentLetterNumberService, RosterCycleDateCalculator, Carbon\CarbonInterface
 
 ### Community 22 - "Maatwebsite\Excel\Concerns\FromQuery"
-Cohesion: 0.27
-Nodes (13): ExportForEmployeeIds, OperableunitExport, Maatwebsite\Excel\Concerns\FromQuery, Maatwebsite\Excel\Concerns\ShouldAutoSize, Maatwebsite\Excel\Concerns\WithColumnFormatting, Maatwebsite\Excel\Concerns\WithCustomValueBinder, Maatwebsite\Excel\Concerns\WithStyles, Maatwebsite\Excel\Concerns\WithTitle (+5 more)
+Cohesion: 0.17
+Nodes (15): ExportForEmployeeIds, CourseExport, JobExperienceExport, OperableunitExport, Maatwebsite\Excel\Concerns\FromQuery, Maatwebsite\Excel\Concerns\ShouldAutoSize, Maatwebsite\Excel\Concerns\WithColumnFormatting, Maatwebsite\Excel\Concerns\WithCustomValueBinder (+7 more)
 
 ### Community 23 - "summernote.js"
 Cohesion: 0.02
@@ -1108,15 +1116,15 @@ Nodes (100): afterExport(), afterImport(), afterprop(), afterType(), arrayLitera
 
 ### Community 31 - "uPlot.cjs.js"
 Cohesion: 0.03
-Nodes (82): addGap(), allMults, arcH(), arcV(), autoRangePart, bars(), bezierCurveToH(), bezierCurveToV() (+74 more)
+Nodes (82): addGap(), allMults, arcH(), arcV(), asinhAxisSplits(), autoRangePart, bezierCurveToH(), bezierCurveToV() (+74 more)
 
 ### Community 32 - "uPlot.esm.js"
 Cohesion: 0.03
 Nodes (82): addGap(), allMults, arcH(), arcV(), asinhAxisSplits(), autoRangePart, bezierCurveToH(), bezierCurveToV() (+74 more)
 
 ### Community 33 - ".slice"
-Cohesion: 0.02
-Nodes (58): addNumericalSeparator(), addParserEvents(), _applyDecoratedDescriptor(), asciiSlice(), base64End(), base64Slice(), base64Text(), DBCSDecoder() (+50 more)
+Cohesion: 0.03
+Nodes (47): addNumericalSeparator(), addParserEvents(), _applyDecoratedDescriptor(), asciiSlice(), base64Slice(), base64Text(), DBCSDecoder(), DBCSEncoder() (+39 more)
 
 ### Community 34 - "DocMeasure"
 Cohesion: 0.04
@@ -1131,16 +1139,16 @@ Cohesion: 0.06
 Nodes (92): a(), ae(), b(), be(), c(), ce(), d(), de() (+84 more)
 
 ### Community 37 - "K"
-Cohesion: 0.07
-Nodes (88): On(), ir(), Mn(), V(), b(), E(), g(), H() (+80 more)
+Cohesion: 0.08
+Nodes (85): Mn(), V(), b(), E(), g(), H(), i(), K() (+77 more)
 
 ### Community 38 - "HitDragging"
 Cohesion: 0.04
 Nodes (23): AutoScroller(), computeClippedClientRect(), computeInnerRect(), computeRect(), constrainPoint(), diffPoints(), ElementScrollController(), ElementScrollGeomCache() (+15 more)
 
-### Community 39 - "Project"
-Cohesion: 0.04
-Nodes (27): ProjectController, SupplyStockInImport, SupplyStockOutImport, Project, AdministrationYearsOfServiceCalculator, Carbon, SupplyStock, LeaveEntitlementPeriodPresenter (+19 more)
+### Community 39 - "EmployeeMutation"
+Cohesion: 0.14
+Nodes (5): EmployeeMutationController, EmployeeMutation, EmployeeMutationLeaveAnchor, Carbon, EmployeeMutationLeaveAnchorTest
 
 ### Community 40 - "CalendarDataManager"
 Cohesion: 0.03
@@ -1152,7 +1160,7 @@ Nodes (35): addDurations(), buildEventRangeKey(), buildSegCompareObj(), collectC
 
 ### Community 42 - "Chart.min.js"
 Cohesion: 0.04
-Nodes (45): a(), ae(), bt(), c(), ce(), cn(), d(), de() (+37 more)
+Nodes (44): a(), ae(), bt(), c(), ce(), cn(), d(), de() (+36 more)
 
 ### Community 43 - "h"
 Cohesion: 0.07
@@ -1163,20 +1171,16 @@ Cohesion: 0.06
 Nodes (68): applyStyle(), applyStyleOnLoad(), arrow(), attachToScrollParents(), BEHAVIORS, clockwise(), computeAutoPlacement(), computeStyle() (+60 more)
 
 ### Community 45 - "z"
-Cohesion: 0.08
-Nodes (77): In(), Ge(), nr(), qe(), tr(), Ye(), Er(), e() (+69 more)
-
-### Community 46 - "OvertimeRequest"
-Cohesion: 0.05
-Nodes (10): format_date_with_weekday(), format_datetime_with_weekday(), formatRequestReason(), Collection, DateTimeInterface, user_accessible_projects(), OvertimeReportController, OvertimeRequestController (+2 more)
+Cohesion: 0.09
+Nodes (73): In(), ir(), Er(), e(), S(), x(), z(), a() (+65 more)
 
 ### Community 48 - "moment.min.js"
-Cohesion: 0.06
-Nodes (65): a(), Ae(), at(), b(), bt(), c(), ce(), cn() (+57 more)
+Cohesion: 0.07
+Nodes (62): a(), Ae(), at(), b(), bt(), c(), ce(), cn() (+54 more)
 
 ### Community 49 - "BrotliDecompress"
-Cohesion: 0.05
-Nodes (51): BrotliBitReader(), BrotliDecompress(), BrotliDecompressBuffer(), BrotliDecompressedSize(), BrotliInput(), BrotliOutput(), c(), CFFFont() (+43 more)
+Cohesion: 0.10
+Nodes (32): BrotliBitReader(), BrotliDecompress(), BrotliDecompressBuffer(), BrotliDecompressedSize(), BrotliInput(), BrotliOutput(), c(), CFFFont() (+24 more)
 
 ### Community 50 - "popper/popper.min.js"
 Cohesion: 0.08
@@ -1188,7 +1192,7 @@ Nodes (16): buildGraph(), deriveBFS(), hslaString(), hslString(), initCanvas(), 
 
 ### Community 52 - "Administration"
 Cohesion: 0.03
-Nodes (9): EmployeeApiController, RosterController, AdministrationResource, RosterImport, Administration, Roster, RosterDetail, AdministrationObserver (+1 more)
+Nodes (10): AdministrationController, EmployeeApiController, RosterController, AdministrationResource, RosterImport, Administration, Roster, RosterDetail (+2 more)
 
 ### Community 53 - "isValid"
 Cohesion: 0.06
@@ -1196,11 +1200,11 @@ Nodes (72): addRegexToken(), calendar(), calendar$1(), clone(), cloneWithOffset(
 
 ### Community 54 - "moment-with-locales.min.js"
 Cohesion: 0.04
-Nodes (44): za(), A(), Ae(), as(), at(), cn(), cr(), da() (+36 more)
+Nodes (39): A(), Ae(), as(), at(), b(), cn(), cr(), da() (+31 more)
 
 ### Community 55 - "call"
 Cohesion: 0.04
-Nodes (55): AFMFont(), _applyDecoratedDescriptor(), cache(), call(), CFFEncodingVersion(), CFFPointer(), CFFSubset(), _classCallCheck() (+47 more)
+Nodes (71): AFMFont(), _applyDecoratedDescriptor(), AssertionError(), _assertThisInitialized(), cache(), call(), CFFEncodingVersion(), CFFPointer() (+63 more)
 
 ### Community 56 - "esm/popper.js"
 Cohesion: 0.07
@@ -1239,20 +1243,20 @@ Cohesion: 0.05
 Nodes (15): applyStyleProp(), buildDomNodeRenderer(), destroy(), render(), buildHtmlRenderer(), buildViewContext(), buildViewPropTransformers(), Calendar() (+7 more)
 
 ### Community 67 - "Buffer"
-Cohesion: 0.07
-Nodes (16): arrayIndexOf(), bidirectionalIndexOf(), Buffer(), checkIEEE754(), checkInt(), checkOffset(), computeNewHighWaterMark(), fromList() (+8 more)
+Cohesion: 0.05
+Nodes (24): arrayIndexOf(), bidirectionalIndexOf(), Buffer(), checkIEEE754(), checkInt(), checkOffset(), computeNewHighWaterMark(), fixFilename() (+16 more)
 
 ### Community 68 - "uPlot"
-Cohesion: 0.07
-Nodes (53): incrRound(), invalidateRects(), off(), on(), pxRoundGen(), retEq(), retTrue(), setPxRatio() (+45 more)
+Cohesion: 0.08
+Nodes (57): dataIdx(), elColor(), elSize(), invalidateRects(), off(), on(), retEq(), retTrue() (+49 more)
 
 ### Community 69 - "uPlot"
 Cohesion: 0.08
 Nodes (57): dataIdx(), elColor(), elSize(), invalidateRects(), off(), on(), retEq(), retTrue() (+49 more)
 
 ### Community 70 - "Vehicle"
-Cohesion: 0.03
-Nodes (12): FuelClaimApiController, VehicleApiController, FuelClaimController, FuelRecordController, VehicleController, VehicleDocumentController, FuelClaim, FuelRecord (+4 more)
+Cohesion: 0.11
+Nodes (3): VehicleApiController, VehicleController, Vehicle
 
 ### Community 71 - "vim.js"
 Cohesion: 0.04
@@ -1262,9 +1266,9 @@ Nodes (32): charIdxInLine(), cmKey(), cmKeyToVimKey(), commandMatch(), commandMa
 Cohesion: 0.06
 Nodes (26): at(), Bt(), C(), ct(), E(), et(), F(), H() (+18 more)
 
-### Community 73 - "Department"
-Cohesion: 0.03
-Nodes (16): DepartmentController, GradeController, LevelController, NationalHolidayController, PositionController, Department, Grade, Level (+8 more)
+### Community 73 - "User"
+Cohesion: 0.02
+Nodes (19): TestApprovalSystem, ApprovalStageController, DepartmentController, GradeController, PositionController, TerminationController, UserController, ApprovalStage (+11 more)
 
 ### Community 74 - "summernote-bs5.min.js"
 Cohesion: 0.05
@@ -1283,32 +1287,32 @@ Cohesion: 0.05
 Nodes (23): at(), C(), ct(), E(), et(), F(), H(), it() (+15 more)
 
 ### Community 78 - "Chart.bundle.min.js"
-Cohesion: 0.05
-Nodes (27): ai(), bt(), de(), dt(), gn(), he(), ii(), j() (+19 more)
+Cohesion: 0.06
+Nodes (32): a(), ai(), At(), bt(), de(), gn(), he(), ie() (+24 more)
 
 ### Community 79 - "Illuminate\Http\Request"
 Cohesion: 0.02
-Nodes (28): display_text(), ActivityLogController, LeaveReportController, LengthAwarePaginator, AuthController, DashboardController, LeaveReportController, LengthAwarePaginator (+20 more)
+Nodes (21): display_text(), AuthController, DashboardController, OfficialTravelReportController, PermissionController, ProfileController, JsonResponse, SupplyReportController (+13 more)
 
 ### Community 80 - "uPlot.iife.js"
-Cohesion: 0.06
-Nodes (33): asinhAxisSplits(), fixIncr(), genIncrs(), genTimeStuffs(), timeAxisSplits(), guessDec(), incrRoundDn(), incrRoundUp() (+25 more)
+Cohesion: 0.05
+Nodes (38): asinhAxisSplits(), fixIncr(), genIncrs(), genTimeStuffs(), timeAxisSplits(), guessDec(), incrRoundDn(), incrRoundUp() (+30 more)
 
-### Community 81 - "updateCursor"
-Cohesion: 0.11
-Nodes (30): closestIdx(), dataIdx(), elColor(), elSize(), findIncr(), invalidateRects(), numIntDigits(), autoScaleX() (+22 more)
+### Community 81 - "uPlot"
+Cohesion: 0.09
+Nodes (52): closestIdx(), cursorPointShow(), dataIdx(), elColor(), elSize(), findIncr(), invalidateRects(), numIntDigits() (+44 more)
 
-### Community 82 - "LeaveEntitlement"
-Cohesion: 0.06
-Nodes (6): LeaveEntitlement, self, LeaveEntitlementCarryOverService, LeaveEntitlementLSLPeriodNormalizer, LeaveEntitlementCarryOverServiceTest, LeaveEntitlementOverlapPickTest
+### Community 83 - ".createPdfKitDocument"
+Cohesion: 0.09
+Nodes (19): AsyncIterator(), enqueue(), callInvokeWithMethodAndArg(), invoke(), calculatePageHeight(), getBottomPosition(), getItemHeight(), createIterResult() (+11 more)
 
 ### Community 84 - "merge.js"
 Cohesion: 0.08
 Nodes (48): addClass(), alignableFor(), alignChunks(), alignLines(), attrs(), buildGap(), chunkBoundariesAround(), clear() (+40 more)
 
-### Community 85 - "elt"
-Cohesion: 0.09
-Nodes (34): buildCollapsedSpan(), buildLineElement(), classTest(), Display(), drawSelectionCursor(), elt(), eltP(), ensureLineWrapped() (+26 more)
+### Community 85 - "r"
+Cohesion: 0.05
+Nodes (85): e(), t(), d(), ar(), b(), br(), bt(), C() (+77 more)
 
 ### Community 86 - "filterizr.min.js"
 Cohesion: 0.08
@@ -1330,6 +1334,10 @@ Nodes (3): c(), d(), m()
 Cohesion: 0.09
 Nodes (43): attachToScrollParents(), computeAutoPlacement(), find(), findCommonOffsetParent(), findIndex(), getArea(), getBordersSize(), getBoundaries() (+35 more)
 
+### Community 91 - "end"
+Cohesion: 0.09
+Nodes (29): attrib(), beginWhiteSpace(), charAt(), closeTag(), closeText(), createMetadata(), standardizePropertyKey(), docApplyMask() (+21 more)
+
 ### Community 92 - "esm/popper-utils.js"
 Cohesion: 0.10
 Nodes (42): attachToScrollParents(), computeAutoPlacement(), find(), findCommonOffsetParent(), findIndex(), getArea(), getBordersSize(), getBoundaries() (+34 more)
@@ -1338,9 +1346,9 @@ Nodes (42): attachToScrollParents(), computeAutoPlacement(), find(), findCommonO
 Cohesion: 0.10
 Nodes (42): attachToScrollParents(), computeAutoPlacement(), find(), findCommonOffsetParent(), findIndex(), getArea(), getBordersSize(), getBoundaries() (+34 more)
 
-### Community 94 - "CourseImport"
+### Community 94 - "Maatwebsite\Excel\Concerns\WithEvents"
 Cohesion: 0.06
-Nodes (5): AdministrationImport, CourseImport, MultipleSheetImport, Maatwebsite\Excel\Concerns\SkipsUnknownSheets, Maatwebsite\Excel\Concerns\WithMultipleSheets
+Nodes (6): EmergencycallImport, MultipleSheetImport, PersonalImport, Maatwebsite\Excel\Concerns\SkipsUnknownSheets, Maatwebsite\Excel\Concerns\WithEvents, Maatwebsite\Excel\Concerns\WithMultipleSheets
 
 ### Community 96 - "haxe.js"
 Cohesion: 0.14
@@ -1350,13 +1358,13 @@ Nodes (45): block(), chain(), commasep(), proceed(), cont(), expect(), f(), expr
 Cohesion: 0.04
 Nodes (22): TODO: determine which cases actually cause this to happen, TODO: Unwrap at same DOM position, TODO: make renderAxis a prototype function, TODO: Seems like a bug to cache this.outerDimensions, TODO: remove after 1.12, TODO: Remove hack when datepicker implements, TODO: switch return back to widget declaration at top of file when this is…, TODO: Remove in 1.14 along with call to it below (+14 more)
 
-### Community 98 - "innerDeepEqual"
+### Community 98 - "call"
 Cohesion: 0.04
-Nodes (73): areEqualArrayBuffers(), areSimilarFloatArrays(), areSimilarRegExps(), areSimilarTypedArrays(), AssertionError(), _assertThisInitialized(), checkBoxedPrimitive(), compareExceptionKey() (+65 more)
+Nodes (72): AFMFont(), AssertionError(), _assertThisInitialized(), assign(), cache(), call(), CFFEncodingVersion(), CFFPointer() (+64 more)
 
-### Community 100 - "User"
+### Community 100 - "Project"
 Cohesion: 0.02
-Nodes (18): TestApprovalSystem, ApprovalPlanController, ApprovalRequestController, ApprovalStageController, UserController, ApprovalPlan, Carbon, ApprovalStage (+10 more)
+Nodes (45): ProjectController, SupplyItemCategoryController, SupplyItemController, SupplyStockInController, SupplyStockOutController, SupplyStockInImport, SupplyStockOutImport, Project (+37 more)
 
 ### Community 102 - "cmp"
 Cohesion: 0.10
@@ -1395,8 +1403,8 @@ Cohesion: 0.07
 Nodes (15): addToHash(), allowContextMenu(), applyStyle(), DateClicking(), DateComponent(), DateSelecting(), ElementMirror(), ExternalDraggable() (+7 more)
 
 ### Community 112 - "Illuminate\Database\Eloquent\Model"
-Cohesion: 0.01
-Nodes (38): NotifiableDocument, BankController, BusinessPartnerController, EmployeeRegistrationAdminController, EmployeeRegistrationController, ReligionController, LogDocumentNotificationFailed, Bank (+30 more)
+Cohesion: 0.02
+Nodes (28): NotifiableDocument, AdministrationAssignment, ApprovalStageDetail, AllocatesSupplyDocumentNumber, DocumentNotificationSend, Educations, FlightRequestDetail, FlightRequestFollower (+20 more)
 
 ### Community 113 - "LeaveEntitlementImport"
 Cohesion: 0.12
@@ -1414,21 +1422,25 @@ Nodes (36): _arrayLikeToArray(), _assertThisInitialized(), BROKEN_CARET(), _clas
 Cohesion: 0.07
 Nodes (36): _arrayLikeToArray(), _assertThisInitialized(), BROKEN_CARET(), _classCallCheck(), _createClass(), _createForOfIteratorHelper(), _createSuper(), _defineProperties() (+28 more)
 
+### Community 117 - "innerDeepEqual"
+Cohesion: 0.07
+Nodes (46): areEqualArrayBuffers(), areSimilarFloatArrays(), areSimilarRegExps(), areSimilarTypedArrays(), checkBoxedPrimitive(), compareExceptionKey(), deepEqual(), expectedException() (+38 more)
+
 ### Community 118 - "bootstrap-colorpicker.js"
 Cohesion: 0.08
 Nodes (27): AddonHandler(), buildGraph(), _classCallCheck(), Color(), ColorHandler(), ColorItem(), Colorpicker(), Debugger() (+19 more)
 
-### Community 119 - "deflate"
-Cohesion: 0.07
-Nodes (49): adler32(), bi_flush(), bi_windup(), compress_block(), copy_block(), crc32(), d_code(), deflate() (+41 more)
+### Community 119 - "Zlib"
+Cohesion: 0.05
+Nodes (63): adler32(), bi_flush(), bi_windup(), _close(), compress_block(), copy_block(), crc32(), d_code() (+55 more)
 
 ### Community 120 - "select2.js"
 Cohesion: 0.07
 Nodes (17): callDep(), CloseOnSelect(), countResults(), DecoratedClass(), Dropdown(), EventRelay(), hasProp(), HidePlaceholder() (+9 more)
 
-### Community 121 - "FuelBotSubmission"
-Cohesion: 0.06
-Nodes (11): FuelBotApiController, FuelBotLogController, FuelBotSubscriberController, TelegramWebhookController, FuelBotSubmission, FuelBotSubscriber, self, FuelBotIngestService (+3 more)
+### Community 121 - "Controller"
+Cohesion: 0.03
+Nodes (36): ClaimStatus, ActivityLogController, DepartmentController, EmployeeWorkforceApiController, Carbon, FuelBotApiController, ItWoZoomCallbackController, LetterNumberApiController (+28 more)
 
 ### Community 122 - "Feature Backlog - ARKA HERO HRMS"
 Cohesion: 0.05
@@ -1443,16 +1455,16 @@ Cohesion: 0.07
 Nodes (19): a(), Be(), E(), ga(), ge(), ha(), He(), Ie() (+11 more)
 
 ### Community 125 - "raphael.js"
-Cohesion: 0.10
-Nodes (14): base3(), bezlen(), cacher(), newf(), getTatLen(), inter(), interCount(), interHelper() (+6 more)
+Cohesion: 0.07
+Nodes (22): Animation(), base3(), bezlen(), cacher(), newf(), CubicBezierAtTime(), sampleCurveX(), solve() (+14 more)
 
 ### Community 126 - "raphael.no-deps.js"
-Cohesion: 0.10
-Nodes (14): base3(), bezlen(), cacher(), newf(), getTatLen(), inter(), interCount(), interHelper() (+6 more)
+Cohesion: 0.07
+Nodes (22): Animation(), base3(), bezlen(), cacher(), newf(), CubicBezierAtTime(), sampleCurveX(), solve() (+14 more)
 
 ### Community 127 - "fe"
-Cohesion: 0.14
-Nodes (37): a(), ae(), b(), c(), ce(), cn(), ct(), d() (+29 more)
+Cohesion: 0.12
+Nodes (36): ae(), b(), c(), ce(), cn(), ct(), d(), dt() (+28 more)
 
 ### Community 128 - "slim.js"
 Cohesion: 0.12
@@ -1470,9 +1482,9 @@ Nodes (24): AddonHandler(), buildGraph(), _classCallCheck(), Color(), ColorHandl
 Cohesion: 0.13
 Nodes (34): applyChanges(), atInterestingExpression(), buildRequest(), closeArgHints(), dialog(), docValue(), elt(), fadeOut() (+26 more)
 
-### Community 132 - "indexOf"
-Cohesion: 0.07
-Nodes (23): calculatePageHeight(), getBottomPosition(), getItemHeight(), createIterResult(), createMetadata(), standardizePropertyKey(), createPatterns(), Document() (+15 more)
+### Community 132 - "innerDeepEqual"
+Cohesion: 0.14
+Nodes (21): checkIsPromise(), compare(), compareExceptionKey(), expectedException(), expectsError(), expectsNoError(), findLooseMatchingPrimitives(), getEnumerables() (+13 more)
 
 ### Community 133 - "Room & Consumption Management"
 Cohesion: 0.06
@@ -1491,16 +1503,16 @@ Cohesion: 0.12
 Nodes (32): OverlayScrollbarsInstance(), addRemoveClass(), bodyMinSizeChanged(), checkCache(), checkSettingsStringValue(), connectMutationObservers(), createHostClassNameRegExp(), createMutationObservers() (+24 more)
 
 ### Community 137 - "emit"
-Cohesion: 0.05
-Nodes (51): addChunk(), _addListener(), afterTransform(), afterWrite(), read(), callFinal(), checkListener(), clearBuffer() (+43 more)
+Cohesion: 0.08
+Nodes (36): addChunk(), _addListener(), afterTransform(), afterWrite(), read(), callFinal(), checkListener(), clearBuffer() (+28 more)
 
-### Community 138 - "EventServiceProvider.php"
-Cohesion: 0.18
-Nodes (7): LogDocumentNotificationSent, EventServiceProvider, Illuminate\Auth\Events\Registered, Illuminate\Auth\Listeners\SendEmailVerificationNotification, Illuminate\Foundation\Support\Providers\EventServiceProvider, Illuminate\Notifications\Events\NotificationSent, Illuminate\Support\Facades\Event
+### Community 138 - "DocumentAuditLogger"
+Cohesion: 0.26
+Nodes (3): LogDocumentNotificationFailed, DocumentAuditLogger, Illuminate\Notifications\Events\NotificationFailed
 
-### Community 139 - "write"
-Cohesion: 0.16
-Nodes (24): attrib(), beginWhiteSpace(), charAt(), checkBufferLength(), closeTag(), closeText(), debuglog(), deprecate() (+16 more)
+### Community 139 - "FuelClaim"
+Cohesion: 0.13
+Nodes (3): FuelClaimApiController, FuelClaimController, FuelClaim
 
 ### Community 140 - "inputmask.js"
 Cohesion: 0.16
@@ -1514,9 +1526,9 @@ Nodes (12): computeStyleTests(), dataAttr(), finalPropName(), getData(), getDefa
 Cohesion: 0.09
 Nodes (16): binstring2buf(), buf2binstring(), buf2string(), generateWorker(), immediate(), inflateEnd(), NodejsStreamInputAdapter(), NodejsStreamOutputAdapter() (+8 more)
 
-### Community 143 - "byteLength"
-Cohesion: 0.11
-Nodes (27): alloc(), allocUnsafe(), asciiToBytes(), asciiWrite(), assertSize(), base64clean(), base64ToBytes(), base64Write() (+19 more)
+### Community 143 - ".copy"
+Cohesion: 0.08
+Nodes (32): alloc(), allocUnsafe(), asciiToBytes(), asciiWrite(), assertSize(), base64clean(), base64ToBytes(), base64Write() (+24 more)
 
 ### Community 144 - "from"
 Cohesion: 0.07
@@ -1526,17 +1538,17 @@ Nodes (35): allocUnsafe(), arrayIndexOf(), asciiWrite(), assertSize(), base64ToB
 Cohesion: 0.11
 Nodes (3): MultipleSelection(), Results(), SingleSelection()
 
-### Community 146 - "Fl"
-Cohesion: 0.06
-Nodes (94): Bl(), cl(), rl(), Vl(), a(), At(), be(), c() (+86 more)
+### Community 146 - "uPlot.iife.min.js"
+Cohesion: 0.11
+Nodes (26): At(), Cl(), D(), e(), f(), g(), v(), G() (+18 more)
 
-### Community 147 - "ba"
-Cohesion: 0.14
-Nodes (30): n(), b(), ba(), c(), d(), E(), e(), s() (+22 more)
+### Community 147 - "elt"
+Cohesion: 0.09
+Nodes (34): buildCollapsedSpan(), buildLineElement(), classTest(), Display(), drawSelectionCursor(), elt(), eltP(), ensureLineWrapped() (+26 more)
 
 ### Community 148 - "EmployeeBond"
 Cohesion: 0.06
-Nodes (4): BondViolationController, EmployeeBondController, BondViolation, EmployeeBond
+Nodes (5): UpdateExpiredEmployeeBonds, BondViolationController, EmployeeBondController, BondViolation, EmployeeBond
 
 ### Community 149 - "inputmask.min.js"
 Cohesion: 0.17
@@ -1545,6 +1557,10 @@ Nodes (31): a(), b(), c(), d(), E(), P(), y(), l() (+23 more)
 ### Community 150 - ".get"
 Cohesion: 0.12
 Nodes (5): ArrayAdapter(), BaseAdapter(), SelectAdapter(), Tags(), Tokenizer()
+
+### Community 151 - "RecruitmentOffering"
+Cohesion: 0.09
+Nodes (3): OfferAcceptanceRateExport, RecruitmentOffering, OfferAcceptanceRateExportTest
 
 ### Community 152 - "Flight Request Form (FRF) - Technical Design"
 Cohesion: 0.06
@@ -1575,8 +1591,8 @@ Cohesion: 0.15
 Nodes (4): DocumentApprovalNotification, Illuminate\Notifications\Messages\MailMessage, Illuminate\Notifications\Notification, MailMessage
 
 ### Community 159 - "LeaveRequest"
-Cohesion: 0.05
-Nodes (3): LeaveRequest, self, LeaveRequestBalanceChargeTest
+Cohesion: 0.03
+Nodes (10): AutoApproveLeaveRequest, AutoConvertLeaveRequest, LeaveRequestController, NationalHolidayController, LeaveRequest, self, NationalHoliday, Illuminate\Http\RedirectResponse (+2 more)
 
 ### Community 160 - "getParsingFlags"
 Cohesion: 0.11
@@ -1602,9 +1618,9 @@ Nodes (31): 1. My Dashboard, 2. Update Profile, 3. My Profile, 4. My Leave Reque
 Cohesion: 0.11
 Nodes (20): addPrefix(), addToRing(), byExpr(), clearPrefix(), findEnd(), getFromRing(), getInput(), getPrefix() (+12 more)
 
-### Community 166 - "Maatwebsite\Excel\Concerns\SkipsErrors"
+### Community 166 - "SupplyItemImport"
 Cohesion: 0.17
-Nodes (6): SupplyItemImport, VehicleImport, Maatwebsite\Excel\Concerns\OnEachRow, Maatwebsite\Excel\Concerns\SkipsErrors, Maatwebsite\Excel\Concerns\SkipsOnError, Maatwebsite\Excel\Row
+Nodes (4): SupplyItemImport, VehicleImport, Maatwebsite\Excel\Concerns\OnEachRow, Maatwebsite\Excel\Row
 
 ### Community 167 - "localeData"
 Cohesion: 0.08
@@ -1639,8 +1655,8 @@ Cohesion: 0.07
 Nodes (30): 1. Ringkasan Menu, 2. Untuk HR — **Flight Management Dashboard**, 3. Untuk HR — **Requests** (membuat FRF), 4. Untuk HR — **Issuances** (Letter of Guarantee), 5. Untuk karyawan — **My Flight Request**, 6. Kesalahan & bantuan, Flight Management, Glosarium (+22 more)
 
 ### Community 175 - "employee/detail.blade.php"
-Cohesion: 0.07
-Nodes (29): employee.components.additional-pane, employee.components.administration-pane, employee.components.bank-pane, employee.components.course-pane, employee.components.education-pane, employee.components.emergency-pane, employee.components.family-pane, employee.components.image-pane (+21 more)
+Cohesion: 0.06
+Nodes (30): employee.components.additional-pane, employee.components.administration-pane, employee.components.bank-pane, employee.components.course-pane, employee.components.education-pane, employee.components.emergency-pane, employee.components.family-pane, employee.components.image-pane (+22 more)
 
 ### Community 176 - "jquery.min.js"
 Cohesion: 0.09
@@ -1650,13 +1666,13 @@ Nodes (13): A(), at(), ht(), It(), je(), lt(), p(), U() (+5 more)
 Cohesion: 0.18
 Nodes (29): addDestroyEventListener(), disconnectMutationObservers(), documentOnSelectStart(), getHostElementInvertedScale(), getScrollbarVars(), nativeOverlayScrollbarsAreActive(), refreshScrollbarHandleLength(), refreshScrollbarHandleOffset() (+21 more)
 
+### Community 178 - "Employee"
+Cohesion: 0.02
+Nodes (18): AutoGenerateLeaveEntitlements, LeaveReportController, LengthAwarePaginator, LeaveTypeController, LeaveEntitlementController, Carbon, LeaveReportController, LengthAwarePaginator (+10 more)
+
 ### Community 179 - "docUsePattern"
 Cohesion: 0.22
 Nodes (8): docFillColor(), docStrokeColor(), docUsePattern(), getGlobalMatrix(), getPageBBox(), inverseMatrix(), multiplyMatrix(), parseTranform()
-
-### Community 180 - "LeaveType"
-Cohesion: 0.06
-Nodes (3): LeaveTypeController, LeaveTypeController, LeaveType
 
 ### Community 181 - "Employee Management"
 Cohesion: 0.07
@@ -1678,10 +1694,6 @@ Nodes (29): absRound(), addSubtract(), clone$1(), compareArrays(), createDuratio
 Cohesion: 0.08
 Nodes (28): AsyncIterator(), callInvokeWithMethodAndArg(), binarySearch(), callbackifyOnRejected(), checkBoxedPrimitive(), Context(), createIterResult(), decodeEntities() (+20 more)
 
-### Community 186 - "RecruitmentSessionService"
-Cohesion: 0.06
-Nodes (3): RecruitmentCvReview, RecruitmentInterview, RecruitmentSessionService
-
 ### Community 187 - "nodeLength"
 Cohesion: 0.11
 Nodes (29): deepestChildIsEmpty(), dom_isEmpty(), getNextTextNode(), hasChildren(), isCharPoint(), isEdgePoint(), isLeftEdgeOf(), isLeftEdgePoint() (+21 more)
@@ -1693,6 +1705,10 @@ Nodes (29): deepestChildIsEmpty(), dom_isEmpty(), getNextTextNode(), hasChildren
 ### Community 189 - "nodeLength"
 Cohesion: 0.11
 Nodes (29): deepestChildIsEmpty(), dom_isEmpty(), getNextTextNode(), hasChildren(), isCharPoint(), isEdgePoint(), isLeftEdgeOf(), isLeftEdgePoint() (+21 more)
+
+### Community 190 - "ClassLoader"
+Cohesion: 0.08
+Nodes (4): ComposerAutoloaderInit2399b49ce68e44614d9ae9465010509c, ComposerStaticInit2399b49ce68e44614d9ae9465010509c, ClassLoader, includeFile()
 
 ### Community 192 - "Splitter"
 Cohesion: 0.23
@@ -1706,6 +1722,10 @@ Nodes (28): 1. Mengakses menu Master Data, 2. Employee Data (Positions, Departme
 Cohesion: 0.07
 Nodes (28): 1. Ringkasan Menu, 2.1 Letter Administration Summary, 2.2 Estimated Next Numbers, 2.3 Letter Categories dan Recent Letter Numbers, 2.4 Quick Actions, 2. Letter Administration Dashboard, 3. Letter Numbers — daftar dan filter, 4.1 Field dinamis per **Letter Category** (+20 more)
 
+### Community 196 - "Illuminate\Console\Command"
+Cohesion: 0.11
+Nodes (8): AutoMarkLetterNumbersUsed, ClearApprovalCache, ExpireEmployeeDisciplinariesCommand, RemindPendingApprovalsCommand, TelegramFuelBotCommandsCommand, TelegramFuelBotProfileCommand, TelegramFuelBotWebhookCommand, Illuminate\Console\Command
+
 ### Community 197 - "clike.js"
 Cohesion: 0.10
 Nodes (15): contains(), Context(), cpp11StringHook(), cTypes(), def(), isTopScope(), maybeEOL(), objCTypes() (+7 more)
@@ -1715,8 +1735,8 @@ Cohesion: 0.15
 Nodes (21): accumulate(), all(), allResolver(), resolveFromAll(), checkEntryCRC32(), concat(), decode(), INTERNAL() (+13 more)
 
 ### Community 199 - "_createForOfIteratorHelperLoose"
-Cohesion: 0.08
-Nodes (29): mo(), _arrayLikeToArray(), CFFDict(), clearSubstitutionFlags(), CmapProcessor(), consonantPosition(), _createForOfIteratorHelper(), _createForOfIteratorHelperLoose() (+21 more)
+Cohesion: 0.09
+Nodes (28): _arrayLikeToArray(), CFFDict(), clearSubstitutionFlags(), CmapProcessor(), consonantPosition(), _createForOfIteratorHelper(), _createForOfIteratorHelperLoose(), DFont() (+20 more)
 
 ### Community 200 - "select2.full.js"
 Cohesion: 0.09
@@ -1733,6 +1753,10 @@ Nodes (28): addMarkedSpan(), attachMarkedSpans(), cleanUpLine(), cmpCoords(), co
 ### Community 204 - "zoom_parser_helper.php"
 Cohesion: 0.17
 Nodes (21): zoom_account_room_names(), zoom_build_availability(), zoom_build_rows_for_wo(), zoom_clock_to_minutes(), zoom_extract_wib_wita_duals(), zoom_find_room_by_meeting_id(), zoom_format_meeting_id(), zoom_format_meeting_time_display() (+13 more)
+
+### Community 205 - "Xe"
+Cohesion: 0.13
+Nodes (23): an(), Be(), k(), Ft(), gt(), It(), je(), jt() (+15 more)
 
 ### Community 206 - "jszip.min.js"
 Cohesion: 0.21
@@ -1763,8 +1787,8 @@ Cohesion: 0.12
 Nodes (15): animate(), extend(), FakejQuery(), initOverlayScrollbarsStatics(), isArrayLike(), isEmptyObject(), isFunction(), isPlainObject() (+7 more)
 
 ### Community 213 - "formatValue"
-Cohesion: 0.07
-Nodes (40): addPageBreaksIfNecessary(), attrib(), beginWhiteSpace(), charAt(), closeTag(), copyStyle(), createMetadata(), standardizePropertyKey() (+32 more)
+Cohesion: 0.11
+Nodes (26): addPageBreaksIfNecessary(), copyStyle(), fixFilename(), flattenStyleArray(), FontProvider(), formatError(), formatProperty(), formatValue() (+18 more)
 
 ### Community 214 - ".append"
 Cohesion: 0.12
@@ -1786,13 +1810,17 @@ Nodes (25): 1. Ringkasan Menu, 2. Untuk HR — Dashboard, 3.1 Daftar & filter, 3
 Cohesion: 0.09
 Nodes (25): addListener(), addResizeListener(), boundingRects(), createDiv(), createEvent(), createLocalOrUTC(), createResizer(), fromNativeEvent() (+17 more)
 
-### Community 219 - "Xe"
-Cohesion: 0.12
-Nodes (25): an(), At(), Be(), k(), Ft(), gt(), It(), je() (+17 more)
+### Community 219 - "Fl"
+Cohesion: 0.15
+Nodes (33): Bl(), Vl(), Ce(), Fl(), bn(), Hn(), il(), jn() (+25 more)
 
 ### Community 220 - "erlang.js"
 Cohesion: 0.20
 Nodes (24): aToken(), d(), defaultToken(), doubleQuote(), fakeToken(), getToken(), getTokenIndex(), greedy() (+16 more)
+
+### Community 221 - "RecruitmentNotificationService"
+Cohesion: 0.15
+Nodes (4): RecruitmentAssessment, App\Notifications\RecruitmentNotification, RecruitmentNotificationService, Illuminate\Support\Facades\Mail
 
 ### Community 224 - "bootstrap/js/bootstrap.js"
 Cohesion: 0.10
@@ -1816,7 +1844,11 @@ Nodes (15): buildSegTimeText(), compileSegs(), createAriaClickAttrs(), createAri
 
 ### Community 231 - "Recent Decisions"
 Cohesion: 0.07
-Nodes (26): Decision: AdminLTE 3 for UI Framework - 2025-XX-XX, Decision: Cancelled FOA does not hold the letter - 2026-10-21, Decision: Centralized Letter Numbering System - 2025-06-XX, Decision: Disciplinary import deferred documents - 2026-08-10, Decision: Employee mutation anchors annual leave - 2026-09-08, Decision: FOA form_number not globally unique - 2026-09-11, Decision: FOA No = FOA-{project_code}-{sequence} - 2026-09-21, Decision: Form of Assignment (FOA) requestor → driver trip log - 2026-08-11 (+18 more)
+Nodes (27): Decision: AdminLTE 3 for UI Framework - 2025-XX-XX, Decision: Cancelled FOA does not hold the letter - 2026-10-21, Decision: Centralized Letter Numbering System - 2025-06-XX, Decision: Disciplinary import deferred documents - 2026-08-10, Decision: Employee mutation anchors annual leave - 2026-09-08, Decision: FOA form_number not globally unique - 2026-09-11, Decision: FOA No = FOA-{project_code}-{sequence} - 2026-09-21, Decision: Form of Assignment (FOA) requestor → driver trip log - 2026-08-11 (+19 more)
+
+### Community 232 - "Langkah kerja di Arka Hero"
+Cohesion: 0.08
+Nodes (23): 0. Prasyarat / kontrak dengan ARAIM, 1. Endpoint lookup orang untuk ARAIM (baca saja), 1. Simpan employee id Hero, 2. Konfigurasi client ARAIM di Hero, 2. Pencarian orang di menu karyawan, 3. Ikat baris lama sekali, 3. Service baca inventories, 4. API baca untuk Hero (+15 more)
 
 ### Community 233 - "jquery-ui.min.js"
 Cohesion: 0.13
@@ -1838,9 +1870,9 @@ Nodes (5): dn, dt(), e, pt, Qt()
 Cohesion: 0.13
 Nodes (5): dt, e, Gt(), un, ut()
 
-### Community 240 - "TestCase"
-Cohesion: 0.06
-Nodes (16): Illuminate\Contracts\Console\Kernel, Illuminate\Foundation\Testing\RefreshDatabase, Illuminate\Foundation\Testing\TestCase, Illuminate\Support\Facades\Cache, Illuminate\Support\Facades\Http, Mockery, ReflectionMethod, CreatesApplication (+8 more)
+### Community 240 - "OpenRouterReceiptNumberParseTest"
+Cohesion: 0.15
+Nodes (5): Illuminate\Contracts\Console\Kernel, ReflectionMethod, CreatesApplication, AutoGenerateLeaveEntitlementsScheduleTest, OpenRouterReceiptNumberParseTest
 
 ### Community 241 - "**Files**: `DocumentApprovalNotification`, `DocumentNotificationService`, `DocumentNotificationSend`, `RemindPendingApprovalsCommand`, `LogDocumentNotificationSent`/`Failed`, `DebugEmailNotificationController`, `ActivityLogController`, `config/document_notifications.php`, `emails/documents/approval.blade.php`, `emails/documents/approval-text.blade.php`, `public/images/logo_2.jpg`, migrations `jobs` + `document_notification_sends`, `docs/docker-reference.md`"
 Cohesion: 0.09
@@ -1894,10 +1926,6 @@ Nodes (13): callBlankLine(), copyState(), save(), getContextBefore(), getLineSty
 Cohesion: 0.19
 Nodes (17): adaptDestSizeToZoom(), adnotateDestImgWithBoundingClientRect(), composeImages(), copyCanvasToImg(), copyImgsToCanvas(), copySVGToImg(), copySVGToImgMostBrowsers(), copySVGToImgSafari() (+9 more)
 
-### Community 256 - "innerDeepEqual"
-Cohesion: 0.07
-Nodes (44): AssertionError(), _assertThisInitialized(), checkIsPromise(), compare(), compareExceptionKey(), _construct(), copyError(), _createClass() (+36 more)
-
 ### Community 258 - "Room & Consumption Request (RCR) — Design"
 Cohesion: 0.10
 Nodes (19): Approval, CI3 files, Config (HERO `.env`), Decisions, HERO files, IT WO API contract (arka-rest-server), IT WO mapping (no schema change on `it_wo.wo`), Karyawan / Acknowledge auto-provision (2026-07-22) (+11 more)
@@ -1931,24 +1959,24 @@ Cohesion: 0.25
 Nodes (19): init(), bindEvents(), doTriggerClickHoverEvent(), drawBarHighlight(), drawOverlay(), drawPointHighlight(), generatePlothoverEvent(), highlight() (+11 more)
 
 ### Community 266 - "raphael.min.js"
-Cohesion: 0.17
-Nodes (12): ae(), dt(), e(), gt(), h(), ht(), i(), ie() (+4 more)
+Cohesion: 0.16
+Nodes (13): ae(), dt(), e(), gt(), h(), ht(), i(), ie() (+5 more)
 
 ### Community 268 - "roundDec"
-Cohesion: 0.14
-Nodes (17): asinhAxisSplits(), fixIncr(), genIncrs(), genTimeStuffs(), timeAxisSplits(), guessDec(), incrRoundDn(), incrRoundUp() (+9 more)
+Cohesion: 0.13
+Nodes (20): fixIncr(), genIncrs(), genTimeStuffs(), timeAxisSplits(), guessDec(), incrRoundDn(), incrRoundUp(), isObj() (+12 more)
 
 ### Community 269 - "roundDec"
 Cohesion: 0.13
 Nodes (20): fixIncr(), genIncrs(), genTimeStuffs(), timeAxisSplits(), guessDec(), incrRoundDn(), incrRoundUp(), isObj() (+12 more)
 
-### Community 270 - "LetterCategory"
+### Community 270 - "t"
 Cohesion: 0.11
-Nodes (3): LetterCategory, FoaLetterCategorySeeder, LetterCategorySeeder
+Nodes (26): cl(), rl(), a(), c(), dl(), el(), en(), f() (+18 more)
 
 ### Community 271 - "MEMORY.md"
 Cohesion: 0.04
-Nodes (47): [042] Leave Requests DataTables 403 (2026-08-03) ✅ FIXED, [043] Driver Fuel: Photo + OpenRouter → Verify → Claim (2026-08-04) ✅ COMPLETE, [044] Telegram Fuel Bot (off-network) (2026-08-05) ✅ COMPLETE, [045] Pembinaan & Surat Peringatan (SP) (2026-08-07) ✅ COMPLETE, [046] Leave Period date fence vs accounting window (2026-08-19) ✅ COMPLETE, [047] Paid leave store/update silent fail (2026-08-19) ✅ FIXED, [048] Leave submit glitch (backdated annual + inactive administration) (2026-08-19) ✅ FIXED, [049] LSL cash-out-only blocked by leave date validation (2026-08-27) ✅ FIXED (+39 more)
+Nodes (51): [042] Leave Requests DataTables 403 (2026-08-03) ✅ FIXED, [043] Driver Fuel: Photo + OpenRouter → Verify → Claim (2026-08-04) ✅ COMPLETE, [044] Telegram Fuel Bot (off-network) (2026-08-05) ✅ COMPLETE, [045] Pembinaan & Surat Peringatan (SP) (2026-08-07) ✅ COMPLETE, [046] Leave Period date fence vs accounting window (2026-08-19) ✅ COMPLETE, [047] Paid leave store/update silent fail (2026-08-19) ✅ FIXED, [048] Leave submit glitch (backdated annual + inactive administration) (2026-08-19) ✅ FIXED, [049] LSL cash-out-only blocked by leave date validation (2026-08-27) ✅ FIXED (+43 more)
 
 ### Community 273 - "jquery.flot.touchNavigate.js"
 Cohesion: 0.23
@@ -1963,8 +1991,8 @@ Cohesion: 0.12
 Nodes (19): absCeil(), absFloor(), as(), bubble(), daysToMonths(), expandFormat(), replaceLongDateFormatTokens(), formatMoment() (+11 more)
 
 ### Community 276 - "raphael.no-deps.min.js"
-Cohesion: 0.15
-Nodes (14): Vt(), ae(), dt(), e(), gt(), h(), ht(), i() (+6 more)
+Cohesion: 0.17
+Nodes (12): ae(), dt(), e(), gt(), h(), ht(), i(), ie() (+4 more)
 
 ### Community 279 - "Editor"
 Cohesion: 0.11
@@ -2022,17 +2050,17 @@ Nodes (11): init(), initTouchNavigation(), bindEvents(), distance(), executeActi
 Cohesion: 0.12
 Nodes (18): AutoSync(), AutoSync_classCallCheck(), Bullet(), Bullet_classCallCheck(), createText(), Editor(), Editor_classCallCheck(), History() (+10 more)
 
-### Community 293 - "getPos"
-Cohesion: 0.18
-Nodes (10): asinh(), clamp(), logAxisValsFilt(), seriesPointsShow(), getHPos(), getOuterIdxs(), getPos(), getValPct() (+2 more)
+### Community 293 - "closestIdx"
+Cohesion: 0.12
+Nodes (15): asinh(), clamp(), closestIdx(), findIncr(), logAxisValsFilt(), numIntDigits(), seriesPointsShow(), sinh() (+7 more)
 
 ### Community 294 - "closestIdx"
 Cohesion: 0.12
 Nodes (15): asinh(), clamp(), closestIdx(), findIncr(), logAxisValsFilt(), numIntDigits(), seriesPointsShow(), sinh() (+7 more)
 
 ### Community 295 - "ifNull"
-Cohesion: 0.29
-Nodes (13): addGap(), bars(), clipBandLine(), clipGaps(), hasData(), ifNull(), linear(), monotoneCubic() (+5 more)
+Cohesion: 0.20
+Nodes (18): addGap(), bars(), clipBandLine(), clipGaps(), hasData(), ifNull(), linear(), monotoneCubic() (+10 more)
 
 ### Community 297 - "configFromArray"
 Cohesion: 0.18
@@ -2054,6 +2082,10 @@ Nodes (17): boxModelAdjustment(), buildFragment(), buildParams(), cloneCopyEvent
 Cohesion: 0.15
 Nodes (15): Deflate(), deflateEnd(), deflateInit(), deflateInit2(), deflateReset(), deflateResetKeep(), deflateSetDictionary(), deflateSetHeader() (+7 more)
 
+### Community 302 - "TestCase"
+Cohesion: 0.10
+Nodes (9): Illuminate\Foundation\Testing\RefreshDatabase, Illuminate\Foundation\Testing\TestCase, ExampleTest, ImportPerformanceTest, TestCase, LeaveEntitlementOverlapPickTest, OpenRouterReceiptParserProviderErrorTest, OvertimeRequestCancelTest (+1 more)
+
 ### Community 303 - ".extend"
 Cohesion: 0.16
 Nodes (4): AjaxAdapter(), Defaults(), Options(), Translation()
@@ -2063,16 +2095,20 @@ Cohesion: 0.22
 Nodes (3): AttachBody(), CloseOnSelect(), EventRelay()
 
 ### Community 305 - "initSeries"
-Cohesion: 0.18
-Nodes (15): cursorPointSize(), fmtDate(), fnOrSelf(), isStr(), ptDia(), pxRatioFont(), timeAxisStamps(), timeAxisVal() (+7 more)
+Cohesion: 0.15
+Nodes (17): cursorPointSize(), fmtDate(), fnOrSelf(), incrRound(), isStr(), ptDia(), pxRatioFont(), pxRoundGen() (+9 more)
 
 ### Community 306 - "initSeries"
 Cohesion: 0.15
 Nodes (17): cursorPointSize(), fmtDate(), fnOrSelf(), incrRound(), isStr(), ptDia(), pxRatioFont(), pxRoundGen() (+9 more)
 
 ### Community 307 - "initSeries"
-Cohesion: 0.18
-Nodes (15): cursorPointSize(), fmtDate(), fnOrSelf(), isStr(), ptDia(), pxRatioFont(), timeAxisStamps(), timeAxisVal() (+7 more)
+Cohesion: 0.15
+Nodes (17): cursorPointSize(), fmtDate(), fnOrSelf(), incrRound(), isStr(), ptDia(), pxRatioFont(), pxRoundGen() (+9 more)
+
+### Community 308 - "VehicleAssignment"
+Cohesion: 0.06
+Nodes (5): Throwable, VehicleAssignmentController, VehicleAssignment, VehicleAssignmentStop, up()
 
 ### Community 309 - "require"
 Cohesion: 0.12
@@ -2130,13 +2166,21 @@ Nodes (16): ancestor(), commonAncestor(), eq(), isBodyContainer(), isBodyInline(
 Cohesion: 0.17
 Nodes (16): appendChildNodes(), create(), from(), html(), insertAfter(), isEdgePoint(), isLeftEdgeOf(), isLeftEdgePoint() (+8 more)
 
-### Community 323 - "uPlot"
-Cohesion: 0.09
-Nodes (37): clamp(), incrRound(), off(), on(), pxRoundGen(), setPxRatio(), syncFontSize(), uPlot() (+29 more)
+### Community 323 - "drawAxesGrid"
+Cohesion: 0.14
+Nodes (13): clamp(), logAxisValsFilt(), seriesPointsShow(), drawAxesGrid(), drawOrthoLines(), getHPos(), getOuterIdxs(), getPos() (+5 more)
 
-### Community 325 - "gi"
-Cohesion: 0.20
-Nodes (12): Aa(), bn(), Cn(), gi(), La(), mi(), Oa(), Ua() (+4 more)
+### Community 324 - "Maatwebsite\Excel\Concerns\WithHeadings"
+Cohesion: 0.13
+Nodes (6): RosterExport, SupplyStockOutExport, Illuminate\Pagination\LengthAwarePaginator, Maatwebsite\Excel\Concerns\FromCollection, Maatwebsite\Excel\Concerns\WithHeadings, Maatwebsite\Excel\Facades\Excel
+
+### Community 326 - "write"
+Cohesion: 0.16
+Nodes (24): attrib(), beginWhiteSpace(), charAt(), checkBufferLength(), closeTag(), closeText(), debuglog(), deprecate() (+16 more)
+
+### Community 327 - "EmployeeDisciplinaryImport"
+Cohesion: 0.15
+Nodes (3): EmployeeDisciplinaryImport, LetterAdministrationImport, Maatwebsite\Excel\Concerns\SkipsEmptyRows
 
 ### Community 328 - "jquery.bootstrap-duallistbox.min.js"
 Cohesion: 0.36
@@ -2230,9 +2274,9 @@ Nodes (5): Bar(), done(), move(), onWheel(), SimpleScrollbars()
 Cohesion: 0.33
 Nodes (12): adjustPos(), ensureFlags(), lastMatchIn(), maybeMultiline(), regexpFlags(), SearchCursor(), searchRegexpBackward(), searchRegexpBackwardMultiline() (+4 more)
 
-### Community 352 - "Illuminate\Database\Eloquent\Relations\BelongsTo"
-Cohesion: 0.02
-Nodes (25): MeetingRoomController, SupplyItemCategoryController, SupplyItemController, SupplyStockInController, SupplyStockOutController, AdministrationAssignment, AllocatesSupplyDocumentNumber, MeetingRoom (+17 more)
+### Community 352 - "AppServiceProvider.php"
+Cohesion: 0.15
+Nodes (9): AppServiceProvider, BroadcastServiceProvider, Illuminate\Pagination\Paginator, Illuminate\Support\Facades\Broadcast, Illuminate\Support\ServiceProvider, Maatwebsite\Excel\Events\BeforeExport, Maatwebsite\Excel\Events\BeforeImport, Maatwebsite\Excel\Events\BeforeWriting (+1 more)
 
 ### Community 353 - "sublime.js"
 Cohesion: 0.21
@@ -2273,10 +2317,6 @@ Nodes (12): employee.modal-additional, employee.modal-administration, employee.m
 ### Community 364 - "find"
 Cohesion: 0.16
 Nodes (19): collapsedSpanAtEnd(), collapsedSpanAtSide(), collapsedSpanAtStart(), domTextBetween(), addText(), close(), recognizeMarker(), walk() (+11 more)
-
-### Community 366 - "AdministrationExport"
-Cohesion: 0.11
-Nodes (3): AdministrationExport, EducationExport, MultipleSheetExport
 
 ### Community 367 - "ARKA HERO — Referensi API HTTP"
 Cohesion: 0.17
@@ -2342,6 +2382,10 @@ Nodes (10): as_block(), change(), context(), phase(), stage(), to_comment(), to_
 Cohesion: 0.32
 Nodes (10): buildInterpolationTokenizer(), buildStringTokenizer(), stringTokenizer(), comment(), dedent(), indent(), isEndLine(), tokenBase() (+2 more)
 
+### Community 383 - "LeaveEntitlementExport"
+Cohesion: 0.15
+Nodes (7): LeaveEntitlementExport, Worksheet, Maatwebsite\Excel\Concerns\WithCustomStartCell, Maatwebsite\Excel\Events\AfterSheet, PhpOffice\PhpSpreadsheet\Style\Alignment, PhpOffice\PhpSpreadsheet\Style\Border, PhpOffice\PhpSpreadsheet\Style\Fill
+
 ### Community 384 - "matcherFromTokens"
 Cohesion: 0.20
 Nodes (12): addCombinator(), condense(), createPositionalPseudo(), elementMatcher(), markFunction(), matcherFromGroupMatchers(), matcherFromTokens(), multipleContexts() (+4 more)
@@ -2362,13 +2406,13 @@ Nodes (12): addCombinator(), condense(), createPositionalPseudo(), elementMatche
 Cohesion: 0.17
 Nodes (3): ArrayReader(), StringReader(), Uint8ArrayReader()
 
-### Community 390 - "commit"
-Cohesion: 0.19
-Nodes (17): addClass(), cursorPointShow(), elTrans(), placeDiv(), placeTag(), remClass(), setStylePx(), batch() (+9 more)
+### Community 390 - "addClass"
+Cohesion: 0.24
+Nodes (12): addClass(), cursorPointShow(), elTrans(), placeDiv(), placeTag(), remClass(), setStylePx(), initCursorPt() (+4 more)
 
 ### Community 391 - "assign"
-Cohesion: 0.14
-Nodes (18): assign(), copy(), fastIsObj(), getMinMax(), getMinMaxLog(), hasData(), ifNull(), isObj() (+10 more)
+Cohesion: 0.18
+Nodes (12): assign(), copy(), fastIsObj(), getMinMax(), getMinMaxLog(), setDefault(), setDefaults(), setDefaults2() (+4 more)
 
 ### Community 392 - "addClass"
 Cohesion: 0.24
@@ -2379,8 +2423,12 @@ Cohesion: 0.18
 Nodes (12): assign(), copy(), fastIsObj(), getMinMax(), getMinMaxLog(), setDefault(), setDefaults(), setDefaults2() (+4 more)
 
 ### Community 394 - "assign"
-Cohesion: 0.15
-Nodes (16): assign(), copy(), fastIsObj(), getMinMax(), getMinMaxLog(), isObj(), rangeNum(), setDefault() (+8 more)
+Cohesion: 0.18
+Nodes (12): assign(), copy(), fastIsObj(), getMinMax(), getMinMaxLog(), setDefault(), setDefaults(), setDefaults2() (+4 more)
+
+### Community 395 - "BankExport"
+Cohesion: 0.10
+Nodes (3): BankExport, FamilyExport, MultipleSheetExport
 
 ### Community 396 - "Module 3: Property Management System (PMS)"
 Cohesion: 0.18
@@ -2450,9 +2498,9 @@ Nodes (10): author, description, keywords, license, main, name, scripts, test (+
 Cohesion: 0.04
 Nodes (4): CreateActivityLogTable, AddEventColumnToActivityLogTable, AddBatchUuidColumnToActivityLogTable, Illuminate\Database\Migrations\Migration
 
-### Community 415 - "checkIntBI"
-Cohesion: 0.22
-Nodes (10): boundsError(), checkIntBI(), isEqual(), isNotEqual(), solveEquation(), textOnPath(), validateMatrix(), validateNumber() (+2 more)
+### Community 415 - "FuelBotSubmission"
+Cohesion: 0.11
+Nodes (4): FuelBotLogController, FuelBotSubmission, FuelBotIngestService, TelegramFuelBotHandler
 
 ### Community 417 - "composer.json"
 Cohesion: 0.20
@@ -2529,10 +2577,6 @@ Nodes (10): isArray(), min(), localeMonths(), localeMonthsShort(), localeWeekday
 ### Community 439 - "isEditable"
 Cohesion: 0.31
 Nodes (10): ancestor(), isBodyContainer(), isBodyInline(), isCell(), isEditable(), isInline(), isList(), isPara() (+2 more)
-
-### Community 441 - "AppServiceProvider.php"
-Cohesion: 0.15
-Nodes (9): AppServiceProvider, BroadcastServiceProvider, Illuminate\Pagination\Paginator, Illuminate\Support\Facades\Broadcast, Illuminate\Support\ServiceProvider, Maatwebsite\Excel\Events\BeforeExport, Maatwebsite\Excel\Events\BeforeImport, Maatwebsite\Excel\Events\BeforeWriting (+1 more)
 
 ### Community 442 - "Database Schema"
 Cohesion: 0.22
@@ -2618,10 +2662,6 @@ Nodes (9): contains(), ImagePopover(), ImagePopover_classCallCheck(), isCustomSt
 Cohesion: 0.22
 Nodes (9): contains(), ImagePopover(), ImagePopover_classCallCheck(), isCustomStyleTag(), LinkPopover(), LinkPopover_classCallCheck(), TablePopover(), TablePopover_classCallCheck() (+1 more)
 
-### Community 466 - "EmployeeMutation"
-Cohesion: 0.14
-Nodes (5): EmployeeMutationController, EmployeeMutation, EmployeeMutationLeaveAnchor, Carbon, EmployeeMutationLeaveAnchorTest
-
 ### Community 467 - "Handler.php"
 Cohesion: 0.22
 Nodes (7): Handler, Illuminate\Database\Eloquent\ModelNotFoundException, Illuminate\Foundation\Exceptions\Handler, Illuminate\Session\TokenMismatchException, Spatie\Permission\Exceptions\UnauthorizedException, Symfony\Component\HttpKernel\Exception\NotFoundHttpException, Throwable
@@ -2646,24 +2686,16 @@ Nodes (8): components.approval-status-card, components.manual-approver-selector,
 Cohesion: 0.25
 Nodes (8): assert, fs, OUTPUT, path, run(), SOURCE, vscode, waitForFile()
 
-### Community 474 - "wa"
-Cohesion: 0.29
-Nodes (13): Aa(), Ce(), Fe(), ga(), Ha(), Ie(), Ja(), Je() (+5 more)
+### Community 478 - "format_date_with_weekday"
+Cohesion: 0.15
+Nodes (7): format_date_with_weekday(), format_datetime_with_weekday(), formatRequestReason(), Collection, DateTimeInterface, user_accessible_projects(), self
 
-### Community 478 - "PHPUnit\Framework\TestCase"
-Cohesion: 0.20
-Nodes (3): LotOriginPosting, PHPUnit\Framework\TestCase, LotOriginPostingTest
-
-### Community 479 - "Maatwebsite\Excel\Concerns\WithHeadings"
-Cohesion: 0.07
-Nodes (13): EmployeeDisciplinaryExport, LetterAdministrationExport, SupplyItemExport, SupplyStockInExport, SupplyStockOutExport, VehicleExport, Illuminate\Database\Eloquent\Builder, Illuminate\Pagination\LengthAwarePaginator (+5 more)
-
-### Community 480 - "R"
-Cohesion: 0.22
-Nodes (3): nu(), R(), R()
+### Community 481 - "EventEmitter"
+Cohesion: 0.13
+Nodes (11): _addListener(), arrayClone(), checkListener(), EventEmitter(), _getMaxListeners(), _listeners(), _onceWrap(), prependListener() (+3 more)
 
 ### Community 484 - "EmployeeDisciplinary"
-Cohesion: 0.05
+Cohesion: 0.06
 Nodes (9): DisciplinaryCriterionController, EmployeeDisciplinaryController, DisciplinaryCriterion, EmployeeDisciplinary, DisciplinaryService, Carbon, Collection, DisciplinaryCriteriaSeeder (+1 more)
 
 ### Community 486 - "require-dev"
@@ -2742,9 +2774,9 @@ Nodes (8): clusterBy(), head(), last(), lastAncestor(), listPrev(), not(), point
 Cohesion: 0.29
 Nodes (8): clusterBy(), head(), last(), lastAncestor(), listPrev(), not(), pointToTextRange(), tail()
 
-### Community 510 - "commit"
-Cohesion: 0.19
-Nodes (17): addClass(), cursorPointShow(), elTrans(), placeDiv(), placeTag(), remClass(), setStylePx(), batch() (+9 more)
+### Community 510 - "addClass"
+Cohesion: 0.43
+Nodes (8): addClass(), elTrans(), placeDiv(), placeTag(), remClass(), initCursorPt(), initLegendRow(), toggleDOM()
 
 ### Community 511 - "leave-requests/my-edit.blade.php"
 Cohesion: 0.25
@@ -2754,13 +2786,13 @@ Nodes (7): components.manual-approver-selector, leave-requests.partials.leave-ba
 Cohesion: 0.29
 Nodes (7): autoload, files, psr-4, App\\, Database\\Factories\\, Database\\Seeders\\, app/Helpers/Common.php
 
-### Community 513 - "10.5 Tutorial Postman (Workforce)"
-Cohesion: 0.14
-Nodes (14): 10.1 Profil lengkap (employee + administrations), 10.2 Aktivitas agregat, 10.3 Timeline satu karyawan, 10.4 Daftar per jenis (cuti / LOT / lembur), 10.5 Tutorial Postman (Workforce), 10. Workforce — profil & aktivitas karyawan, Contoh request (`GET`), Contoh request mentah (+6 more)
+### Community 513 - "10. Workforce — profil & aktivitas karyawan"
+Cohesion: 0.29
+Nodes (7): 10.1 Profil lengkap (employee + administrations), 10.2 Aktivitas agregat, 10.3 Timeline satu karyawan, 10.4 Daftar per jenis (cuti / LOT / lembur), 10. Workforce — profil & aktivitas karyawan, Field JSON ringkas (integrasi), Konvensi workforce
 
 ### Community 515 - "5. Employees"
-Cohesion: 0.22
-Nodes (9): 5.1 `GET /api/employees`, 5.2 `GET /api/employees/active`, 5.3 `GET /api/employees/list`, 5.4 `GET /api/employees/genders`, 5.5 `POST /api/employees/search`, 5.6 `POST /api/employees/status`, 5.7 `GET /api/employees/by-nik/{nik}`, 5.8 `GET /api/employees/{id}` (+1 more)
+Cohesion: 0.20
+Nodes (10): 5.1 `GET /api/employees`, 5.2 `GET /api/employees/active`, 5.3 `GET /api/employees/list`, 5.4 `GET /api/employees/genders`, 5.5 `POST /api/employees/search`, 5.6 `POST /api/employees/status`, 5.7 `GET /api/employees/lookup`, 5.8 `GET /api/employees/by-nik/{nik}` (+2 more)
 
 ### Community 516 - "Architecture Documentation Guidelines"
 Cohesion: 0.29
@@ -2906,10 +2938,6 @@ Nodes (4): affix(), next(), prev(), today()
 Cohesion: 0.38
 Nodes (7): hostOnMouseEnter(), hostOnMouseLeave(), hostOnMouseMove(), refreshScrollbarsAutoHide(), setupHostMouseTouchEvents(), onTrackMouseTouchEnter(), onTrackMouseTouchLeave()
 
-### Community 557 - "CubicBezierAtTime"
-Cohesion: 0.47
-Nodes (6): CubicBezierAtTime(), sampleCurveX(), solve(), solveCurveX(), Matrix(), runAnimation()
-
 ### Community 558 - "detectEncoding"
 Cohesion: 0.38
 Nodes (3): detectEncoding(), Utf16Decoder(), Utf32AutoDecoder()
@@ -2917,6 +2945,10 @@ Nodes (3): detectEncoding(), Utf16Decoder(), Utf32AutoDecoder()
 ### Community 559 - "slowToString"
 Cohesion: 0.29
 Nodes (7): asciiSlice(), base64Slice(), hexSlice(), latin1Slice(), slowToString(), utf16leSlice(), utf8Slice()
+
+### Community 560 - "ArkFleetClient"
+Cohesion: 0.22
+Nodes (3): ArkFleetClient, Illuminate\Support\Facades\Cache, ArkFleetClientExtraUnitsTest
 
 ### Community 562 - "summernote-ext-specialchars.js"
 Cohesion: 0.57
@@ -2950,13 +2982,9 @@ Nodes (6): partials.official-travel-detail-styles, vehicle-assignments.partials.
 Cohesion: 0.33
 Nodes (6): BASE_URL, __dirname, login(), main(), outDir, root
 
-### Community 570 - "Kernel"
-Cohesion: 0.40
-Nodes (3): Kernel, Illuminate\Console\Scheduling\Schedule, Illuminate\Foundation\Console\Kernel
-
-### Community 571 - "CubicBezierAtTime"
-Cohesion: 0.47
-Nodes (6): CubicBezierAtTime(), sampleCurveX(), solve(), solveCurveX(), Matrix(), runAnimation()
+### Community 572 - "export-2025-09-24_ac51a828.md"
+Cohesion: 0.13
+Nodes (14): Sheet: additional data, Sheet: administration, Sheet: bank accounts, Sheet: course, Sheet: education, Sheet: emergency call, Sheet: family, Sheet: health insurance (+6 more)
 
 ### Community 573 - "config"
 Cohesion: 0.33
@@ -3450,25 +3478,69 @@ Nodes (3): autoload-dev, psr-4, Tests\\
 Cohesion: 0.67
 Nodes (3): keywords, framework, laravel
 
-### Community 761 - "TelegramClient"
-Cohesion: 0.06
-Nodes (14): AutoApproveLeaveRequest, AutoConvertLeaveRequest, AutoMarkLetterNumbersUsed, ClearApprovalCache, CloseExpiredRecruitmentRequests, ExpireEmployeeDisciplinariesCommand, RemindPendingApprovalsCommand, TelegramFuelBotCommandsCommand (+6 more)
+### Community 759 - "ifNull"
+Cohesion: 0.28
+Nodes (9): bars(), hasData(), ifNull(), rect(), doFill(), doStroke(), drawPath(), fillStroke() (+1 more)
+
+### Community 761 - "wa"
+Cohesion: 0.21
+Nodes (17): za(), Aa(), Ce(), Fe(), G(), ga(), Ha(), Ie() (+9 more)
+
+### Community 762 - "al"
+Cohesion: 0.36
+Nodes (10): be(), Ee(), al(), i(), Pn(), ke(), Me(), tl() (+2 more)
 
 ### Community 763 - "ifNull"
 Cohesion: 0.28
 Nodes (9): bars(), hasData(), ifNull(), rect(), doFill(), doStroke(), drawPath(), fillStroke() (+1 more)
 
-### Community 782 - "LeaveEntitlementExport"
-Cohesion: 0.14
-Nodes (7): LeaveEntitlementExport, Worksheet, Maatwebsite\Excel\Concerns\WithCustomStartCell, Maatwebsite\Excel\Events\AfterSheet, PhpOffice\PhpSpreadsheet\Style\Alignment, PhpOffice\PhpSpreadsheet\Style\Border, PhpOffice\PhpSpreadsheet\Style\Fill
-
-### Community 827 - "updateCursor"
+### Community 764 - "EventServiceProvider.php"
 Cohesion: 0.18
-Nodes (12): closestIdx(), dataIdx(), elColor(), elSize(), findIncr(), numIntDigits(), sinh(), closestIdxFromXpos() (+4 more)
+Nodes (7): LogDocumentNotificationSent, EventServiceProvider, Illuminate\Auth\Events\Registered, Illuminate\Auth\Listeners\SendEmailVerificationNotification, Illuminate\Foundation\Support\Providers\EventServiceProvider, Illuminate\Notifications\Events\NotificationSent, Illuminate\Support\Facades\Event
 
-### Community 902 - "AdministrationAssignmentInput"
-Cohesion: 0.21
-Nodes (3): AdministrationAssignmentInput, InvalidArgumentException, AdministrationAssignmentInputTest
+### Community 778 - "checkIntBI"
+Cohesion: 0.22
+Nodes (10): boundsError(), checkIntBI(), isEqual(), isNotEqual(), solveEquation(), textOnPath(), validateMatrix(), validateNumber() (+2 more)
+
+### Community 781 - "getGlyph"
+Cohesion: 0.33
+Nodes (7): compose(), decompose(), EmbeddedFont(), getGlyph(), getType(), insertDottedCircle(), reorderToneMark()
+
+### Community 787 - "off"
+Cohesion: 0.33
+Nodes (6): off(), on(), setPxRatio(), delSeries(), offMouse(), onMouse()
+
+### Community 791 - "me"
+Cohesion: 0.40
+Nodes (5): He(), hn(), me(), Qe(), e()
+
+### Community 799 - "Kernel"
+Cohesion: 0.40
+Nodes (3): Kernel, Illuminate\Console\Scheduling\Schedule, Illuminate\Foundation\Console\Kernel
+
+### Community 827 - "ATK_STOCK_2026_aaf5f4b0.md"
+Cohesion: 0.50
+Nodes (3): Sheet: Katalog, Sheet: Keluar, Sheet: Masuk
+
+### Community 829 - "CONSUMABLE_STOCK_HO_2026_4a269922.md"
+Cohesion: 0.50
+Nodes (3): Sheet: Katalog, Sheet: Keluar, Sheet: Masuk
+
+### Community 841 - "10.5 Tutorial Postman (Workforce)"
+Cohesion: 0.29
+Nodes (7): 10.5 Tutorial Postman (Workforce), Contoh request (`GET`), Contoh request mentah, Header untuk request Workforce, Koleksi Postman (opsional), Siapkan environment, Troubleshooting cepat
+
+### Community 850 - "Maatwebsite\Excel\Concerns\WithMapping"
+Cohesion: 0.08
+Nodes (9): EmployeeDisciplinaryExport, LetterAdministrationExport, SupplyItemExport, SupplyStockInExport, VehicleExport, Illuminate\Database\Eloquent\Builder, Maatwebsite\Excel\Concerns\Exportable, Maatwebsite\Excel\Concerns\WithMapping (+1 more)
+
+### Community 854 - "LoadEnvironmentVariables.php"
+Cohesion: 0.29
+Nodes (5): LoadEnvironmentVariables, Dotenv\Dotenv, Dotenv\Repository\Adapter\PutenvAdapter, Dotenv\Repository\RepositoryBuilder, Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables
+
+### Community 894 - "Bank"
+Cohesion: 0.04
+Nodes (10): BankController, EmployeeRegistrationAdminController, EmployeeRegistrationController, ReligionController, Bank, EmployeeRegistration, EmployeeRegistrationToken, Religion (+2 more)
 
 ### Community 912 - "clipArc"
 Cohesion: 1.00
@@ -3566,37 +3638,33 @@ Nodes (3): officialtravels.partials.employee-option-data, officialtravels.partia
 Cohesion: 0.50
 Nodes (3): officialtravels.partials.employee-option-data, officialtravels.partials.lot-origin-posting-script, officialtravels.partials.stop-destinations-fields
 
-### Community 2293 - "LookupList"
-Cohesion: 0.36
-Nodes (8): LazyArray(), LookupList(), Optional(), Pointer(), StateTable(), StateTable1(), Struct(), UnboundedArray()
-
-### Community 2295 - ".valToPos"
-Cohesion: 0.33
-Nodes (3): logAxisValsFilt(), seriesPointsShow(), self
-
-### Community 2319 - "parseStyleSheet"
+### Community 2297 - "parseStyleSheet"
 Cohesion: 0.67
 Nodes (3): parseSelector(), parseStyleAttr(), parseStyleSheet()
 
+### Community 2300 - "saslprep"
+Cohesion: 0.67
+Nodes (3): processPasswordR5(), saslprep(), toCodePoints()
+
 ## Knowledge Gaps
-- **1652 isolated node(s):** `name`, `type`, `description`, `framework`, `laravel` (+1647 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 7487 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **303 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **1700 isolated node(s):** `name`, `type`, `description`, `framework`, `laravel` (+1695 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 7553 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **296 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `UserProject` connect `UserProject` to `Maatwebsite\Excel\Concerns\Importable`, `RosterExport`, `Officialtravel`, `SupplyOrder`, `FlightRequest`, `LeaveEntitlementExport`, `EmployeeBond`, `RecruitmentRequest`, `Maatwebsite\Excel\Concerns\FromQuery`, `Maatwebsite\Excel\Concerns\SkipsErrors`, `Project`, `OvertimeRequest`, `LeaveEntitlementController`, `Administration`, `LeaveType`, `RecruitmentSessionController`, `EmployeeDisciplinaryImport`, `Department`, `Illuminate\Http\Request`, `EmployeeMutation`, `LeaveEntitlement`, `RecruitmentReportController`, `Maatwebsite\Excel\Concerns\WithHeadings`, `Illuminate\Database\Eloquent\Relations\BelongsTo`, `ManPowerPlan`, `.datatableResponse`, `EmployeeDisciplinary`, `User`, `LeaveRequestController`, `RoomConsumptionRequestController`, `Illuminate\Database\Eloquent\Model`, `TestCase`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `ar()` connect `main.min.js` to `DocMeasure`, `z`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
-- **Why does `__isArray()` connect `DocMeasure` to `pdfmake.js`, `main.min.js`?**
-  _High betweenness centrality (0.009) - this node is a cross-community bridge._
+- **Why does `ar()` connect `r` to `DocMeasure`, `z`, `main.min.js`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `__isArray()` connect `DocMeasure` to `pdfmake.js`, `r`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `De()` connect `K` to `jquery.slim.min.js`, `summernote-lite.min.js`, `xe`, `z`, `Fl`?**
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
 - **What connects `name`, `type`, `description` to the rest of the system?**
-  _1652 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _1700 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `pdfmake.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.006952053500585635 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.006844770385891392 - nodes in this community are weakly interconnected._
 - **Should `pdfmake.min.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.006547719554980206 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.006574169628865191 - nodes in this community are weakly interconnected._
 - **Should `main.js` be split into smaller, more focused modules?**
   _Cohesion score 0.012033594933223186 - nodes in this community are weakly interconnected._

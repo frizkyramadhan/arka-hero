@@ -323,6 +323,12 @@
                 border-color: #abdde5;
             }
 
+            .approval-status.ot-doc-cancelled {
+                background: #e9ecef;
+                color: #212529;
+                border-color: #adb5bd;
+            }
+
             .sign-right .approval-blocks {
                 display: flex;
                 gap: 12px;
@@ -420,6 +426,7 @@
                 'approved' => 'Approved',
                 'rejected' => 'Rejected',
                 'finished' => 'Finished',
+                'cancelled' => 'Cancelled',
                 default => ucfirst($otStatusKey !== '' ? $otStatusKey : '—'),
             };
             $otDocStatusClass = match ($otStatusKey) {
@@ -428,6 +435,7 @@
                 'approved' => 'ot-doc-approved',
                 'rejected' => 'reject',
                 'finished' => 'ot-doc-finished',
+                'cancelled' => 'ot-doc-cancelled',
                 default => 'pending',
             };
 

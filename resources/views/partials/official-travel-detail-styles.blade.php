@@ -91,6 +91,10 @@
         background-color: #17a2b8;
     }
 
+    .overtime-pill-cancelled {
+        background-color: #343a40;
+    }
+
     .travel-content {
         padding: 0 20px;
     }
@@ -250,6 +254,14 @@
     }
 
     .print-btn:hover {
+        color: white;
+    }
+
+    .cancel-btn {
+        background-color: #343a40;
+    }
+
+    .cancel-btn:hover {
         color: white;
     }
 

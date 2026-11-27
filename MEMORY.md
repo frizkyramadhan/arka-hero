@@ -1,5 +1,15 @@
 **Purpose**: AI's persistent knowledge base for project context and learnings - ARKA HERO HRMS
-**Last Updated**: 2026-11-24
+**Last Updated**: 2026-11-27
+
+### [091] Overtime request: cancel dan delete (2026-11-27)
+
+**Need**: Permintaan lembur bisa dibatalkan setelah diajukan, dan draft tetap bisa dihapus.
+
+**Behavior**:
+- **Delete** dan **Cancel** hanya di halaman HR (`overtime-requests.delete`). Delete = draft. Cancel = pending atau approved; approval yang masih terbuka ditutup. Tidak ada di My Overtime.
+- **Edit HR** untuk `draft` dan `approved` (`overtime-requests.edit`). Simpan pada status approved tidak mengubah status dan tidak membuat approval plan baru. My Overtime hanya boleh edit draft milik sendiri.
+
+**Files**: `OvertimeRequest`, `OvertimeRequestController::performCancel`, `ApprovalPlanController::update`, migration `2026_11_27_110000_add_cancelled_columns_to_overtime_requests`.
 
 ### [090] Offer Acceptance Rate Excel: hari tampil (2026-11-24)
 

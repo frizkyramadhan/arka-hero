@@ -232,6 +232,18 @@ class ApprovalPlanController extends Controller
             return redirect()->back()->with('toast_error', $response['message']);
         }
 
+        if ($approval_plan->document_type === 'overtime_request') {
+            $otStatus = OvertimeRequest::query()->whereKey($approval_plan->document_id)->value('status');
+            if ($otStatus === OvertimeRequest::STATUS_CANCELLED) {
+                $message = 'This overtime request has been cancelled.';
+                if ($request->ajax()) {
+                    return response()->json(['success' => false, 'message' => $message], 422);
+                }
+
+                return redirect()->back()->with('toast_error', $message);
+            }
+        }
+
         // Update the approval plan with the decision
         $approval_plan->update([
             'status' => $request->status,
@@ -300,11 +312,13 @@ class ApprovalPlanController extends Controller
                     ]);
                 }
             } elseif ($document_type === 'overtime_request') {
-                $document->update([
-                    'status' => OvertimeRequest::STATUS_REJECTED,
-                    'rejected_at' => now(),
-                    'approved_at' => null,
-                ]);
+                if ($document->fresh()?->status !== OvertimeRequest::STATUS_CANCELLED) {
+                    $document->update([
+                        'status' => OvertimeRequest::STATUS_REJECTED,
+                        'rejected_at' => now(),
+                        'approved_at' => null,
+                    ]);
+                }
             } elseif ($document_type === 'supply_order') {
                 $document->update([
                     'status' => SupplyOrder::STATUS_REJECTED,
@@ -330,20 +344,19 @@ class ApprovalPlanController extends Controller
                 'status' => 'approved',
             ];
 
-            $document->update($updateData);
+            $cancelledOvertime = $document_type === 'overtime_request'
+                && $document->fresh()?->status === OvertimeRequest::STATUS_CANCELLED;
 
-            // Update leave entitlements ONLY for leave_request documents
-            // if ($document_type === 'leave_request') {
-            //     $this->updateLeaveEntitlements($document);
-            // }
+            if (! $cancelledOvertime) {
+                $document->update($updateData);
 
-            // Log the approval completion
-            Log::info('Document approved successfully', [
-                'document_type' => $document_type,
-                'document_id' => $document->id,
-                'approved_at' => $approval_plan->decisionAt(),
-                'approver_id' => $approval_plan->approver_id,
-            ]);
+                Log::info('Document approved successfully', [
+                    'document_type' => $document_type,
+                    'document_id' => $document->id,
+                    'approved_at' => $approval_plan->decisionAt(),
+                    'approver_id' => $approval_plan->approver_id,
+                ]);
+            }
         }
 
         try {

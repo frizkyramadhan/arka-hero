@@ -238,14 +238,7 @@ class OvertimeReportController extends Controller
 
     private function statusBadgeHtml(string $status): string
     {
-        $map = [
-            OvertimeRequest::STATUS_DRAFT => 'secondary',
-            OvertimeRequest::STATUS_PENDING => 'warning',
-            OvertimeRequest::STATUS_APPROVED => 'success',
-            OvertimeRequest::STATUS_REJECTED => 'danger',
-            OvertimeRequest::STATUS_FINISHED => 'info',
-        ];
-        $c = $map[$status] ?? 'secondary';
+        $c = OvertimeRequest::statusBadgeClassFor($status);
 
         return '<span class="badge badge-'.$c.'">'.strtoupper(e($status)).'</span>';
     }

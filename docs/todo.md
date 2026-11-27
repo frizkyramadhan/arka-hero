@@ -1,5 +1,5 @@
 **Purpose**: Track current work and immediate priorities for ARKA HERO HRMS
-**Last Updated**: 2026-11-24
+**Last Updated**: 2026-11-27
 
 ## Task Management Guidelines
 
@@ -55,6 +55,8 @@ Include relevant context in brackets to help with future AI-assisted coding:
 
 ## Recently Completed
 
+-   `[done] P1: HR bisa edit overtime Draft dan Approved; cancel dan delete hanya di HR [OvertimeRequest::isHrEditable, canBeEditedBy] (completed: 2026-11-27)`
+-   `[done] P1: Overtime request cancel (pending/approved → cancelled, tutup approval) dan delete draft di halaman HR [OvertimeRequest::canCancel, OvertimeRequestController::performCancel] (completed: 2026-11-27)`
 -   `[done] P1: Offer Acceptance Rate Excel: Offering Date dari Letter Date OL, Response Date dari reviewed_at, Response Time teks `N Day(s)` [OfferAcceptanceRateExport, RecruitmentOffering::acceptanceTiming] (completed: 2026-11-26)`
 -   `[done] P1: Scheduler harian isi saldo cuti yang belum ada [leave:auto-generate-entitlements, 00:30] (completed: 2026-11-19)`
 -   `[done] P2: API status karyawan by NIK → true/false/not found [POST /api/employees/status, EmployeeApiController::statusByNik] (completed: 2026-11-16)`

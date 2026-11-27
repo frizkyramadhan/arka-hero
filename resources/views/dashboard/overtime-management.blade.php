@@ -38,6 +38,7 @@
                                             <th class="border-0">Approved</th>
                                             <th class="border-0">Rejected</th>
                                             <th class="border-0">Finished</th>
+                                            <th class="border-0">Cancelled</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -58,6 +59,9 @@
                                             </td>
                                             <td class="align-middle"><span
                                                     class="badge badge-info">{{ number_format($countFinished) }}</span>
+                                            </td>
+                                            <td class="align-middle"><span
+                                                    class="badge badge-dark">{{ number_format($countCancelled) }}</span>
                                             </td>
                                         </tr>
                                     </tbody>

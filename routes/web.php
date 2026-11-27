@@ -976,7 +976,6 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/my-requests', [OvertimeRequestController::class, 'myRequestsStore'])->name('my-requests.store');
         Route::get('/my-requests/{overtimeRequest}/edit', [OvertimeRequestController::class, 'myRequestsEdit'])->name('my-requests.edit');
         Route::put('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestsUpdate'])->name('my-requests.update');
-        Route::delete('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestsDestroy'])->name('my-requests.destroy');
         Route::post('/my-requests/{overtimeRequest}/submit-for-approval', [OvertimeRequestController::class, 'myRequestsSubmitForApproval'])->name('my-requests.submit-for-approval');
         Route::get('/my-requests/{overtimeRequest}/print', [OvertimeRequestController::class, 'print'])->name('my-requests.print');
         Route::get('/my-requests/{overtimeRequest}', [OvertimeRequestController::class, 'myRequestShow'])->name('my-requests.show');
@@ -996,6 +995,7 @@ Route::group(['middleware' => ['auth']], function () {
             Route::get('/{overtimeRequest}/edit', [OvertimeRequestController::class, 'edit'])->name('edit');
             Route::put('/{overtimeRequest}', [OvertimeRequestController::class, 'update'])->name('update');
             Route::delete('/{overtimeRequest}', [OvertimeRequestController::class, 'destroy'])->name('destroy');
+            Route::post('/{overtimeRequest}/cancel', [OvertimeRequestController::class, 'cancel'])->name('cancel');
             Route::post('/{overtimeRequest}/submit-for-approval', [OvertimeRequestController::class, 'submitForApproval'])->name('submit-for-approval');
             Route::get('/{overtimeRequest}/print', [OvertimeRequestController::class, 'print'])->name('print');
             Route::get('/', [OvertimeRequestController::class, 'index'])->name('index');

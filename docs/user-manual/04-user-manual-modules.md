@@ -3873,6 +3873,7 @@ Panduan ini menjelaskan modul **Overtime Management** di ARKA HERO: ringkasan da
 - **Approved** — disetujui (belum ditutup HR).
 - **Rejected** — ditolak.
 - **Finished** — sudah ditutup HR.
+- **Cancelled** — dibatalkan setelah diajukan (Pending atau Approved), sebelum ditutup HR.
 
 **Empat metrik di bawahnya:**
 
@@ -3991,9 +3992,10 @@ Panduan ini menjelaskan modul **Overtime Management** di ARKA HERO: ringkasan da
 **Panel Actions** (kanan):
 
 - **Back to list** — kembali ke **Overtime Requests**.
-- **Edit** — jika status masih **Draft**.
+- **Edit** — untuk status **Draft** atau **Approved**. Menyimpan permintaan yang sudah **Approved** tidak mengubah status dan tidak mengulang approval. Tombol ini ada di Overtime Requests (HR), bukan di My Overtime Request.
 - **Submit for Approval** — untuk **Draft** atau **Rejected** (konfirmasi di layar).
-- **Delete** — hapus permintaan yang masih boleh dihapus.
+- **Cancel Request** — untuk status **Pending** atau **Approved**, hanya di halaman HR. Status menjadi **Cancelled** dan langkah approval yang masih terbuka ditutup.
+- **Delete** — hapus permanen, hanya saat status masih **Draft**, hanya di halaman HR.
 - **Close Request** — hanya pada status **Approved** dan jika Anda berhak menutup lembur.
 
 <p align="center" id="overtime-detail-hr">
@@ -4022,7 +4024,7 @@ Panduan ini menjelaskan modul **Overtime Management** di ARKA HERO: ringkasan da
     <br><em>Gambar 3.4 — Modal Mark as finished</em>
 </p>
 
-**Alur status (ringkas):** **Draft** → (**Submit for Approval** / **Save & Submit**) → **Pending** → **Approved** atau **Rejected** → (**Close Request** setelah lembur selesai) → **Finished**.
+**Alur status (ringkas):** **Draft** → (**Submit for Approval** / **Save & Submit**) → **Pending** → **Approved** atau **Rejected** → (**Close Request** setelah lembur selesai) → **Finished**. **Pending** atau **Approved** juga bisa **Cancel Request** → **Cancelled**. **Draft** bisa **Delete** (hilang dari daftar).
 
 ---
 
@@ -4152,9 +4154,7 @@ Halaman detail: header **OVERTIME REQUEST**, **Register No.**, **Project**, tang
 - **Back to my list**
 - **Edit** — form **Edit overtime request #[Register No.]**
 - **Submit for Approval** — ajukan dari detail (konfirmasi)
-- **Delete** — hapus permanen (konfirmasi)
-
-Setelah **Pending** / **Approved**, tombol mengikuti status dan hak akses Anda (karyawan umumnya tidak melihat **Close Request**; penutupan dilakukan HR).
+Karyawan tidak melihat **Cancel Request** atau **Delete**. Kedua tombol itu, beserta **Edit** untuk permintaan yang sudah **Approved**, hanya ada di halaman HR. Karyawan juga tidak melihat **Close Request**; penutupan dilakukan HR.
 
 ---
 
