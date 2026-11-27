@@ -209,20 +209,27 @@
 
                         <div class="card elevation-3">
                             <div class="card-body">
-                                <div class="row mb-2">
-                                    <div class="col-md-6 mb-2 mb-md-0">
-                                        <button type="submit" name="submit_action" value="draft"
-                                            class="btn btn-warning btn-block">
-                                            <i class="fas fa-save mr-2"></i> Save as Draft
-                                        </button>
+                                @if ($overtimeRequest->status === 'approved')
+                                    <button type="submit" name="submit_action" value="save"
+                                        class="btn btn-primary btn-block mb-2">
+                                        <i class="fas fa-save mr-2"></i> Save
+                                    </button>
+                                @else
+                                    <div class="row mb-2">
+                                        <div class="col-md-6 mb-2 mb-md-0">
+                                            <button type="submit" name="submit_action" value="draft"
+                                                class="btn btn-warning btn-block">
+                                                <i class="fas fa-save mr-2"></i> Save as Draft
+                                            </button>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button type="submit" name="submit_action" value="submit"
+                                                class="btn btn-success btn-block">
+                                                <i class="fas fa-paper-plane mr-2"></i> Save & Submit
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <button type="submit" name="submit_action" value="submit"
-                                            class="btn btn-success btn-block">
-                                            <i class="fas fa-paper-plane mr-2"></i> Save & Submit
-                                        </button>
-                                    </div>
-                                </div>
+                                @endif
                                 <a href="{{ $cancelRoute }}" class="btn btn-secondary btn-block">
                                     <i class="fas fa-times-circle mr-2"></i> Cancel
                                 </a>

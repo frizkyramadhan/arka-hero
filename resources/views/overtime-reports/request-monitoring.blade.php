@@ -58,6 +58,7 @@
                                     <option value="approved" {{ $statusChoice === 'approved' ? 'selected' : '' }}>Approved</option>
                                     <option value="rejected" {{ $statusChoice === 'rejected' ? 'selected' : '' }}>Rejected</option>
                                     <option value="finished" {{ $statusChoice === 'finished' ? 'selected' : '' }}>Finished</option>
+                                    <option value="cancelled" {{ $statusChoice === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                                 </select>
                             </div>
                             <div class="col-md-6 col-lg-3 form-group mb-lg-0">

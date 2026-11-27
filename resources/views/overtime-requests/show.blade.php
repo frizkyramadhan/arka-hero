@@ -49,6 +49,7 @@
                         'approved' => 'overtime-pill-approved',
                         'rejected' => 'overtime-pill-rejected',
                         'finished' => 'overtime-pill-finished',
+                        'cancelled' => 'overtime-pill-cancelled',
                         default => 'overtime-pill-draft',
                     };
                     $statusIcon = match ($status) {
@@ -56,6 +57,7 @@
                         'approved' => 'fa-check-circle',
                         'rejected' => 'fa-times-circle',
                         'finished' => 'fa-flag-checkered',
+                        'cancelled' => 'fa-ban',
                         default => 'fa-file-alt',
                     };
                 @endphp
@@ -184,6 +186,23 @@
                             </div>
                         </div>
                     @endif
+
+                    @if ($overtimeRequest->status === 'cancelled')
+                        <div class="travel-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-ban"></i> Cancellation</h2>
+                            </div>
+                            <div class="card-body">
+                                @if ($overtimeRequest->cancelled_at)
+                                    <p class="mb-1"><strong>Cancelled at:</strong>
+                                        {{ format_datetime_with_weekday($overtimeRequest->cancelled_at) }}</p>
+                                @endif
+                                @if ($overtimeRequest->cancelledBy)
+                                    <p class="mb-0"><strong>By:</strong> {{ $overtimeRequest->cancelledBy->name }}</p>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="col-lg-4">
@@ -206,13 +225,10 @@
                     @php
                         $u = $user;
                         $isUser = $u instanceof \App\Models\User;
-                        $editable = $overtimeRequest->isEditable();
-                        $deletable = $overtimeRequest->isDeletable();
-                        $permEdit = $fromPersonal ? 'personal.overtime.edit-own' : 'overtime-requests.edit';
-                        $permDelete = $fromPersonal ? 'personal.overtime.cancel-own' : 'overtime-requests.delete';
-                        $canEdit = $isUser && $editable && $u->can($permEdit);
+                        $canEdit = $isUser && $overtimeRequest->canBeEditedBy($u, (bool) $fromPersonal);
                         $canSubmit = $canEdit && $overtimeRequest->canSubmitForApproval();
-                        $canDelete = $isUser && $deletable && $u->can($permDelete);
+                        $canDelete = $isUser && ! $fromPersonal && $overtimeRequest->canBeDeletedBy($u);
+                        $canCancel = $isUser && ! $fromPersonal && $overtimeRequest->canBeCancelledBy($u);
                         $canFinishHr =
                             !$fromPersonal &&
                             $isUser &&
@@ -249,9 +265,20 @@
                             </form>
                         @endif
 
+                        @if ($canCancel)
+                            <form method="POST"
+                                action="{{ route('overtime.requests.cancel', $overtimeRequest) }}"
+                                onsubmit="return confirm('Cancel this overtime request? Open approval steps will be closed.');">
+                                @csrf
+                                <button type="submit" class="btn-action cancel-btn w-100">
+                                    <i class="fas fa-ban"></i> Cancel Request
+                                </button>
+                            </form>
+                        @endif
+
                         @if ($canDelete)
                             <form method="POST"
-                                action="{{ $fromPersonal ? route('overtime.my-requests.destroy', $overtimeRequest) : route('overtime.requests.destroy', $overtimeRequest) }}"
+                                action="{{ route('overtime.requests.destroy', $overtimeRequest) }}"
                                 class="d-inline" onsubmit="return confirm('Delete this overtime request?');">
                                 @csrf
                                 @method('DELETE')

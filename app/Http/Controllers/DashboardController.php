@@ -1311,6 +1311,7 @@ class DashboardController extends Controller
         $countApproved = OvertimeRequest::where('status', OvertimeRequest::STATUS_APPROVED)->count();
         $countRejected = OvertimeRequest::where('status', OvertimeRequest::STATUS_REJECTED)->count();
         $countFinished = OvertimeRequest::where('status', OvertimeRequest::STATUS_FINISHED)->count();
+        $countCancelled = OvertimeRequest::where('status', OvertimeRequest::STATUS_CANCELLED)->count();
 
         $thisMonthCreated = OvertimeRequest::whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
@@ -1371,6 +1372,7 @@ class DashboardController extends Controller
             'countApproved',
             'countRejected',
             'countFinished',
+            'countCancelled',
             'thisMonthCreated',
             'lastMonthCreated',
             'createdMonthGrowthPct',

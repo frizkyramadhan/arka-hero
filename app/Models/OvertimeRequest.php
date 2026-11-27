@@ -51,6 +51,8 @@ class OvertimeRequest extends Model implements NotifiableDocument
 
     public const STATUS_FINISHED = 'finished';
 
+    public const STATUS_CANCELLED = 'cancelled';
+
     protected $fillable = [
         'register_number',
         'project_id',
@@ -60,6 +62,8 @@ class OvertimeRequest extends Model implements NotifiableDocument
         'requested_at',
         'approved_at',
         'rejected_at',
+        'cancelled_at',
+        'cancelled_by',
         'finished_at',
         'finished_by',
         'finished_remarks',
@@ -72,6 +76,7 @@ class OvertimeRequest extends Model implements NotifiableDocument
         'requested_at' => 'datetime',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
+        'cancelled_at' => 'datetime',
         'finished_at' => 'datetime',
         'manual_approvers' => 'array',
     ];
@@ -89,6 +94,11 @@ class OvertimeRequest extends Model implements NotifiableDocument
     public function finishedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'finished_by');
+    }
+
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     public function details(): HasMany
@@ -116,37 +126,53 @@ class OvertimeRequest extends Model implements NotifiableDocument
         return $this->status === self::STATUS_DRAFT;
     }
 
+    public function canCancel(): bool
+    {
+        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_APPROVED], true);
+    }
+
+    public function canBeCancelledBy(User $user): bool
+    {
+        return $this->canCancel() && $user->can('overtime-requests.delete');
+    }
+
+    public function isHrEditable(): bool
+    {
+        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_APPROVED], true);
+    }
+
+    public static function statusBadgeClassFor(string $status): string
+    {
+        return match ($status) {
+            self::STATUS_DRAFT => 'secondary',
+            self::STATUS_PENDING => 'warning',
+            self::STATUS_APPROVED => 'success',
+            self::STATUS_REJECTED => 'danger',
+            self::STATUS_FINISHED => 'info',
+            self::STATUS_CANCELLED => 'dark',
+            default => 'secondary',
+        };
+    }
+
     public function canSubmitForApproval(): bool
     {
         return $this->isEditable();
     }
 
-    public function canBeEditedBy(User $user): bool
+    public function canBeEditedBy(User $user, bool $personal = false): bool
     {
-        if (! $this->isEditable()) {
-            return false;
+        if ($personal) {
+            return $this->isEditable()
+                && $user->can('personal.overtime.edit-own')
+                && (int) $this->requested_by === (int) $user->id;
         }
 
-        if ($user->can('overtime-requests.edit')) {
-            return true;
-        }
-
-        return $user->can('personal.overtime.edit-own')
-            && (int) $this->requested_by === (int) $user->id;
+        return $user->can('overtime-requests.edit') && $this->isHrEditable();
     }
 
     public function canBeDeletedBy(User $user): bool
     {
-        if (! $this->isDeletable()) {
-            return false;
-        }
-
-        if ($user->can('overtime-requests.delete')) {
-            return true;
-        }
-
-        return $user->can('personal.overtime.cancel-own')
-            && (int) $this->requested_by === (int) $user->id;
+        return $this->isDeletable() && $user->can('overtime-requests.delete');
     }
 
     public function approvalPlans(): HasMany

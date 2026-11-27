@@ -48,6 +48,7 @@
                         'approved' => 'overtime-pill-approved',
                         'rejected' => 'overtime-pill-rejected',
                         'finished' => 'overtime-pill-finished',
+                        'cancelled' => 'overtime-pill-cancelled',
                         default => 'overtime-pill-draft',
                     };
                     $statusIcon = match ($status) {
@@ -55,6 +56,7 @@
                         'approved' => 'fa-check-circle',
                         'rejected' => 'fa-times-circle',
                         'finished' => 'fa-flag-checkered',
+                        'cancelled' => 'fa-ban',
                         default => 'fa-file-alt',
                     };
                 @endphp
@@ -183,6 +185,23 @@
                             </div>
                         </div>
                     @endif
+
+                    @if ($overtimeRequest->status === 'cancelled')
+                        <div class="travel-card">
+                            <div class="card-head">
+                                <h2><i class="fas fa-ban"></i> Cancellation</h2>
+                            </div>
+                            <div class="card-body">
+                                @if ($overtimeRequest->cancelled_at)
+                                    <p class="mb-1"><strong>Cancelled at:</strong>
+                                        {{ format_datetime_with_weekday($overtimeRequest->cancelled_at) }}</p>
+                                @endif
+                                @if ($overtimeRequest->cancelledBy)
+                                    <p class="mb-0"><strong>By:</strong> {{ $overtimeRequest->cancelledBy->name }}</p>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="col-lg-4">
@@ -205,11 +224,8 @@
                     @php
                         $u = $user;
                         $isUser = $u instanceof \App\Models\User;
-                        $editable = $overtimeRequest->isEditable();
-                        $deletable = $overtimeRequest->isDeletable();
-                        $canEdit = $isUser && $editable && $u->can('personal.overtime.edit-own');
+                        $canEdit = $isUser && $overtimeRequest->canBeEditedBy($u, true);
                         $canSubmit = $canEdit && $overtimeRequest->canSubmitForApproval();
-                        $canDelete = $isUser && $deletable && $u->can('personal.overtime.cancel-own');
                     @endphp
 
                     <div class="travel-action-buttons">
@@ -236,17 +252,6 @@
                                 @csrf
                                 <button type="submit" class="btn-action submit-approval-btn w-100">
                                     <i class="fas fa-paper-plane"></i> Submit for Approval
-                                </button>
-                            </form>
-                        @endif
-
-                        @if ($canDelete)
-                            <form method="POST" action="{{ route('overtime.my-requests.destroy', $overtimeRequest) }}"
-                                class="d-inline" onsubmit="return confirm('Delete this overtime request?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn-action delete-btn w-100">
-                                    <i class="fas fa-trash"></i> Delete
                                 </button>
                             </form>
                         @endif
